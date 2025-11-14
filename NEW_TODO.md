@@ -32,7 +32,7 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Set up documentation structure (installation, usage, API reference)
 - [ ] Configure Read the Docs integration
 
-## Phase 2: Core Data Structures (IN PROGRESS)
+## Phase 2: Core Data Structures ✅ COMPLETED
 
 ### 2.1 Sequence Representation ✅ COMPLETED (merged from copilot/vscode1763095267042)
 - [x] Implement `Sequence` class for DNA sequences
@@ -64,15 +64,15 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [x] Add methods for haplotype diversity calculations
 - [x] Create unit tests for Haplotype class (28 tests, 96% coverage)
 
-### 2.4 Network Data Structure
-- [ ] Implement `HaplotypeNetwork` class using NetworkX
-  - [ ] Store nodes (haplotypes) with attributes
-  - [ ] Store edges (connections) with distances/weights
-  - [ ] Track median vectors (inferred ancestral nodes)
-  - [ ] Store network metadata and parameters
-- [ ] Add network manipulation methods (add/remove nodes/edges)
-- [ ] Implement network validation
-- [ ] Create unit tests for HaplotypeNetwork class
+### 2.4 Network Data Structure ✅ COMPLETED
+- [x] Implement `HaplotypeNetwork` class using NetworkX
+  - [x] Store nodes (haplotypes) with attributes
+  - [x] Store edges (connections) with distances/weights
+  - [x] Track median vectors (inferred ancestral nodes)
+  - [x] Store network metadata and parameters
+- [x] Add network manipulation methods (add/remove nodes/edges)
+- [x] Implement network validation
+- [x] Create unit tests for HaplotypeNetwork class (36 tests, 94% coverage)
 
 ## Phase 3: Distance Calculation & Metrics (IN PROGRESS)
 
