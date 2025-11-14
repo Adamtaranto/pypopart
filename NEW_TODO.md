@@ -54,15 +54,15 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [x] Add methods for alignment quality checks
 - [x] Create unit tests for Alignment class (25 tests, 97% coverage)
 
-### 2.3 Haplotype Representation
-- [ ] Implement `Haplotype` class
-  - [ ] Store unique sequence variants
-  - [ ] Track frequency/count information
-  - [ ] Store associated sample IDs
-  - [ ] Handle population/group assignments
-- [ ] Implement haplotype identification from alignment
-- [ ] Add methods for haplotype diversity calculations
-- [ ] Create unit tests for Haplotype class
+### 2.3 Haplotype Representation ✅ COMPLETED
+- [x] Implement `Haplotype` class
+  - [x] Store unique sequence variants
+  - [x] Track frequency/count information
+  - [x] Store associated sample IDs
+  - [x] Handle population/group assignments
+- [x] Implement haplotype identification from alignment
+- [x] Add methods for haplotype diversity calculations
+- [x] Create unit tests for Haplotype class (28 tests, 96% coverage)
 
 ### 2.4 Network Data Structure
 - [ ] Implement `HaplotypeNetwork` class using NetworkX
@@ -74,30 +74,30 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Implement network validation
 - [ ] Create unit tests for HaplotypeNetwork class
 
-## Phase 3: Distance Calculation & Metrics
+## Phase 3: Distance Calculation & Metrics (IN PROGRESS)
 
-### 3.1 Basic Distance Metrics
-- [ ] Implement Hamming distance calculator
-- [ ] Implement pairwise distance matrix calculation
-- [ ] Add support for handling gaps and ambiguous characters
-- [ ] Optimize distance calculations for large datasets
-- [ ] Create unit tests with known distance examples
+### 3.1 Basic Distance Metrics ✅ COMPLETED
+- [x] Implement Hamming distance calculator
+- [x] Implement pairwise distance matrix calculation
+- [x] Add support for handling gaps and ambiguous characters
+- [x] Optimize distance calculations for large datasets
+- [x] Create unit tests with known distance examples (28 tests, 91% coverage)
 
-### 3.2 Evolutionary Distance Models
-- [ ] Implement Jukes-Cantor correction
-- [ ] Implement Kimura 2-parameter (K2P) distance
+### 3.2 Evolutionary Distance Models ✅ PARTIALLY COMPLETED
+- [x] Implement Jukes-Cantor correction
+- [x] Implement Kimura 2-parameter (K2P) distance
 - [ ] Implement Tamura-Nei distance
-- [ ] Add support for custom substitution models
-- [ ] Create unit tests for each model
+- [x] Add support for custom substitution models
+- [x] Create unit tests for each model
 
-### 3.3 Distance Matrix Management
-- [ ] Implement `DistanceMatrix` class
-  - [ ] Store pairwise distances efficiently
-  - [ ] Support both symmetric and asymmetric matrices
-  - [ ] Provide fast lookup methods
-- [ ] Add matrix export/import functionality
+### 3.3 Distance Matrix Management ✅ COMPLETED
+- [x] Implement `DistanceMatrix` class
+  - [x] Store pairwise distances efficiently
+  - [x] Support both symmetric and asymmetric matrices
+  - [x] Provide fast lookup methods
+- [x] Add matrix export/import functionality
 - [ ] Implement matrix visualization
-- [ ] Create unit tests for DistanceMatrix class
+- [x] Create unit tests for DistanceMatrix class
 
 ## Phase 4: Network Construction Algorithms
 
