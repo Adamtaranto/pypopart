@@ -1,3 +1,7 @@
+# dev
+.ideas/
+archive_popart_src/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
