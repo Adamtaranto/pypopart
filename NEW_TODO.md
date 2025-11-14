@@ -74,7 +74,7 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [x] Implement network validation
 - [x] Create unit tests for HaplotypeNetwork class (36 tests, 94% coverage)
 
-## Phase 3: Distance Calculation & Metrics (IN PROGRESS)
+## Phase 3: Distance Calculation & Metrics ✅ COMPLETED
 
 ### 3.1 Basic Distance Metrics ✅ COMPLETED
 - [x] Implement Hamming distance calculator
@@ -83,10 +83,10 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [x] Optimize distance calculations for large datasets
 - [x] Create unit tests with known distance examples (28 tests, 91% coverage)
 
-### 3.2 Evolutionary Distance Models ✅ PARTIALLY COMPLETED
+### 3.2 Evolutionary Distance Models ✅ COMPLETED
 - [x] Implement Jukes-Cantor correction
 - [x] Implement Kimura 2-parameter (K2P) distance
-- [ ] Implement Tamura-Nei distance
+- [x] Implement Tamura-Nei distance
 - [x] Add support for custom substitution models
 - [x] Create unit tests for each model
 
@@ -95,9 +95,9 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
   - [x] Store pairwise distances efficiently
   - [x] Support both symmetric and asymmetric matrices
   - [x] Provide fast lookup methods
-- [x] Add matrix export/import functionality
-- [ ] Implement matrix visualization
-- [x] Create unit tests for DistanceMatrix class
+- [x] Add matrix export/import functionality (CSV format)
+- [x] Implement matrix visualization (matplotlib heatmap)
+- [x] Create unit tests for DistanceMatrix class (41 tests total, 90% coverage)
 
 ## Phase 4: Network Construction Algorithms
 

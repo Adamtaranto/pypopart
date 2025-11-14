@@ -5,7 +5,7 @@ Implements various distance metrics for DNA sequences including
 Hamming distance and evolutionary models.
 """
 
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, Tuple
 import numpy as np
 from math import log
 
@@ -101,6 +101,140 @@ def kimura_2p_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True)
     return distance
 
 
+def tamura_nei_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True) -> float:
+    """
+    Calculate Tamura-Nei distance.
+    
+    The Tamura-Nei model accounts for:
+    - Different base frequencies (GC content)
+    - Different rates for transitions within purines (A<->G) and pyrimidines (C<->T)
+    - Different rate for transversions
+    
+    Args:
+        seq1: First sequence
+        seq2: Second sequence
+        ignore_gaps: Whether to ignore gap positions
+        
+    Returns:
+        Tamura-Nei corrected distance
+        
+    Raises:
+        ValueError: If sequences have different lengths or are too divergent
+        
+    Reference:
+        Tamura K, Nei M (1993) Mol Biol Evol 10(3):512-526
+    """
+    if len(seq1) != len(seq2):
+        raise ValueError(f"Sequences must have same length: {len(seq1)} vs {len(seq2)}")
+    
+    # Count base frequencies and differences
+    purines = 0  # A, G
+    pyrimidines = 0  # C, T
+    purine_transitions = 0  # A<->G
+    pyrimidine_transitions = 0  # C<->T
+    transversions = 0
+    compared_sites = 0
+    
+    base_counts = {'A': 0, 'G': 0, 'C': 0, 'T': 0}
+    
+    for c1, c2 in zip(seq1.data, seq2.data):
+        if ignore_gaps and (c1 == '-' or c2 == '-'):
+            continue
+        if c1 in 'N?' or c2 in 'N?':
+            continue
+        
+        compared_sites += 1
+        
+        # Count base frequencies
+        if c1 in base_counts:
+            base_counts[c1] += 1
+        if c2 in base_counts:
+            base_counts[c2] += 1
+        
+        # Count differences
+        if c1 != c2:
+            if (c1, c2) in {('A', 'G'), ('G', 'A')}:
+                purine_transitions += 1
+            elif (c1, c2) in {('C', 'T'), ('T', 'C')}:
+                pyrimidine_transitions += 1
+            else:
+                transversions += 1
+    
+    if compared_sites == 0:
+        raise ValueError("No valid sites to compare")
+    
+    # Calculate base frequencies
+    total_bases = sum(base_counts.values())
+    if total_bases == 0:
+        raise ValueError("No valid bases found")
+    
+    freq_A = base_counts['A'] / total_bases
+    freq_G = base_counts['G'] / total_bases
+    freq_C = base_counts['C'] / total_bases
+    freq_T = base_counts['T'] / total_bases
+    
+    # Calculate GC content components
+    freq_purines = freq_A + freq_G
+    freq_pyrimidines = freq_C + freq_T
+    
+    # Calculate proportions of differences
+    P1 = purine_transitions / compared_sites  # A<->G transitions
+    P2 = pyrimidine_transitions / compared_sites  # C<->T transitions
+    Q = transversions / compared_sites  # Transversions
+    
+    # Calculate GC content and related parameters
+    gc_content = freq_G + freq_C
+    
+    # Handle edge cases
+    if freq_purines == 0 or freq_pyrimidines == 0:
+        # Fall back to Kimura 2-parameter
+        P = P1 + P2
+        term1 = 1 - 2*P - Q
+        term2 = 1 - 2*Q
+        if term1 <= 0 or term2 <= 0:
+            raise ValueError(f"Sequences too divergent for TN correction (P={P:.3f}, Q={Q:.3f})")
+        return -0.5 * log(term1 * (term2 ** 0.5))
+    
+    # Calculate correction terms
+    h_R = 2 * freq_A * freq_G / freq_purines if freq_purines > 0 else 0  # Purine heterozygosity
+    h_Y = 2 * freq_C * freq_T / freq_pyrimidines if freq_pyrimidines > 0 else 0  # Pyrimidine heterozygosity
+    
+    # Calculate w terms for distance calculation
+    # Use small epsilon to avoid division by zero
+    epsilon = 1e-10
+    
+    if h_R > epsilon:
+        w1 = 1 - P1/h_R - Q/(2*freq_purines*freq_pyrimidines)
+    else:
+        # When h_R is very small, use a simplified form
+        w1 = 1 - P1 - Q/(2*freq_purines*freq_pyrimidines) if freq_purines * freq_pyrimidines > 0 else 1
+    
+    if h_Y > epsilon:
+        w2 = 1 - P2/h_Y - Q/(2*freq_purines*freq_pyrimidines)
+    else:
+        # When h_Y is very small, use a simplified form
+        w2 = 1 - P2 - Q/(2*freq_purines*freq_pyrimidines) if freq_purines * freq_pyrimidines > 0 else 1
+    
+    w3 = 1 - Q/(2*freq_pyrimidines*freq_purines) if freq_purines * freq_pyrimidines > 0 else 1
+    
+    # Check for divergence
+    if w1 <= 0 or w2 <= 0 or w3 <= 0:
+        raise ValueError(
+            f"Sequences too divergent for Tamura-Nei correction "
+            f"(P1={P1:.3f}, P2={P2:.3f}, Q={Q:.3f})"
+        )
+    
+    # Calculate Tamura-Nei distance
+    if h_R > epsilon and h_Y > epsilon:
+        # Full Tamura-Nei formula
+        distance = -h_R * log(w1) - h_Y * log(w2) - (freq_purines * freq_pyrimidines - h_R * h_Y / (h_R + h_Y)) * log(w3)
+    else:
+        # Simplified form when heterozygosity is low
+        distance = -0.5 * log(w1 * w2 * w3)
+    
+    return distance
+
+
 class DistanceMatrix:
     """Store and manage pairwise distance matrix."""
     
@@ -156,6 +290,126 @@ class DistanceMatrix:
         """Create distance matrix from dictionary."""
         return cls(labels=data['labels'], matrix=np.array(data['matrix']))
     
+    def visualize(
+        self,
+        title: str = "Distance Matrix",
+        cmap: str = "viridis",
+        figsize: Optional[Tuple[int, int]] = None,
+        show_values: bool = True,
+        save_path: Optional[str] = None
+    ) -> 'matplotlib.figure.Figure':
+        """
+        Visualize distance matrix as a heatmap.
+        
+        Args:
+            title: Plot title
+            cmap: Matplotlib colormap name
+            figsize: Figure size (width, height), auto-calculated if None
+            show_values: Whether to show distance values in cells
+            save_path: Optional path to save figure
+            
+        Returns:
+            Matplotlib figure object
+            
+        Raises:
+            ImportError: If matplotlib is not installed
+        """
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib
+        except ImportError:
+            raise ImportError(
+                "Matplotlib is required for visualization. "
+                "Install it with: pip install matplotlib"
+            )
+        
+        # Auto-calculate figure size based on matrix size
+        if figsize is None:
+            size = max(8, min(20, self.n * 0.5))
+            figsize = (size, size)
+        
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Create heatmap
+        im = ax.imshow(self.matrix, cmap=cmap, aspect='auto')
+        
+        # Set ticks and labels
+        ax.set_xticks(np.arange(self.n))
+        ax.set_yticks(np.arange(self.n))
+        ax.set_xticklabels(self.labels, rotation=45, ha='right')
+        ax.set_yticklabels(self.labels)
+        
+        # Add colorbar
+        cbar = plt.colorbar(im, ax=ax)
+        cbar.set_label('Distance', rotation=270, labelpad=15)
+        
+        # Show values in cells if requested and matrix is not too large
+        if show_values and self.n <= 20:
+            for i in range(self.n):
+                for j in range(self.n):
+                    value = self.matrix[i, j]
+                    if np.isfinite(value):
+                        text_color = 'white' if value > self.matrix.max() * 0.5 else 'black'
+                        ax.text(j, i, f'{value:.2f}',
+                               ha='center', va='center',
+                               color=text_color, fontsize=8)
+        
+        ax.set_title(title)
+        fig.tight_layout()
+        
+        if save_path:
+            fig.savefig(save_path, dpi=300, bbox_inches='tight')
+        
+        return fig
+    
+    def to_csv(self, filepath: str, delimiter: str = ',') -> None:
+        """
+        Export distance matrix to CSV file.
+        
+        Args:
+            filepath: Path to output CSV file
+            delimiter: Delimiter character (default: comma)
+        """
+        with open(filepath, 'w') as f:
+            # Write header
+            f.write(delimiter.join([''] + self.labels) + '\n')
+            
+            # Write data rows
+            for i, label in enumerate(self.labels):
+                row_data = [label] + [f'{val:.6f}' for val in self.matrix[i]]
+                f.write(delimiter.join(row_data) + '\n')
+    
+    @classmethod
+    def from_csv(cls, filepath: str, delimiter: str = ',') -> 'DistanceMatrix':
+        """
+        Import distance matrix from CSV file.
+        
+        Args:
+            filepath: Path to CSV file
+            delimiter: Delimiter character (default: comma)
+            
+        Returns:
+            DistanceMatrix object
+        """
+        with open(filepath, 'r') as f:
+            lines = [line.strip() for line in f if line.strip()]
+        
+        # Parse header (column labels)
+        header = lines[0].split(delimiter)
+        labels = header[1:]  # Skip first empty cell
+        
+        # Parse data
+        n = len(labels)
+        matrix = np.zeros((n, n))
+        
+        for i, line in enumerate(lines[1:]):
+            parts = line.split(delimiter)
+            row_label = parts[0]
+            values = [float(v) for v in parts[1:]]
+            matrix[i] = values
+        
+        return cls(labels, matrix)
+    
     def __str__(self) -> str:
         """String representation."""
         return f"DistanceMatrix({self.n} sequences)"
@@ -206,6 +460,8 @@ def calculate_pairwise_distances(
         distance_func = jukes_cantor_distance
     elif method in ("k2p", "kimura"):
         distance_func = kimura_2p_distance
+    elif method in ("tn", "tamura-nei"):
+        distance_func = tamura_nei_distance
     else:
         raise ValueError(f"Unknown distance method: {method}")
     
