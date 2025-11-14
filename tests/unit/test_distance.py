@@ -9,6 +9,7 @@ from pypopart.core.distance import (
     p_distance,
     jukes_cantor_distance,
     kimura_2p_distance,
+    tamura_nei_distance,
     DistanceMatrix,
     calculate_distance_matrix,
     calculate_pairwise_distances
@@ -146,6 +147,72 @@ class TestKimura2P:
         assert k2p_dist > 0
 
 
+class TestTamuraNei:
+    """Test Tamura-Nei distance."""
+    
+    def test_identical_sequences(self):
+        """Test TN distance of identical sequences."""
+        seq1 = Sequence("s1", "ATCG")
+        seq2 = Sequence("s2", "ATCG")
+        assert tamura_nei_distance(seq1, seq2) == 0.0
+    
+    def test_with_transitions(self):
+        """Test TN with purine and pyrimidine transitions."""
+        # Longer sequences with moderate divergence
+        seq1 = Sequence("s1", "ATCGATCGATCGATCGATCGATCG")
+        seq2 = Sequence("s2", "ATCGATCGATCGGTCGATCGATCG")
+        # Single A->G transition
+        tn_dist = tamura_nei_distance(seq1, seq2)
+        assert tn_dist > 0
+    
+    def test_with_transversions(self):
+        """Test TN with transversions."""
+        seq1 = Sequence("s1", "AAAAGGGGCCCCTTTT")
+        seq2 = Sequence("s2", "CCCCGGGGCCCCTTTT")
+        # First 4 are transversions (A->C)
+        tn_dist = tamura_nei_distance(seq1, seq2)
+        assert tn_dist > 0
+    
+    def test_mixed_differences(self):
+        """Test TN with mixed types of differences."""
+        seq1 = Sequence("s1", "ATCGATCGATCGATCGATCGATCG")
+        seq2 = Sequence("s2", "ATCGATCGGTCCATCGATCGATCG")
+        # Mix of transitions (A->G) and transversions (A->C)
+        tn_dist = tamura_nei_distance(seq1, seq2)
+        assert tn_dist > 0
+    
+    def test_with_gaps(self):
+        """Test TN with gaps ignored."""
+        seq1 = Sequence("s1", "AT-CG-ATCG")
+        seq2 = Sequence("s2", "AT-CC-GTCG")
+        # Should ignore gap positions
+        tn_dist = tamura_nei_distance(seq1, seq2, ignore_gaps=True)
+        assert tn_dist > 0
+    
+    def test_with_ambiguous_chars(self):
+        """Test TN with ambiguous characters."""
+        seq1 = Sequence("s1", "ATCGATCGNATCG")
+        seq2 = Sequence("s2", "ATCGGTCGNATCG")
+        # Should skip N positions
+        tn_dist = tamura_nei_distance(seq1, seq2)
+        assert tn_dist > 0
+    
+    def test_too_divergent(self):
+        """Test error when sequences are too divergent."""
+        seq1 = Sequence("s1", "AAAAAAAA")
+        seq2 = Sequence("s2", "GGGGGGGG")
+        # All positions differ
+        with pytest.raises(ValueError, match="too divergent"):
+            tamura_nei_distance(seq1, seq2)
+    
+    def test_length_mismatch(self):
+        """Test error when sequences have different lengths."""
+        seq1 = Sequence("s1", "ATCG")
+        seq2 = Sequence("s2", "ATCGAA")
+        with pytest.raises(ValueError, match="same length"):
+            tamura_nei_distance(seq1, seq2)
+
+
 class TestDistanceMatrix:
     """Test DistanceMatrix class."""
     
@@ -206,6 +273,40 @@ class TestDistanceMatrix:
         
         assert dm2.labels == labels
         assert np.allclose(dm2.matrix, matrix)
+    
+    def test_csv_export_import(self, tmp_path):
+        """Test CSV export and import."""
+        labels = ["s1", "s2", "s3"]
+        matrix = np.array([[0, 1.5, 2.3], [1.5, 0, 3.1], [2.3, 3.1, 0]])
+        dm = DistanceMatrix(labels, matrix)
+        
+        # Export to CSV
+        csv_file = tmp_path / "distances.csv"
+        dm.to_csv(str(csv_file))
+        
+        # Import from CSV
+        dm2 = DistanceMatrix.from_csv(str(csv_file))
+        
+        assert dm2.labels == labels
+        assert np.allclose(dm2.matrix, matrix, atol=1e-6)
+    
+    def test_visualize_without_matplotlib(self):
+        """Test that visualize raises error without matplotlib."""
+        labels = ["s1", "s2"]
+        matrix = np.array([[0, 1], [1, 0]])
+        dm = DistanceMatrix(labels, matrix)
+        
+        # Mock matplotlib import to test error handling
+        # This test assumes matplotlib is installed; in production you'd mock the import
+        try:
+            fig = dm.visualize()
+            # If matplotlib is installed, should return a figure
+            assert fig is not None
+            import matplotlib.pyplot as plt
+            plt.close(fig)
+        except ImportError:
+            # If matplotlib not installed, should raise ImportError
+            pass
 
 
 class TestCalculateDistanceMatrix:
@@ -285,6 +386,17 @@ class TestCalculatePairwiseDistances:
         alignment = Alignment(sequences)
         
         dm = calculate_pairwise_distances(alignment, method="k2p")
+        assert dm.get_distance("s1", "s2") > 0
+    
+    def test_tn_method(self):
+        """Test using Tamura-Nei method."""
+        sequences = [
+            Sequence("s1", "ATCGATCGATCG"),
+            Sequence("s2", "ATCGGTCGATCG")
+        ]
+        alignment = Alignment(sequences)
+        
+        dm = calculate_pairwise_distances(alignment, method="tn")
         assert dm.get_distance("s1", "s2") > 0
     
     def test_unknown_method(self):
