@@ -431,6 +431,210 @@ def visualize(
         sys.exit(1)
 
 
+@main.command(name='geo-visualize')
+@click.argument('network_file', type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    '-m',
+    '--metadata',
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+    help='Metadata CSV file with latitude/longitude columns',
+)
+@click.option(
+    '-o',
+    '--output',
+    type=click.Path(),
+    required=True,
+    help='Output image file (PNG, PDF, SVG, or HTML)',
+)
+@click.option(
+    '--projection',
+    type=click.Choice(['mercator', 'platecarree', 'orthographic'], case_sensitive=False),
+    default='mercator',
+    show_default=True,
+    help='Map projection',
+)
+@click.option(
+    '--base-map',
+    type=click.Choice(['OpenStreetMap', 'Stamen Terrain', 'CartoDB positron'], case_sensitive=False),
+    default='OpenStreetMap',
+    show_default=True,
+    help='Base map for interactive visualization',
+)
+@click.option(
+    '--zoom',
+    type=int,
+    default=4,
+    show_default=True,
+    help='Initial zoom level for interactive map (1-18)',
+)
+@click.option(
+    '--extent',
+    type=str,
+    help='Map extent as "lon_min,lon_max,lat_min,lat_max" (static maps only)',
+)
+@click.option(
+    '--width',
+    type=int,
+    default=1600,
+    show_default=True,
+    help='Figure width in pixels',
+)
+@click.option(
+    '--height',
+    type=int,
+    default=1200,
+    show_default=True,
+    help='Figure height in pixels',
+)
+@click.option(
+    '--interactive',
+    is_flag=True,
+    help='Create interactive HTML map visualization',
+)
+@click.option(
+    '--show-labels',
+    is_flag=True,
+    default=False,
+    help='Show node labels',
+)
+@click.option(
+    '--show-borders',
+    is_flag=True,
+    default=False,
+    help='Show country borders (static maps only)',
+)
+@click.option(
+    '--lat-column',
+    type=str,
+    default='latitude',
+    show_default=True,
+    help='Name of latitude column in metadata',
+)
+@click.option(
+    '--lon-column',
+    type=str,
+    default='longitude',
+    show_default=True,
+    help='Name of longitude column in metadata',
+)
+@click.pass_context
+def geo_visualize(
+    ctx: click.Context,
+    network_file: str,
+    metadata: str,
+    output: str,
+    projection: str,
+    base_map: str,
+    zoom: int,
+    extent: Optional[str],
+    width: int,
+    height: int,
+    interactive: bool,
+    show_labels: bool,
+    show_borders: bool,
+    lat_column: str,
+    lon_column: str,
+) -> None:
+    """
+    Visualize haplotype network on a geographic map.
+    
+    NETWORK_FILE: Path to network file (GraphML, GML, or JSON)
+    
+    This command overlays the haplotype network on a world map using
+    geographic coordinates from the metadata file. The metadata file must
+    contain latitude and longitude columns.
+    """
+    from pypopart.io import load_network
+    from pypopart.io.metadata import MetadataReader, extract_coordinates
+    
+    click.echo(f'Loading network from {network_file}...')
+    
+    try:
+        network = load_network(network_file)
+        click.echo(f'✓ Loaded network with {network.number_of_nodes()} nodes')
+        
+        # Load metadata with coordinates
+        click.echo(f'Loading metadata from {metadata}...')
+        reader = MetadataReader(metadata)
+        metadata_dict = reader.read_metadata()
+        
+        # Extract coordinates for each node
+        coordinates = {}
+        for node_id in network.node_ids:
+            if node_id in metadata_dict:
+                coords = extract_coordinates(
+                    metadata_dict[node_id],
+                    lat_column=lat_column,
+                    lon_column=lon_column,
+                    validate=True,
+                )
+                if coords:
+                    coordinates[node_id] = coords
+        
+        click.echo(f'✓ Loaded coordinates for {len(coordinates)} nodes')
+        
+        if not coordinates:
+            click.echo('✗ Error: No valid geographic coordinates found in metadata', err=True)
+            sys.exit(1)
+        
+        # Parse extent if provided
+        extent_tuple = None
+        if extent:
+            try:
+                parts = [float(x.strip()) for x in extent.split(',')]
+                if len(parts) != 4:
+                    raise ValueError('Extent must have 4 values')
+                extent_tuple = tuple(parts)
+            except ValueError as e:
+                click.echo(f'✗ Error: Invalid extent format: {e}', err=True)
+                sys.exit(1)
+        
+        # Determine output format
+        output_path = Path(output)
+        is_html = output_path.suffix.lower() == '.html'
+        
+        if interactive or is_html:
+            # Interactive geographic visualization
+            from pypopart.visualization import InteractiveGeoVisualizer
+            
+            click.echo(f'Creating interactive geographic visualization...')
+            viz = InteractiveGeoVisualizer(network)
+            map_obj = viz.plot(
+                coordinates=coordinates,
+                base_map=base_map,
+                zoom_start=zoom,
+                show_labels=show_labels,
+                output_file=str(output_path),
+            )
+            click.echo(f'✓ Interactive map saved to {output}')
+            click.echo(f'  Open in browser: file://{output_path.absolute()}')
+        
+        else:
+            # Static geographic visualization
+            from pypopart.visualization import GeoVisualizer
+            
+            click.echo(f'Creating static geographic visualization with {projection} projection...')
+            viz = GeoVisualizer(network)
+            fig, ax = viz.plot(
+                coordinates=coordinates,
+                projection=projection,
+                extent=extent_tuple,
+                figsize=(width / 100, height / 100),
+                show_labels=show_labels,
+                show_borders=show_borders,
+                output_file=str(output_path),
+            )
+            click.echo(f'✓ Geographic visualization saved to {output}')
+    
+    except Exception as e:
+        import traceback
+        click.echo(f'✗ Error: {e}', err=True)
+        if ctx.obj.get('verbose', 0) > 0:
+            traceback.print_exc()
+        sys.exit(1)
+
+
 @main.command()
 @click.option(
     '--list-algorithms',

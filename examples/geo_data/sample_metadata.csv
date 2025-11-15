@@ -1,0 +1,11 @@
+id,population,location,latitude,longitude
+Hap1_NY,USA,New York,40.7128,-74.0060
+Hap2_NY,USA,New York,40.7128,-74.0060
+Hap3_LA,USA,Los Angeles,34.0522,-118.2437
+Hap4_LA,USA,Los Angeles,34.0522,-118.2437
+Hap5_London,UK,London,51.5074,-0.1278
+Hap6_London,UK,London,51.5074,-0.1278
+Hap7_Tokyo,Japan,Tokyo,35.6762,139.6503
+Hap8_Sydney,Australia,Sydney,-33.8688,151.2093
+Hap9_Sydney,Australia,Sydney,-33.8688,151.2093
+Hap10_Paris,France,Paris,48.8566,2.3522
