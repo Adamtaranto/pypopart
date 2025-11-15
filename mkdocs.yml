@@ -1,0 +1,161 @@
+site_name: PyPopART Documentation
+site_description: Pure Python implementation of PopART haplotype network analysis
+site_author: Adam Taranto
+site_url: https://pypopart.readthedocs.io
+
+repo_name: Adamtaranto/pypopart
+repo_url: https://github.com/Adamtaranto/pypopart
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: installation.md
+      - Quick Start: quickstart.md
+      - Basic Concepts: concepts.md
+  - User Guide:
+      - Command-Line Interface: guide/cli.md
+      - Python API: guide/api.md
+      - Loading Data: guide/loading_data.md
+      - Distance Metrics: guide/distances.md
+      - Network Algorithms: guide/algorithms.md
+      - Visualization: guide/visualization.md
+      - Analysis: guide/analysis.md
+  - Tutorials:
+      - Basic Workflow: tutorials/basic_workflow.md
+      - Algorithm Comparison: tutorials/algorithm_comparison.md
+      - Visualization Options: tutorials/visualization.md
+      - Population Genetics: tutorials/popgen.md
+  - API Reference:
+      - Core:
+          - Sequence: api/core/sequence.md
+          - Alignment: api/core/alignment.md
+          - Haplotype: api/core/haplotype.md
+          - Distance: api/core/distance.md
+          - Network: api/core/network.md
+      - Algorithms:
+          - Base: api/algorithms/base.md
+          - MST: api/algorithms/mst.md
+          - MSN: api/algorithms/msn.md
+          - TCS: api/algorithms/tcs.md
+          - MJN: api/algorithms/mjn.md
+      - I/O:
+          - Readers: api/io/readers.md
+          - Writers: api/io/writers.md
+          - Metadata: api/io/metadata.md
+      - Visualization:
+          - Static: api/visualization/static.md
+          - Interactive: api/visualization/interactive.md
+          - Layout: api/visualization/layout.md
+      - Statistics:
+          - Network Stats: api/stats/statistics.md
+          - Population Genetics: api/stats/popgen.md
+          - Topology: api/stats/topology.md
+  - About:
+      - Contributing: contributing.md
+      - FAQ: faq.md
+      - Changelog: changelog.md
+      - License: license.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: numpy
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: true
+            heading_level: 2
+            members_order: source
+            show_signature_annotations: true
+            separate_signature: true
+  - mkdocs-jupyter:
+      include_source: true
+      execute: false
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - meta
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Adamtaranto
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/pypopart/
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
