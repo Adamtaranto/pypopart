@@ -5,17 +5,12 @@ Provides functions for creating static and interactive visualizations
 of haplotype networks.
 """
 
-from .static_plot import (
-    StaticNetworkPlotter,
-    plot_network,
-    create_publication_figure
-)
-
 from .interactive_plot import (
     InteractiveNetworkPlotter,
+    create_interactive_figure,
     plot_interactive_network,
-    create_interactive_figure
 )
+from .static_plot import StaticNetworkPlotter, create_publication_figure, plot_network
 
 __all__ = [
     # Static plotting

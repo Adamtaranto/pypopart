@@ -2,7 +2,6 @@
 Unit tests for PyPopART GUI application.
 """
 
-import pytest
 
 
 class TestPyPopARTApp:

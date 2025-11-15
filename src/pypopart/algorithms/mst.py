@@ -2,11 +2,12 @@
 Minimum Spanning Tree (MST) algorithm for haplotype network construction.
 """
 
-from typing import Optional, List, Tuple, Set
 import heapq
+from typing import List, Optional, Tuple
+
 from ..core.alignment import Alignment
-from ..core.graph import HaplotypeNetwork
 from ..core.distance import DistanceMatrix
+from ..core.graph import HaplotypeNetwork
 from ..core.haplotype import identify_haplotypes_from_alignment as identify_haplotypes
 from .base import NetworkAlgorithm
 
@@ -14,23 +15,20 @@ from .base import NetworkAlgorithm
 class MinimumSpanningTree(NetworkAlgorithm):
     """
     Construct a Minimum Spanning Tree from haplotype data.
-    
+
     A minimum spanning tree connects all haplotypes with the minimum total
     genetic distance. This is the simplest haplotype network algorithm and
     forms the basis for more complex methods like MSN.
-    
+
     Supports both Prim's and Kruskal's algorithms for MST construction.
     """
-    
+
     def __init__(
-        self,
-        distance_method: str = "hamming",
-        algorithm: str = "prim",
-        **kwargs
+        self, distance_method: str = 'hamming', algorithm: str = 'prim', **kwargs
     ):
         """
         Initialize MST algorithm.
-        
+
         Args:
             distance_method: Method for calculating distances
             algorithm: MST algorithm to use ('prim' or 'kruskal')
@@ -39,153 +37,149 @@ class MinimumSpanningTree(NetworkAlgorithm):
         super().__init__(distance_method, **kwargs)
         self.algorithm = algorithm.lower()
         if self.algorithm not in ('prim', 'kruskal'):
-            raise ValueError(f"Unknown MST algorithm: {algorithm}. Use 'prim' or 'kruskal'")
-    
+            raise ValueError(
+                f"Unknown MST algorithm: {algorithm}. Use 'prim' or 'kruskal'"
+            )
+
     def construct_network(
-        self,
-        alignment: Alignment,
-        distance_matrix: Optional[DistanceMatrix] = None
+        self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
         Construct MST from sequence alignment.
-        
+
         Args:
             alignment: Multiple sequence alignment
             distance_matrix: Optional pre-computed distance matrix
-            
+
         Returns:
             Haplotype network representing the MST
         """
         # Identify unique haplotypes
         haplotypes = identify_haplotypes(alignment)
-        
+
         if len(haplotypes) == 0:
             return HaplotypeNetwork()
-        
+
         if len(haplotypes) == 1:
             # Single haplotype - just add it to network
             network = HaplotypeNetwork()
             network.add_haplotype(haplotypes[0])
             return network
-        
+
         # Calculate distances between haplotypes
         haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
         self._distance_matrix = haplotype_dist_matrix
-        
+
         # Build MST using selected algorithm
         if self.algorithm == 'prim':
             edges = self._prim_mst(haplotypes, haplotype_dist_matrix)
         else:  # kruskal
             edges = self._kruskal_mst(haplotypes, haplotype_dist_matrix)
-        
+
         # Construct network from MST edges
         network = self._build_network(haplotypes, edges)
-        
+
         return network
-    
+
     def _prim_mst(
-        self,
-        haplotypes: List,
-        distance_matrix: DistanceMatrix
+        self, haplotypes: List, distance_matrix: DistanceMatrix
     ) -> List[Tuple[str, str, float]]:
         """
         Construct MST using Prim's algorithm.
-        
+
         Args:
             haplotypes: List of Haplotype objects
             distance_matrix: Distance matrix between haplotypes
-            
+
         Returns:
             List of edges (id1, id2, distance)
         """
         if len(haplotypes) == 0:
             return []
-        
+
         # Map haplotype IDs to haplotype objects for quick lookup
         hap_dict = {h.id: h for h in haplotypes}
         hap_ids = list(hap_dict.keys())
-        
+
         # Track which nodes are in the tree
         in_tree = {hap_ids[0]}  # Start with first haplotype
         not_in_tree = set(hap_ids[1:])
-        
+
         edges = []
-        
+
         # Priority queue: (distance, from_id, to_id)
         pq = []
-        
+
         # Add all edges from first haplotype
         for other_id in not_in_tree:
             dist = distance_matrix.get_distance(hap_ids[0], other_id)
             heapq.heappush(pq, (dist, hap_ids[0], other_id))
-        
+
         # Build MST
         while not_in_tree and pq:
             dist, from_id, to_id = heapq.heappop(pq)
-            
+
             # Skip if to_id already in tree (edge is outdated)
             if to_id not in not_in_tree:
                 continue
-            
+
             # Add edge to MST
             edges.append((from_id, to_id, dist))
             in_tree.add(to_id)
             not_in_tree.remove(to_id)
-            
+
             # Add new edges from newly added node
             for other_id in not_in_tree:
                 new_dist = distance_matrix.get_distance(to_id, other_id)
                 heapq.heappush(pq, (new_dist, to_id, other_id))
-        
+
         return edges
-    
+
     def _kruskal_mst(
-        self,
-        haplotypes: List,
-        distance_matrix: DistanceMatrix
+        self, haplotypes: List, distance_matrix: DistanceMatrix
     ) -> List[Tuple[str, str, float]]:
         """
         Construct MST using Kruskal's algorithm with Union-Find.
-        
+
         Args:
             haplotypes: List of Haplotype objects
             distance_matrix: Distance matrix between haplotypes
-            
+
         Returns:
             List of edges (id1, id2, distance)
         """
         if len(haplotypes) == 0:
             return []
-        
+
         hap_ids = [h.id for h in haplotypes]
-        
+
         # Get all edges sorted by distance
         all_edges = []
         for i, id1 in enumerate(hap_ids):
-            for id2 in hap_ids[i+1:]:
+            for id2 in hap_ids[i + 1 :]:
                 dist = distance_matrix.get_distance(id1, id2)
                 all_edges.append((dist, id1, id2))
-        
+
         all_edges.sort()  # Sort by distance
-        
+
         # Union-Find data structure
         parent = {hap_id: hap_id for hap_id in hap_ids}
-        rank = {hap_id: 0 for hap_id in hap_ids}
-        
+        rank = dict.fromkeys(hap_ids, 0)
+
         def find(x):
             """Find root of x with path compression."""
             if parent[x] != x:
                 parent[x] = find(parent[x])
             return parent[x]
-        
+
         def union(x, y):
             """Union sets containing x and y."""
             root_x = find(x)
             root_y = find(y)
-            
+
             if root_x == root_y:
                 return False
-            
+
             # Union by rank
             if rank[root_x] < rank[root_y]:
                 parent[root_x] = root_y
@@ -194,9 +188,9 @@ class MinimumSpanningTree(NetworkAlgorithm):
             else:
                 parent[root_y] = root_x
                 rank[root_x] += 1
-            
+
             return True
-        
+
         # Build MST
         mst_edges = []
         for dist, id1, id2 in all_edges:
@@ -205,64 +199,63 @@ class MinimumSpanningTree(NetworkAlgorithm):
                 # Stop when we have n-1 edges
                 if len(mst_edges) == len(hap_ids) - 1:
                     break
-        
+
         return mst_edges
-    
+
     def _build_network(
-        self,
-        haplotypes: List,
-        edges: List[Tuple[str, str, float]]
+        self, haplotypes: List, edges: List[Tuple[str, str, float]]
     ) -> HaplotypeNetwork:
         """
         Build HaplotypeNetwork from haplotypes and MST edges.
-        
+
         Args:
             haplotypes: List of Haplotype objects
             edges: List of edges (id1, id2, distance)
-            
+
         Returns:
             Constructed haplotype network
         """
         network = HaplotypeNetwork()
-        
+
         # Add all haplotypes
         for haplotype in haplotypes:
             network.add_haplotype(haplotype)
-        
+
         # Add MST edges
         for id1, id2, dist in edges:
             network.add_edge(id1, id2, distance=int(round(dist)))
-        
+
         return network
-    
+
     def _calculate_haplotype_distances(self, haplotypes: List) -> DistanceMatrix:
         """
         Calculate pairwise distances between haplotypes.
-        
+
         Args:
             haplotypes: List of Haplotype objects
-            
+
         Returns:
             DistanceMatrix with distances between haplotypes
         """
         import numpy as np
+
         from ..core.distance import hamming_distance
-        
+
         n = len(haplotypes)
         labels = [h.id for h in haplotypes]
         matrix = np.zeros((n, n))
-        
+
         for i in range(n):
             for j in range(i + 1, n):
                 dist = hamming_distance(
                     haplotypes[i].sequence,
                     haplotypes[j].sequence,
-                    ignore_gaps=self.params.get('ignore_gaps', True)
+                    ignore_gaps=self.params.get('ignore_gaps', True),
                 )
                 matrix[i, j] = matrix[j, i] = dist
-        
+
         return DistanceMatrix(labels, matrix)
-    
+
     def get_parameters(self) -> dict:
         """Get algorithm parameters including MST algorithm type."""
         params = super().get_parameters()

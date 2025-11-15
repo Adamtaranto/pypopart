@@ -11,17 +11,17 @@ import tempfile
 from typing import Dict, List, Optional, Tuple
 
 import dash
+from dash import Input, Output, State, dcc, html
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import networkx as nx
 import plotly.graph_objects as go
-from dash import Input, Output, State, dcc, html
-from dash.exceptions import PreventUpdate
 
 from pypopart.algorithms import (
+    TCS,
     MedianJoiningNetwork,
     MinimumSpanningNetwork,
     MinimumSpanningTree,
-    TCS,
 )
 from pypopart.core.alignment import Alignment
 from pypopart.core.graph import HaplotypeNetwork
@@ -29,8 +29,8 @@ from pypopart.io import FastaReader, NexusReader, PhylipReader
 from pypopart.io.network_export import GraphMLExporter, JSONExporter
 from pypopart.layout.algorithms import LayoutManager
 from pypopart.stats import (
-    calculate_network_metrics,
     calculate_diversity_metrics,
+    calculate_network_metrics,
     identify_central_haplotypes,
 )
 from pypopart.visualization.interactive_plot import InteractiveNetworkPlotter
@@ -172,13 +172,22 @@ class PyPopARTApp:
                         dcc.Dropdown(
                             id='algorithm-select',
                             options=[
-                                {'label': 'Minimum Spanning Tree (MST)', 'value': 'mst'},
+                                {
+                                    'label': 'Minimum Spanning Tree (MST)',
+                                    'value': 'mst',
+                                },
                                 {
                                     'label': 'Minimum Spanning Network (MSN)',
                                     'value': 'msn',
                                 },
-                                {'label': 'TCS (Statistical Parsimony)', 'value': 'tcs'},
-                                {'label': 'Median-Joining Network (MJN)', 'value': 'mjn'},
+                                {
+                                    'label': 'TCS (Statistical Parsimony)',
+                                    'value': 'tcs',
+                                },
+                                {
+                                    'label': 'Median-Joining Network (MJN)',
+                                    'value': 'mjn',
+                                },
                             ],
                             value='msn',
                         ),
@@ -531,7 +540,9 @@ class PyPopARTApp:
 
                 # Select and configure algorithm
                 if algorithm == 'mst':
-                    algo = MinimumSpanningTree(distance_metric=mst_distance or 'hamming')
+                    algo = MinimumSpanningTree(
+                        distance_metric=mst_distance or 'hamming'
+                    )
                 elif algorithm == 'msn':
                     algo = MinimumSpanningNetwork(
                         distance_metric=msn_distance or 'hamming'
@@ -759,12 +770,8 @@ class PyPopARTApp:
                         html.H5('Basic Metrics'),
                         html.Ul(
                             [
-                                html.Li(
-                                    f'Number of Nodes: {len(network.graph.nodes)}'
-                                ),
-                                html.Li(
-                                    f'Number of Edges: {len(network.graph.edges)}'
-                                ),
+                                html.Li(f'Number of Nodes: {len(network.graph.nodes)}'),
+                                html.Li(f'Number of Edges: {len(network.graph.edges)}'),
                                 html.Li(
                                     f'Network Diameter: {network_metrics.diameter}'
                                 ),
@@ -818,11 +825,11 @@ class PyPopARTApp:
                 lines = []
                 for seq in sequences:
                     # Format: ID (padded) + sequence
-                    lines.append(f"{seq['id']:<{max_id_len}}  {seq['data']}")
+                    lines.append(f'{seq["id"]:<{max_id_len}}  {seq["data"]}')
 
                 if len(alignment_data['sequences']) > 50:
                     lines.append(
-                        f"\n... ({len(alignment_data['sequences']) - 50} more sequences)"
+                        f'\n... ({len(alignment_data["sequences"]) - 50} more sequences)'
                     )
 
                 return '\n'.join(lines)
@@ -873,12 +880,18 @@ class PyPopARTApp:
                         with open(tmp.name, 'r') as f:
                             content = f.read()
                     return {
-                        'content': content, 'filename': 'network.graphml', 'type': 'text/xml'
+                        'content': content,
+                        'filename': 'network.graphml',
+                        'type': 'text/xml',
                     }
 
                 elif export_format == 'gml':
                     content = '\n'.join(nx.generate_gml(G))
-                    return {'content': content, 'filename': 'network.gml', 'type': 'text/plain'}
+                    return {
+                        'content': content,
+                        'filename': 'network.gml',
+                        'type': 'text/plain',
+                    }
 
                 elif export_format == 'json':
                     with tempfile.NamedTemporaryFile(
@@ -914,13 +927,13 @@ class PyPopARTApp:
             return html.Ul(
                 [
                     html.Li(
-                        f"Degree Centrality: {central['degree_centrality']} "
-                        f"(degree: {central['degree']})"
+                        f'Degree Centrality: {central["degree_centrality"]} '
+                        f'(degree: {central["degree"]})'
                     ),
                     html.Li(
-                        f"Betweenness Centrality: {central['betweenness_centrality']}"
+                        f'Betweenness Centrality: {central["betweenness_centrality"]}'
                     ),
-                    html.Li(f"Closeness Centrality: {central['closeness_centrality']}"),
+                    html.Li(f'Closeness Centrality: {central["closeness_centrality"]}'),
                 ]
             )
         except Exception:

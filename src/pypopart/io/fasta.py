@@ -3,42 +3,41 @@ FASTA file format reader and writer for PyPopART.
 """
 
 import gzip
-import zipfile
 from pathlib import Path
-from typing import Optional, Iterator, Dict, Union, TextIO
-from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
+from typing import Iterator, Optional, TextIO, Union
+import zipfile
 
-from pypopart.core.sequence import Sequence
+from Bio import SeqIO
+
 from pypopart.core.alignment import Alignment
+from pypopart.core.sequence import Sequence
 
 
 class FastaReader:
     """
     Reader for FASTA format sequence files.
-    
+
     Supports plain text, gzip, and zip compressed files.
     """
-    
+
     def __init__(self, filepath: Union[str, Path], validate: bool = True):
         """
         Initialize FASTA reader.
-        
+
         Args:
             filepath: Path to FASTA file
             validate: Whether to validate sequences
         """
         self.filepath = Path(filepath)
         self.validate = validate
-        
+
         if not self.filepath.exists():
-            raise FileNotFoundError(f"File not found: {filepath}")
-    
+            raise FileNotFoundError(f'File not found: {filepath}')
+
     def _open_file(self) -> TextIO:
         """
         Open file handling compression automatically.
-        
+
         Returns:
             File handle
         """
@@ -49,24 +48,24 @@ class FastaReader:
                 # Assume first file in zip is the FASTA
                 names = zf.namelist()
                 if not names:
-                    raise ValueError("Empty zip file")
+                    raise ValueError('Empty zip file')
                 return zf.open(names[0], 'r')
         else:
             return open(self.filepath, 'r')
-    
+
     def read_sequences(self, progress_callback=None) -> Iterator[Sequence]:
         """
         Read sequences from FASTA file.
-        
+
         Args:
             progress_callback: Optional callback function(current, total)
-            
+
         Yields:
             Sequence objects
         """
         count = 0
         with self._open_file() as handle:
-            for record in SeqIO.parse(handle, "fasta"):
+            for record in SeqIO.parse(handle, 'fasta'):
                 # Extract metadata from description
                 metadata = {}
                 if '|' in record.description:
@@ -77,38 +76,38 @@ class FastaReader:
                             if '=' in part:
                                 key, value = part.split('=', 1)
                                 metadata[key.strip()] = value.strip()
-                
+
                 seq = Sequence(
                     id=record.id,
                     data=str(record.seq).upper(),
                     description=record.description,
-                    metadata=metadata
+                    metadata=metadata,
                 )
-                
+
                 # Validation happens automatically in Sequence.__init__
-                
+
                 count += 1
                 if progress_callback:
                     progress_callback(count, None)
-                
+
                 yield seq
-    
+
     def read_alignment(self, progress_callback=None) -> Alignment:
         """
         Read alignment from FASTA file.
-        
+
         Args:
             progress_callback: Optional callback function(current, total)
-            
+
         Returns:
             Alignment object
         """
         sequences = list(self.read_sequences(progress_callback))
         alignment = Alignment(sequences)
-        
+
         if self.validate:
             alignment.validate()
-        
+
         return alignment
 
 
@@ -116,16 +115,16 @@ class FastaWriter:
     """
     Writer for FASTA format sequence files.
     """
-    
+
     def __init__(
         self,
         filepath: Union[str, Path],
         line_length: int = 80,
-        compress: Optional[str] = None
+        compress: Optional[str] = None,
     ):
         """
         Initialize FASTA writer.
-        
+
         Args:
             filepath: Output file path
             line_length: Maximum line length for sequences (0 for no wrapping)
@@ -134,15 +133,15 @@ class FastaWriter:
         self.filepath = Path(filepath)
         self.line_length = line_length
         self.compress = compress
-        
+
         # Add compression extension if needed
         if compress == 'gzip' and not str(self.filepath).endswith('.gz'):
             self.filepath = Path(str(self.filepath) + '.gz')
-    
+
     def _open_file(self) -> TextIO:
         """
         Open file for writing with optional compression.
-        
+
         Returns:
             File handle
         """
@@ -150,65 +149,57 @@ class FastaWriter:
             return gzip.open(self.filepath, 'wt')
         else:
             return open(self.filepath, 'w')
-    
+
     def write_sequences(
-        self,
-        sequences: Iterator[Sequence],
-        progress_callback=None
+        self, sequences: Iterator[Sequence], progress_callback=None
     ) -> int:
         """
         Write sequences to FASTA file.
-        
+
         Args:
             sequences: Iterable of Sequence objects
             progress_callback: Optional callback function(current, total)
-            
+
         Returns:
             Number of sequences written
         """
         count = 0
-        
+
         with self._open_file() as handle:
             for seq in sequences:
                 # Build header
-                header = f">{seq.id}"
+                header = f'>{seq.id}'
                 if seq.description and seq.description != seq.id:
-                    header = f">{seq.description}"
-                
+                    header = f'>{seq.description}'
+
                 # Add metadata to header
                 if seq.metadata:
-                    metadata_str = '|'.join(
-                        f"{k}={v}" for k, v in seq.metadata.items()
-                    )
-                    header += f"|{metadata_str}"
-                
+                    metadata_str = '|'.join(f'{k}={v}' for k, v in seq.metadata.items())
+                    header += f'|{metadata_str}'
+
                 handle.write(header + '\n')
-                
+
                 # Write sequence data with line wrapping
                 if self.line_length > 0:
                     for i in range(0, len(seq.data), self.line_length):
-                        handle.write(seq.data[i:i + self.line_length] + '\n')
+                        handle.write(seq.data[i : i + self.line_length] + '\n')
                 else:
                     handle.write(seq.data + '\n')
-                
+
                 count += 1
                 if progress_callback:
                     progress_callback(count, None)
-        
+
         return count
-    
-    def write_alignment(
-        self,
-        alignment: Alignment,
-        progress_callback=None
-    ) -> int:
+
+    def write_alignment(self, alignment: Alignment, progress_callback=None) -> int:
         """
         Write alignment to FASTA file.
-        
+
         Args:
             alignment: Alignment object
             progress_callback: Optional callback function(current, total)
-            
+
         Returns:
             Number of sequences written
         """

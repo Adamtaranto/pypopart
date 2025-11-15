@@ -4,8 +4,8 @@ Command-line interface for PyPopART.
 This module provides the CLI for constructing and analyzing haplotype networks.
 """
 
-import sys
 from pathlib import Path
+import sys
 from typing import Optional
 
 import click
@@ -154,7 +154,12 @@ def network(
 
     INPUT_FILE: Path to sequence alignment file
     """
-    from pypopart.algorithms import MJNAlgorithm, MSNAlgorithm, MSTAlgorithm, TCSAlgorithm
+    from pypopart.algorithms import (
+        MJNAlgorithm,
+        MSNAlgorithm,
+        MSTAlgorithm,
+        TCSAlgorithm,
+    )
     from pypopart.core.distance import DistanceCalculator
     from pypopart.io import load_alignment, save_network
 
@@ -171,7 +176,7 @@ def network(
         click.echo(f'Calculating {distance} distances...')
         calculator = DistanceCalculator(method=distance)
         dist_matrix = calculator.calculate_matrix(alignment)
-        click.echo(f'✓ Distance matrix computed')
+        click.echo('✓ Distance matrix computed')
 
         # Identify haplotypes for informational purposes
         click.echo('Identifying unique haplotypes...')
@@ -202,7 +207,7 @@ def network(
             raise ValueError(f'Unknown algorithm: {algorithm}')
 
         network = algo.construct_network(alignment, dist_matrix_obj)
-        click.echo(f'✓ Network constructed')
+        click.echo('✓ Network constructed')
 
         # Display network statistics
         click.echo('\nNetwork Statistics:')
@@ -220,9 +225,7 @@ def network(
             save_network(network, output, format=output_format)
             click.echo(f'✓ Network saved as {output_format.upper()}')
         else:
-            click.echo(
-                '\nℹ Use -o/--output to save the network to a file', err=True
-            )
+            click.echo('\nℹ Use -o/--output to save the network to a file', err=True)
 
     except Exception as e:
         click.echo(f'✗ Error: {e}', err=True)
@@ -250,7 +253,9 @@ def network(
     is_flag=True,
     help='Calculate population genetics measures',
 )
-@click.option('-o', '--output', type=click.Path(), help='Output file for analysis results')
+@click.option(
+    '-o', '--output', type=click.Path(), help='Output file for analysis results'
+)
 @click.pass_context
 def analyze(
     ctx: click.Context,
@@ -266,7 +271,10 @@ def analyze(
     NETWORK_FILE: Path to network file (GraphML, GML, or JSON)
     """
     from pypopart.io import load_network
-    from pypopart.stats import NetworkStatistics, PopulationGeneticsAnalysis, TopologyAnalyzer
+    from pypopart.stats import (
+        NetworkStatistics,
+        TopologyAnalyzer,
+    )
 
     click.echo(f'Loading network from {network_file}...')
 
@@ -296,9 +304,9 @@ def analyze(
             topo = TopologyAnalyzer(network)
             topo_summary = topo.analyze()
 
-            click.echo(f"Connected components: {topo_summary['num_components']}")
-            click.echo(f"Star-like patterns: {len(topo_summary['star_patterns'])}")
-            click.echo(f"Central nodes: {topo_summary['central_nodes']}")
+            click.echo(f'Connected components: {topo_summary["num_components"]}')
+            click.echo(f'Star-like patterns: {len(topo_summary["star_patterns"])}')
+            click.echo(f'Central nodes: {topo_summary["central_nodes"]}')
 
             results['topology'] = topo_summary
 

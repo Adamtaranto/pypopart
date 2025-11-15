@@ -6,10 +6,10 @@ from DNA sequence data.
 """
 
 from .base import NetworkAlgorithm
-from .mst import MinimumSpanningTree
-from .msn import MinimumSpanningNetwork
-from .tcs import TCS
 from .mjn import MedianJoiningNetwork
+from .msn import MinimumSpanningNetwork
+from .mst import MinimumSpanningTree
+from .tcs import TCS
 
 # Convenient aliases
 MSTAlgorithm = MinimumSpanningTree

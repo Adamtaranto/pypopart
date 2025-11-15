@@ -6,28 +6,29 @@ Provides readers and writers for various sequence and network formats.
 
 from pathlib import Path
 from typing import Optional, Union
+
 import networkx as nx
 
 from .fasta import FastaReader, FastaWriter
-from .nexus import NexusReader, NexusWriter
-from .phylip import PhylipReader, PhylipWriter
 from .genbank import GenBankReader
 from .metadata import MetadataReader, MetadataWriter
 from .network_export import (
-    GraphMLExporter,
-    GMLExporter,
-    CytoscapeExporter,
-    JSONExporter,
     CSVExporter,
+    CytoscapeExporter,
+    GMLExporter,
+    GraphMLExporter,
+    JSONExporter,
 )
+from .nexus import NexusReader, NexusWriter
+from .phylip import PhylipReader, PhylipWriter
 
 
 def load_alignment(filepath: Union[str, Path], format: Optional[str] = None):
     """
     Load sequence alignment from file.
-    
+
     Auto-detects format if not specified based on file extension.
-    
+
     Parameters
     ----------
     filepath : str or Path
@@ -35,14 +36,14 @@ def load_alignment(filepath: Union[str, Path], format: Optional[str] = None):
     format : str, optional
         File format: 'fasta', 'nexus', 'phylip', 'genbank'
         If None, auto-detect from extension
-        
+
     Returns
     -------
     Alignment
         Alignment object with sequences
     """
     filepath = Path(filepath)
-    
+
     # Auto-detect format
     if format is None:
         suffix = filepath.suffix.lower()
@@ -57,7 +58,7 @@ def load_alignment(filepath: Union[str, Path], format: Optional[str] = None):
         else:
             # Try FASTA as default
             format = 'fasta'
-    
+
     # Load with appropriate reader
     if format.lower() == 'fasta':
         reader = FastaReader(filepath)
@@ -68,15 +69,15 @@ def load_alignment(filepath: Union[str, Path], format: Optional[str] = None):
     elif format.lower() == 'genbank':
         reader = GenBankReader(filepath)
     else:
-        raise ValueError(f"Unknown format: {format}")
-    
+        raise ValueError(f'Unknown format: {format}')
+
     return reader.read_alignment()
 
 
 def save_alignment(alignment, filepath: Union[str, Path], format: str = 'fasta'):
     """
     Save alignment to file.
-    
+
     Parameters
     ----------
     alignment : Alignment
@@ -87,7 +88,7 @@ def save_alignment(alignment, filepath: Union[str, Path], format: str = 'fasta')
         Output format: 'fasta', 'nexus', 'phylip'
     """
     filepath = Path(filepath)
-    
+
     if format.lower() == 'fasta':
         writer = FastaWriter(filepath)
     elif format.lower() == 'nexus':
@@ -95,15 +96,15 @@ def save_alignment(alignment, filepath: Union[str, Path], format: str = 'fasta')
     elif format.lower() == 'phylip':
         writer = PhylipWriter(filepath)
     else:
-        raise ValueError(f"Unknown format: {format}")
-    
+        raise ValueError(f'Unknown format: {format}')
+
     writer.write_alignment(alignment)
 
 
 def load_network(filepath: Union[str, Path], format: Optional[str] = None) -> nx.Graph:
     """
     Load network from file.
-    
+
     Parameters
     ----------
     filepath : str or Path
@@ -111,14 +112,14 @@ def load_network(filepath: Union[str, Path], format: Optional[str] = None) -> nx
     format : str, optional
         File format: 'graphml', 'gml', 'json'
         If None, auto-detect from extension
-        
+
     Returns
     -------
     networkx.Graph
         Network object
     """
     filepath = Path(filepath)
-    
+
     # Auto-detect format
     if format is None:
         suffix = filepath.suffix.lower()
@@ -130,7 +131,7 @@ def load_network(filepath: Union[str, Path], format: Optional[str] = None) -> nx
             format = 'json'
         else:
             format = 'graphml'
-    
+
     # Load with appropriate method
     if format.lower() == 'graphml':
         return nx.read_graphml(str(filepath))
@@ -138,17 +139,20 @@ def load_network(filepath: Union[str, Path], format: Optional[str] = None) -> nx
         return nx.read_gml(str(filepath))
     elif format.lower() == 'json':
         import json
+
         with open(filepath) as f:
             data = json.load(f)
         return nx.node_link_graph(data)
     else:
-        raise ValueError(f"Unknown format: {format}")
+        raise ValueError(f'Unknown format: {format}')
 
 
-def save_network(network: nx.Graph, filepath: Union[str, Path], format: str = 'graphml'):
+def save_network(
+    network: nx.Graph, filepath: Union[str, Path], format: str = 'graphml'
+):
     """
     Save network to file.
-    
+
     Parameters
     ----------
     network : networkx.Graph
@@ -159,7 +163,7 @@ def save_network(network: nx.Graph, filepath: Union[str, Path], format: str = 'g
         Output format: 'graphml', 'gml', 'json', 'nexus', 'cytoscape', 'csv'
     """
     filepath = Path(filepath)
-    
+
     if format.lower() == 'graphml':
         exporter = GraphMLExporter(filepath)
         exporter.export(network)
@@ -179,26 +183,26 @@ def save_network(network: nx.Graph, filepath: Union[str, Path], format: str = 'g
         exporter = CSVExporter(filepath)
         exporter.export(network)
     else:
-        raise ValueError(f"Unknown format: {format}")
+        raise ValueError(f'Unknown format: {format}')
 
 
 __all__ = [
-    "FastaReader",
-    "FastaWriter",
-    "NexusReader",
-    "NexusWriter",
-    "PhylipReader",
-    "PhylipWriter",
-    "GenBankReader",
-    "MetadataReader",
-    "MetadataWriter",
-    "GraphMLExporter",
-    "GMLExporter",
-    "CytoscapeExporter",
-    "JSONExporter",
-    "CSVExporter",
-    "load_alignment",
-    "save_alignment",
-    "load_network",
-    "save_network",
+    'FastaReader',
+    'FastaWriter',
+    'NexusReader',
+    'NexusWriter',
+    'PhylipReader',
+    'PhylipWriter',
+    'GenBankReader',
+    'MetadataReader',
+    'MetadataWriter',
+    'GraphMLExporter',
+    'GMLExporter',
+    'CytoscapeExporter',
+    'JSONExporter',
+    'CSVExporter',
+    'load_alignment',
+    'save_alignment',
+    'load_network',
+    'save_network',
 ]
