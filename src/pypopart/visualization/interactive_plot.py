@@ -502,7 +502,7 @@ class InteractiveNetworkPlotter:
 
 def plot_interactive_network(network: HaplotypeNetwork, **kwargs) -> Figure:
     """
-    Convenience function to quickly plot an interactive haplotype network.
+    Plot an interactive haplotype network.
 
     Args:
         network: HaplotypeNetwork object to visualize

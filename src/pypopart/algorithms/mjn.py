@@ -101,7 +101,7 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         self, haplotypes: List, alignment: Alignment, distance_matrix: DistanceMatrix
     ) -> HaplotypeNetwork:
         """
-            Iteratively refine network by adding median vectors (C++ algorithm).
+            Refine network iteratively by adding median vectors (C++ algorithm).
 
             Repeatedly:
             1. Build MSN from current haplotypes

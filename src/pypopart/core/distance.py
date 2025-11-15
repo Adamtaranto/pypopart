@@ -522,7 +522,7 @@ class DistanceMatrix:
         return cls(labels, matrix)
 
     def __str__(self) -> str:
-        """String representation."""
+        """Return string representation."""
         return f'DistanceMatrix({self.n} sequences)'
 
     def __repr__(self) -> str:
@@ -656,4 +656,5 @@ class DistanceCalculator:
         return dist_matrix.matrix
 
     def __repr__(self) -> str:
+        """Return detailed string representation."""
         return f"DistanceCalculator(method='{self.method}', ignore_gaps={self.ignore_gaps})"

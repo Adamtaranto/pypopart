@@ -595,7 +595,7 @@ class StaticNetworkPlotter:
 
 def plot_network(network: HaplotypeNetwork, **kwargs) -> Tuple[plt.Figure, plt.Axes]:
     """
-    Convenience function to quickly plot a haplotype network.
+    Plot a haplotype network.
 
     Args:
         network: HaplotypeNetwork object to visualize
