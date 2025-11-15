@@ -192,8 +192,7 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
                         sequence=Sequence(
                             id=f'Median_{self._median_counter}', data=median_seq
                         ),
-                        id=f'Median_{self._median_counter}',
-                        frequency=0,
+                        sample_ids=[],
                     )
                     self._median_counter += 1
 
@@ -484,7 +483,7 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
 
             # Calculate distances from median to the three haplotypes
             median_hap = Haplotype(
-                sequence=median_seq, id=f'Median_{self._median_counter}', frequency=0
+                sequence=median_seq, sample_ids=[]
             )
             self._median_counter += 1
 

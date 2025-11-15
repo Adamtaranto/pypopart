@@ -1004,8 +1004,8 @@ class PyPopARTApp:
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}
 
                 # Create interactive plot
-                plotter = InteractiveNetworkPlotter()
-                fig = plotter.plot_network(network, positions=positions)
+                plotter = InteractiveNetworkPlotter(network)
+                fig = plotter.plot(layout=positions)
 
                 # Add geographic context if in geographic mode
                 if (
