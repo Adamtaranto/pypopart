@@ -11,8 +11,19 @@ from .static_plot import (
     create_publication_figure
 )
 
+from .interactive_plot import (
+    InteractiveNetworkPlotter,
+    plot_interactive_network,
+    create_interactive_figure
+)
+
 __all__ = [
+    # Static plotting
     'StaticNetworkPlotter',
     'plot_network',
     'create_publication_figure',
+    # Interactive plotting
+    'InteractiveNetworkPlotter',
+    'plot_interactive_network',
+    'create_interactive_figure',
 ]
