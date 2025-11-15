@@ -225,24 +225,6 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [x] Create publication-ready figure templates
 - [ ] Support additional custom annotations (deferred)
 
-### 6.5 Core GUI (Dash) - DEFERRED TO FUTURE PHASES
-
-- [ ] Create Dash application structure
-- [ ] Implement file upload component
-- [ ] Create algorithm selection interface
-- [ ] Build parameter controls
-- [ ] Add compute button and progress indicator
-- [ ] Implement statistics panel
-- [ ] Add alignment viewer
-- [ ] Create export options
-- [ ] Error handling and validation
-- [ ] User testing and refinement
-
-**Phase 6 Summary:**
-- Total tests: 115 (37 static + 35 interactive + 43 layout)
-- Coverage: Static 94%, Interactive 97%, Layout 96%
-- All core visualization features implemented and tested
-- GUI components deferred to allow focus on core functionality
 
 ## Phase 7: File I/O & Data Import/Export
 
@@ -352,25 +334,35 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Add streaming for large files
 - [ ] Create memory usage documentation
 
-## Phase 10: Validation & Testing
 
-### 10.1 Algorithm Validation
+## Phase 10 Core GUI (Dash)
+
+- [ ] Create Dash application structure
+- [ ] Implement file upload component
+- [ ] Create algorithm selection interface
+- [ ] Build parameter controls
+- [ ] Add compute button and progress indicator
+- [ ] Implement statistics panel
+- [ ] Add alignment viewer
+- [ ] Create export options
+- [ ] Error handling and validation
+- [ ] User testing and refinement
+
+## Phase 11: Validation & Testing
+
+### 11.1 Algorithm Validation
 - [ ] Test with published datasets
 - [ ] Compare results with original PopART
 - [ ] Validate against literature examples
 - [ ] Create regression test suite
 - [ ] Document any differences from PopART
 
-### 10.2 Integration Testing
+### 11.2 Integration Testing
 - [ ] Test complete workflows
 - [ ] Test with diverse file formats
 - [ ] Test with edge cases
 - [ ] Test error handling
 - [ ] Create end-to-end test suite
-
-
-
-
 
 
 ## Dependencies to Consider
