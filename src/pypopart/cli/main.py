@@ -174,7 +174,7 @@ def network(
         # Identify unique haplotypes for informational purposes
         click.echo('Identifying unique haplotypes...')
         from pypopart.core.haplotype import identify_haplotypes_from_alignment
-        
+
         haplotypes = identify_haplotypes_from_alignment(alignment)
         click.echo(f'✓ Found {len(haplotypes)} unique haplotypes')
 
@@ -186,7 +186,10 @@ def network(
         elif algorithm == 'msn':
             algo = MinimumSpanningNetwork(distance_method=distance)
         elif algorithm == 'tcs':
-            algo = TCS(distance_method=distance, connection_limit=int(parsimony_limit) if parsimony_limit else None)
+            algo = TCS(
+                distance_method=distance,
+                connection_limit=int(parsimony_limit) if parsimony_limit else None,
+            )
         elif algorithm == 'mjn':
             algo = MedianJoiningNetwork(distance_method=distance, epsilon=epsilon)
         else:
@@ -449,14 +452,18 @@ def visualize(
 )
 @click.option(
     '--projection',
-    type=click.Choice(['mercator', 'platecarree', 'orthographic'], case_sensitive=False),
+    type=click.Choice(
+        ['mercator', 'platecarree', 'orthographic'], case_sensitive=False
+    ),
     default='mercator',
     show_default=True,
     help='Map projection',
 )
 @click.option(
     '--base-map',
-    type=click.Choice(['OpenStreetMap', 'Stamen Terrain', 'CartoDB positron'], case_sensitive=False),
+    type=click.Choice(
+        ['OpenStreetMap', 'Stamen Terrain', 'CartoDB positron'], case_sensitive=False
+    ),
     default='OpenStreetMap',
     show_default=True,
     help='Base map for interactive visualization',
@@ -538,27 +545,27 @@ def geo_visualize(
 ) -> None:
     """
     Visualize haplotype network on a geographic map.
-    
+
     NETWORK_FILE: Path to network file (GraphML, GML, or JSON)
-    
+
     This command overlays the haplotype network on a world map using
     geographic coordinates from the metadata file. The metadata file must
     contain latitude and longitude columns.
     """
     from pypopart.io import load_network
     from pypopart.io.metadata import MetadataReader, extract_coordinates
-    
+
     click.echo(f'Loading network from {network_file}...')
-    
+
     try:
         network = load_network(network_file)
         click.echo(f'✓ Loaded network with {network.number_of_nodes()} nodes')
-        
+
         # Load metadata with coordinates
         click.echo(f'Loading metadata from {metadata}...')
         reader = MetadataReader(metadata)
         metadata_dict = reader.read_metadata()
-        
+
         # Extract coordinates for each node
         coordinates = {}
         for node_id in network.node_ids:
@@ -571,13 +578,15 @@ def geo_visualize(
                 )
                 if coords:
                     coordinates[node_id] = coords
-        
+
         click.echo(f'✓ Loaded coordinates for {len(coordinates)} nodes')
-        
+
         if not coordinates:
-            click.echo('✗ Error: No valid geographic coordinates found in metadata', err=True)
+            click.echo(
+                '✗ Error: No valid geographic coordinates found in metadata', err=True
+            )
             sys.exit(1)
-        
+
         # Parse extent if provided
         extent_tuple = None
         if extent:
@@ -589,18 +598,18 @@ def geo_visualize(
             except ValueError as e:
                 click.echo(f'✗ Error: Invalid extent format: {e}', err=True)
                 sys.exit(1)
-        
+
         # Determine output format
         output_path = Path(output)
         is_html = output_path.suffix.lower() == '.html'
-        
+
         if interactive or is_html:
             # Interactive geographic visualization
             from pypopart.visualization import InteractiveGeoVisualizer
-            
-            click.echo(f'Creating interactive geographic visualization...')
+
+            click.echo('Creating interactive geographic visualization...')
             viz = InteractiveGeoVisualizer(network)
-            map_obj = viz.plot(
+            viz.plot(
                 coordinates=coordinates,
                 base_map=base_map,
                 zoom_start=zoom,
@@ -609,12 +618,14 @@ def geo_visualize(
             )
             click.echo(f'✓ Interactive map saved to {output}')
             click.echo(f'  Open in browser: file://{output_path.absolute()}')
-        
+
         else:
             # Static geographic visualization
             from pypopart.visualization import GeoVisualizer
-            
-            click.echo(f'Creating static geographic visualization with {projection} projection...')
+
+            click.echo(
+                f'Creating static geographic visualization with {projection} projection...'
+            )
             viz = GeoVisualizer(network)
             fig, ax = viz.plot(
                 coordinates=coordinates,
@@ -626,9 +637,10 @@ def geo_visualize(
                 output_file=str(output_path),
             )
             click.echo(f'✓ Geographic visualization saved to {output}')
-    
+
     except Exception as e:
         import traceback
+
         click.echo(f'✗ Error: {e}', err=True)
         if ctx.obj.get('verbose', 0) > 0:
             traceback.print_exc()

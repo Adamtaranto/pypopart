@@ -16,17 +16,17 @@ from pypopart.core.alignment import Alignment
 def parse_coordinate(value: str) -> float:
     """
     Parse a coordinate string to a float.
-    
+
     Handles various formats:
     - Decimal degrees: "45.5", "-123.4"
     - With degree symbol: "45.5°", "-123.4°"
-    
+
     Args:
         value: Coordinate string
-        
+
     Returns:
         Coordinate as float
-        
+
     Raises:
         ValueError: If coordinate cannot be parsed
     """
@@ -34,17 +34,17 @@ def parse_coordinate(value: str) -> float:
         # Remove degree symbol and whitespace
         cleaned = value.strip().replace('°', '').replace(' ', '')
         return float(cleaned)
-    except (ValueError, AttributeError):
-        raise ValueError(f'Invalid coordinate value: {value}')
+    except (ValueError, AttributeError) as e:
+        raise ValueError(f'Invalid coordinate value: {value}') from e
 
 
 def validate_latitude(lat: float) -> None:
     """
     Validate latitude value.
-    
+
     Args:
         lat: Latitude value
-        
+
     Raises:
         ValueError: If latitude is out of range [-90, 90]
     """
@@ -55,10 +55,10 @@ def validate_latitude(lat: float) -> None:
 def validate_longitude(lon: float) -> None:
     """
     Validate longitude value.
-    
+
     Args:
         lon: Longitude value
-        
+
     Raises:
         ValueError: If longitude is out of range [-180, 180]
     """
@@ -74,29 +74,29 @@ def extract_coordinates(
 ) -> Optional[Tuple[float, float]]:
     """
     Extract and validate geographic coordinates from metadata.
-    
+
     Args:
         metadata: Metadata dictionary
         lat_column: Name of latitude column
         lon_column: Name of longitude column
         validate: Whether to validate coordinate ranges
-        
+
     Returns:
         Tuple of (latitude, longitude) or None if coordinates not present
-        
+
     Raises:
         ValueError: If coordinates are invalid
     """
     if lat_column not in metadata or lon_column not in metadata:
         return None
-        
+
     lat = parse_coordinate(metadata[lat_column])
     lon = parse_coordinate(metadata[lon_column])
-    
+
     if validate:
         validate_latitude(lat)
         validate_longitude(lon)
-        
+
     return (lat, lon)
 
 
