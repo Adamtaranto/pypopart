@@ -24,17 +24,16 @@ def condense_alignment(
 
     Parameters
     ----------
-    alignment : Alignment
-        Sequence alignment to condense
-    populations : dict, optional
-        Mapping from sequence ID to population name
+    alignment :
+        Alignment.
+        Sequence alignment to condense.
+    populations :
+        dict, optional.
+        Mapping from sequence ID to population name.
 
     Returns
     -------
-    haplotypes : list of Haplotype
-        List of unique haplotypes
-    frequency_map : dict
-        Mapping from haplotype ID to list of sample IDs
+        haplotypes : list of Haplotype        List of unique haplotypes        frequency_map : dict        Mapping from haplotype ID to list of sample IDs.
 
     Examples
     --------

@@ -41,8 +41,10 @@ class HaplotypeNetwork:
         """
         Initialize an empty haplotype network.
 
-        Args:
-            name: Optional name for the network
+        Parameters
+        ----------
+        name :
+            Optional name for the network.
         """
         self.name = name or 'HaplotypeNetwork'
         self._graph = nx.Graph()
@@ -59,9 +61,12 @@ class HaplotypeNetwork:
         """
         Add a haplotype as a node to the network.
 
-        Args:
-            haplotype: Haplotype object to add
-            median_vector: Whether this is an inferred median vector
+        Parameters
+        ----------
+        haplotype :
+            Haplotype object to add.
+        median_vector :
+            Whether this is an inferred median vector.
         """
         node_id = haplotype.id
 
@@ -90,11 +95,14 @@ class HaplotypeNetwork:
         """
         Remove a haplotype node from the network.
 
-        Args:
-            haplotype_id: ID of haplotype to remove
+        Parameters
+        ----------
+        haplotype_id :
+            ID of haplotype to remove.
 
-        Raises:
-            KeyError: If haplotype not found
+        Raises :
+        KeyError :
+            If haplotype not found.
         """
         if haplotype_id not in self._graph:
             raise KeyError(f"Haplotype '{haplotype_id}' not found in network")
@@ -109,11 +117,16 @@ class HaplotypeNetwork:
         """
         Add an edge between two haplotypes.
 
-        Args:
-            source: Source haplotype ID
-            target: Target haplotype ID
-            distance: Genetic distance (weight)
-            **attributes: Additional edge attributes
+        Parameters
+        ----------
+        source :
+            Source haplotype ID.
+        target :
+            Target haplotype ID.
+        distance :
+            Genetic distance (weight).
+        **attributes :
+            Additional edge attributes.
         """
         if source not in self._graph:
             raise KeyError(f"Source node '{source}' not found in network")
@@ -128,12 +141,16 @@ class HaplotypeNetwork:
         """
         Remove an edge from the network.
 
-        Args:
-            source: Source haplotype ID
-            target: Target haplotype ID
+        Parameters
+        ----------
+        source :
+            Source haplotype ID.
+        target :
+            Target haplotype ID.
 
-        Raises:
-            KeyError: If edge not found
+        Raises :
+        KeyError :
+            If edge not found.
         """
         if not self._graph.has_edge(source, target):
             raise KeyError(f'Edge ({source}, {target}) not found in network')
@@ -144,14 +161,18 @@ class HaplotypeNetwork:
         """
         Get haplotype by ID.
 
-        Args:
-            haplotype_id: Haplotype identifier
+        Parameters
+        ----------
+        haplotype_id :
+            Haplotype identifier.
 
-        Returns:
-            Haplotype object
+    Returns
+    -------
+        Haplotype object.
 
-        Raises:
-            KeyError: If haplotype not found
+        Raises :
+        KeyError :
+            If haplotype not found.
         """
         if haplotype_id not in self._haplotype_map:
             raise KeyError(f"Haplotype '{haplotype_id}' not found in network")
@@ -162,11 +183,14 @@ class HaplotypeNetwork:
         """
         Check if node exists in network.
 
-        Args:
-            haplotype_id: Haplotype identifier
+        Parameters
+        ----------
+        haplotype_id :
+            Haplotype identifier.
 
-        Returns:
-            True if node exists
+    Returns
+    -------
+        True if node exists.
         """
         return haplotype_id in self._graph
 
@@ -174,12 +198,16 @@ class HaplotypeNetwork:
         """
         Check if edge exists in network.
 
-        Args:
-            source: Source haplotype ID
-            target: Target haplotype ID
+        Parameters
+        ----------
+        source :
+            Source haplotype ID.
+        target :
+            Target haplotype ID.
 
-        Returns:
-            True if edge exists
+    Returns
+    -------
+        True if edge exists.
         """
         return self._graph.has_edge(source, target)
 
@@ -187,15 +215,20 @@ class HaplotypeNetwork:
         """
         Get distance for an edge.
 
-        Args:
-            source: Source haplotype ID
-            target: Target haplotype ID
+        Parameters
+        ----------
+        source :
+            Source haplotype ID.
+        target :
+            Target haplotype ID.
 
-        Returns:
-            Edge distance
+    Returns
+    -------
+        Edge distance.
 
-        Raises:
-            KeyError: If edge not found
+        Raises :
+        KeyError :
+            If edge not found.
         """
         if not self.has_edge(source, target):
             raise KeyError(f'Edge ({source}, {target}) not found')
@@ -206,14 +239,18 @@ class HaplotypeNetwork:
         """
         Get neighboring haplotype IDs.
 
-        Args:
-            haplotype_id: Haplotype identifier
+        Parameters
+        ----------
+        haplotype_id :
+            Haplotype identifier.
 
-        Returns:
-            List of neighbor IDs
+    Returns
+    -------
+        List of neighbor IDs.
 
-        Raises:
-            KeyError: If haplotype not found
+        Raises :
+        KeyError :
+            If haplotype not found.
         """
         if not self.has_node(haplotype_id):
             raise KeyError(f"Haplotype '{haplotype_id}' not found")
@@ -224,11 +261,14 @@ class HaplotypeNetwork:
         """
         Get degree (number of connections) for a node.
 
-        Args:
-            haplotype_id: Haplotype identifier
+        Parameters
+        ----------
+        haplotype_id :
+            Haplotype identifier.
 
-        Returns:
-            Node degree
+    Returns
+    -------
+        Node degree.
         """
         if not self.has_node(haplotype_id):
             raise KeyError(f"Haplotype '{haplotype_id}' not found")
@@ -273,11 +313,14 @@ class HaplotypeNetwork:
         """
         Check if a node is a median vector.
 
-        Args:
-            node_id: Node identifier
+        Parameters
+        ----------
+        node_id :
+            Node identifier.
 
-        Returns:
-            True if node is a median vector
+    Returns
+    -------
+        True if node is a median vector.
         """
         return node_id in self._median_vectors
 
@@ -285,8 +328,9 @@ class HaplotypeNetwork:
         """
         Check if network is fully connected.
 
-        Returns:
-            True if all nodes are in one connected component
+        Returns
+        -------
+            True if all nodes are in one connected component.
         """
         return nx.is_connected(self._graph)
 
@@ -294,8 +338,9 @@ class HaplotypeNetwork:
         """
         Get connected components of the network.
 
-        Returns:
-            List of sets, each containing node IDs in a component
+        Returns
+        -------
+            List of sets, each containing node IDs in a component.
         """
         return [set(component) for component in nx.connected_components(self._graph)]
 
@@ -303,8 +348,9 @@ class HaplotypeNetwork:
         """
         Calculate network diameter (longest shortest path).
 
-        Returns:
-            Network diameter, or -1 if not connected
+        Returns
+        -------
+            Network diameter, or -1 if not connected.
         """
         if not self.is_connected():
             return -1
@@ -315,14 +361,18 @@ class HaplotypeNetwork:
         """
         Find shortest path between two nodes.
 
-        Args:
-            source: Source node ID
-            target: Target node ID
+        Parameters
+        ----------
+        source :
+            Source node ID.
+        target :
+            Target node ID.
 
-        Returns:
-            List of node IDs in the shortest path
+    Returns
+    -------
+        List of node IDs in the shortest path.
 
-        Raises:
+        Raises :
             nx.NetworkXNoPath: If no path exists
         """
         return nx.shortest_path(self._graph, source, target)
@@ -331,14 +381,18 @@ class HaplotypeNetwork:
         """
         Get length of shortest path between two nodes.
 
-        Args:
-            source: Source node ID
-            target: Target node ID
+        Parameters
+        ----------
+        source :
+            Source node ID.
+        target :
+            Target node ID.
 
-        Returns:
-            Number of edges in shortest path
+    Returns
+    -------
+        Number of edges in shortest path.
 
-        Raises:
+        Raises :
             nx.NetworkXNoPath: If no path exists
         """
         return nx.shortest_path_length(self._graph, source, target)
@@ -347,8 +401,9 @@ class HaplotypeNetwork:
         """
         Calculate betweenness centrality for all nodes.
 
-        Returns:
-            Dictionary mapping node ID to centrality score
+        Returns
+        -------
+            Dictionary mapping node ID to centrality score.
         """
         return nx.betweenness_centrality(self._graph)
 
@@ -356,8 +411,9 @@ class HaplotypeNetwork:
         """
         Get total number of samples represented in the network.
 
-        Returns:
-            Total sample count
+        Returns
+        -------
+            Total sample count.
         """
         return sum(hap.frequency for hap in self._haplotype_map.values())
 
@@ -365,8 +421,9 @@ class HaplotypeNetwork:
         """
         Calculate comprehensive network statistics.
 
-        Returns:
-            NetworkStats object with network metrics
+        Returns
+        -------
+            NetworkStats object with network metrics.
         """
         num_nodes = self.num_nodes
         num_edges = self.num_edges
@@ -431,8 +488,9 @@ class HaplotypeNetwork:
         """
         Get the underlying NetworkX graph.
 
-        Returns:
-            NetworkX Graph object
+        Returns
+        -------
+            NetworkX Graph object.
         """
         return self._graph.copy()
 
@@ -440,8 +498,9 @@ class HaplotypeNetwork:
         """
         Convert network to dictionary representation.
 
-        Returns:
-            Dictionary with network data
+        Returns
+        -------
+            Dictionary with network data.
         """
         nodes_data = []
         for node_id in self._graph.nodes():

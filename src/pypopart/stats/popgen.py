@@ -80,8 +80,9 @@ def calculate_tajimas_d(
         alignment: Alignment object
         populations: Optional dict mapping sequence_id -> population
 
-    Returns:
-        TajimaDResult with D statistic and related values
+    Returns
+    -------
+        TajimaDResult with D statistic and related values.
     """
     n = len(alignment)  # Number of sequences
     L = alignment.length  # Sequence length
@@ -165,8 +166,9 @@ def calculate_fu_fs(network: HaplotypeNetwork, alignment: Alignment) -> FuFsResu
         network: HaplotypeNetwork object
         alignment: Alignment object
 
-    Returns:
-        FuFsResult with Fs statistic and related values
+    Returns
+    -------
+        FuFsResult with Fs statistic and related values.
     """
     # Get number of haplotypes and samples
     k = len(network.haplotypes)  # Number of haplotypes
@@ -242,8 +244,9 @@ def calculate_pairwise_fst(
         pop1: Name of first population
         pop2: Name of second population
 
-    Returns:
-        FstResult with FST and related values
+    Returns
+    -------
+        FstResult with FST and related values.
     """
     # Get haplotypes for each population
     pop1_counts: Dict[str, int] = defaultdict(int)
@@ -299,8 +302,9 @@ def calculate_fst_matrix(network: HaplotypeNetwork) -> Dict[Tuple[str, str], flo
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        Dictionary mapping (pop1, pop2) tuples to FST values
+    Returns
+    -------
+        Dictionary mapping (pop1, pop2) tuples to FST values.
     """
     # Get all populations
     populations = set()
@@ -345,8 +349,9 @@ def calculate_amova(
         alignment: Alignment object
         groups: Optional dict mapping population -> group
 
-    Returns:
-        AMOVAResult with variance components and phi statistics
+    Returns
+    -------
+        AMOVAResult with variance components and phi statistics.
     """
     # Get populations and their samples
     pop_haplotypes: Dict[str, List[str]] = defaultdict(list)
@@ -478,8 +483,9 @@ def calculate_mismatch_distribution(network: HaplotypeNetwork) -> Dict[int, int]
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        Dictionary mapping number of differences -> frequency
+    Returns
+    -------
+        Dictionary mapping number of differences -> frequency.
     """
     mismatch_counts: Dict[int, int] = defaultdict(int)
 

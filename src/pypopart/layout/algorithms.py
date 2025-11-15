@@ -25,8 +25,10 @@ class LayoutAlgorithm:
         """
         Initialize layout algorithm with a network.
 
-        Args:
-            network: HaplotypeNetwork object
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
         """
         self.network = network
         self.graph = network._graph
@@ -35,11 +37,14 @@ class LayoutAlgorithm:
         """
         Compute node positions.
 
-        Args:
-            **kwargs: Algorithm-specific parameters
+        Parameters
+        ----------
+        **kwargs :
+            Algorithm-specific parameters.
 
-        Returns:
-            Dictionary mapping node IDs to (x, y) positions
+    Returns
+    -------
+        Dictionary mapping node IDs to (x, y) positions.
         """
         raise NotImplementedError('Subclasses must implement compute()')
 
@@ -49,9 +54,12 @@ class LayoutAlgorithm:
         """
         Save layout to a JSON file.
 
-        Args:
-            layout: Node positions dictionary
-            filename: Output filename
+        Parameters
+        ----------
+        layout :
+            Node positions dictionary.
+        filename :
+            Output filename.
         """
         # Convert tuples to lists for JSON serialization
         layout_serializable = {node: list(pos) for node, pos in layout.items()}
@@ -64,11 +72,14 @@ class LayoutAlgorithm:
         """
         Load layout from a JSON file.
 
-        Args:
-            filename: Input filename
+        Parameters
+        ----------
+        filename :
+            Input filename.
 
-        Returns:
-            Dictionary mapping node IDs to (x, y) positions
+    Returns
+    -------
+        Dictionary mapping node IDs to (x, y) positions.
         """
         with open(filename, 'r') as f:
             layout_data = json.load(f)
@@ -95,14 +106,20 @@ class ForceDirectedLayout(LayoutAlgorithm):
         """
         Compute force-directed layout.
 
-        Args:
-            k: Optimal distance between nodes (None for auto)
-            iterations: Number of iterations for optimization
-            seed: Random seed for reproducibility
-            **kwargs: Additional parameters passed to spring_layout
+        Parameters
+        ----------
+        k :
+            Optimal distance between nodes (None for auto).
+        iterations :
+            Number of iterations for optimization.
+        seed :
+            Random seed for reproducibility.
+        **kwargs :
+            Additional parameters passed to spring_layout.
 
-        Returns:
-            Node positions dictionary
+    Returns
+    -------
+        Node positions dictionary.
         """
         layout = nx.spring_layout(
             self.graph, k=k, iterations=iterations, seed=seed, **kwargs
@@ -125,13 +142,18 @@ class CircularLayout(LayoutAlgorithm):
         """
         Compute circular layout.
 
-        Args:
-            scale: Scale factor for the layout
-            center: Center position (x, y)
-            **kwargs: Additional parameters passed to circular_layout
+        Parameters
+        ----------
+        scale :
+            Scale factor for the layout.
+        center :
+            Center position (x, y).
+        **kwargs :
+            Additional parameters passed to circular_layout.
 
-        Returns:
-            Node positions dictionary
+    Returns
+    -------
+        Node positions dictionary.
         """
         layout = nx.circular_layout(self.graph, scale=scale, center=center, **kwargs)
         # Convert numpy arrays to tuples
@@ -152,13 +174,18 @@ class RadialLayout(LayoutAlgorithm):
         """
         Compute radial layout.
 
-        Args:
-            center_node: Node to place at center (most connected if None)
-            scale: Scale factor for the layout
-            **kwargs: Additional parameters
+        Parameters
+        ----------
+        center_node :
+            Node to place at center (most connected if None).
+        scale :
+            Scale factor for the layout.
+        **kwargs :
+            Additional parameters.
 
-        Returns:
-            Node positions dictionary
+    Returns
+    -------
+        Node positions dictionary.
         """
         if not self.graph.nodes():
             return {}
@@ -227,15 +254,22 @@ class HierarchicalLayout(LayoutAlgorithm):
         """
         Compute hierarchical layout.
 
-        Args:
-            root_node: Root node for hierarchy (most connected if None)
-            vertical: If True, levels are horizontal; if False, levels are vertical
-            width: Total width of the layout
-            height: Total height of the layout
-            **kwargs: Additional parameters
+        Parameters
+        ----------
+        root_node :
+            Root node for hierarchy (most connected if None).
+        vertical :
+            If True, levels are horizontal; if False, levels are vertical.
+        width :
+            Total width of the layout.
+        height :
+            Total height of the layout.
+        **kwargs :
+            Additional parameters.
 
-        Returns:
-            Node positions dictionary
+    Returns
+    -------
+        Node positions dictionary.
         """
         if not self.graph.nodes():
             return {}
@@ -303,13 +337,18 @@ class KamadaKawaiLayout(LayoutAlgorithm):
         """
         Compute Kamada-Kawai layout.
 
-        Args:
-            scale: Scale factor for the layout
-            center: Center position (x, y)
-            **kwargs: Additional parameters passed to kamada_kawai_layout
+        Parameters
+        ----------
+        scale :
+            Scale factor for the layout.
+        center :
+            Center position (x, y).
+        **kwargs :
+            Additional parameters passed to kamada_kawai_layout.
 
-        Returns:
-            Node positions dictionary
+    Returns
+    -------
+        Node positions dictionary.
         """
         layout = nx.kamada_kawai_layout(
             self.graph, scale=scale, center=center, **kwargs
@@ -333,9 +372,12 @@ class ManualLayout(LayoutAlgorithm):
         """
         Initialize manual layout.
 
-        Args:
-            network: HaplotypeNetwork object
-            initial_positions: Starting positions for nodes
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
+        initial_positions :
+            Starting positions for nodes.
         """
         super().__init__(network)
         self.positions = initial_positions or {}
@@ -344,11 +386,14 @@ class ManualLayout(LayoutAlgorithm):
         """
         Return current manual positions.
 
-        Args:
-            **kwargs: Ignored
+        Parameters
+        ----------
+        **kwargs :
+            Ignored.
 
-        Returns:
-            Node positions dictionary
+    Returns
+    -------
+        Node positions dictionary.
         """
         # Fill in missing nodes with default layout
         if len(self.positions) < len(self.graph.nodes()):
@@ -363,9 +408,12 @@ class ManualLayout(LayoutAlgorithm):
         """
         Set position for a specific node.
 
-        Args:
-            node: Node ID
-            position: (x, y) coordinates
+        Parameters
+        ----------
+        node :
+            Node ID.
+        position :
+            (x, y) coordinates.
         """
         if node not in self.graph.nodes():
             raise ValueError(f"Node '{node}' not in network")
@@ -376,10 +424,14 @@ class ManualLayout(LayoutAlgorithm):
         """
         Move a node by a relative offset.
 
-        Args:
-            node: Node ID
-            dx: X offset
-            dy: Y offset
+        Parameters
+        ----------
+        node :
+            Node ID.
+        dx :
+            X offset.
+        dy :
+            Y offset.
         """
         if node not in self.positions:
             raise ValueError(f"Node '{node}' has no position set")
@@ -400,8 +452,10 @@ class LayoutManager:
         """
         Initialize layout manager.
 
-        Args:
-            network: HaplotypeNetwork object
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
         """
         self.network = network
         self._algorithms = {
@@ -420,15 +474,20 @@ class LayoutManager:
         """
         Compute network layout using specified algorithm.
 
-        Args:
-            algorithm: Layout algorithm name
-            **kwargs: Algorithm-specific parameters
+        Parameters
+        ----------
+        algorithm :
+            Layout algorithm name.
+        **kwargs :
+            Algorithm-specific parameters.
 
-        Returns:
-            Node positions dictionary
+    Returns
+    -------
+        Node positions dictionary.
 
-        Raises:
-            ValueError: If algorithm not recognized
+        Raises :
+        ValueError :
+            If algorithm not recognized.
         """
         if algorithm not in self._algorithms:
             available = ', '.join(self._algorithms.keys())
@@ -445,9 +504,12 @@ class LayoutManager:
         """
         Save layout to file.
 
-        Args:
-            layout: Node positions dictionary
-            filename: Output filename (JSON format)
+        Parameters
+        ----------
+        layout :
+            Node positions dictionary.
+        filename :
+            Output filename (JSON format).
         """
         algo = LayoutAlgorithm(self.network)
         algo.save_layout(layout, filename)
@@ -456,11 +518,14 @@ class LayoutManager:
         """
         Load layout from file.
 
-        Args:
-            filename: Input filename (JSON format)
+        Parameters
+        ----------
+        filename :
+            Input filename (JSON format).
 
-        Returns:
-            Node positions dictionary
+    Returns
+    -------
+        Node positions dictionary.
         """
         return LayoutAlgorithm.load_layout(filename)
 
@@ -468,8 +533,9 @@ class LayoutManager:
         """
         Get list of available layout algorithms.
 
-        Returns:
-            List of algorithm names
+        Returns
+        -------
+            List of algorithm names.
         """
         return list(self._algorithms.keys())
 
@@ -486,8 +552,10 @@ class GeographicLayout(LayoutAlgorithm):
         """
         Initialize geographic layout algorithm.
 
-        Args:
-            network: HaplotypeNetwork object
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
         """
         super().__init__(network)
         self._projection = None
@@ -503,22 +571,30 @@ class GeographicLayout(LayoutAlgorithm):
         """
         Compute geographic layout from coordinates.
 
-        Args:
-            coordinates: Dictionary mapping node IDs to (latitude, longitude) tuples
-            projection: Map projection to use ('mercator', 'platecarree', 'orthographic')
-            handle_multiple_locations: How to handle nodes in multiple locations:
+        Parameters
+        ----------
+        coordinates :
+            Dictionary mapping node IDs to (latitude, longitude) tuples.
+        projection :
+            Map projection to use ('mercator', 'platecarree', 'orthographic').
+        handle_multiple_locations :
+            How to handle nodes in multiple locations:.
                 - 'centroid': Use centroid of all locations
                 - 'first': Use first location
-                - 'jitter': Place at first location with small random offset
-            jitter_amount: Amount of random jitter to add (in degrees) when multiple
-                          nodes share the same location
-            **kwargs: Additional projection parameters
+                - 'jitter': Place at first location with small random offset.
+        jitter_amount :
+            Amount of random jitter to add (in degrees) when multiple.
+                          nodes share the same location.
+        **kwargs :
+            Additional projection parameters.
 
-        Returns:
-            Dictionary mapping node IDs to (x, y) positions in projected coordinates
+    Returns
+    -------
+        Dictionary mapping node IDs to (x, y) positions in projected coordinates.
 
-        Raises:
-            ValueError: If coordinates are not provided or invalid
+        Raises :
+        ValueError :
+            If coordinates are not provided or invalid.
         """
         if coordinates is None:
             # Try to extract coordinates from node metadata
@@ -589,8 +665,9 @@ class GeographicLayout(LayoutAlgorithm):
         """
         Extract coordinates from node metadata.
 
-        Returns:
-            Dictionary mapping node IDs to (latitude, longitude) tuples
+        Returns
+        -------
+            Dictionary mapping node IDs to (latitude, longitude) tuples.
         """
         from ..io.metadata import extract_coordinates
 
@@ -621,13 +698,18 @@ class GeographicLayout(LayoutAlgorithm):
         """
         Project geographic coordinates to map coordinates.
 
-        Args:
-            lat: Latitude
-            lon: Longitude
-            projection: Projection name
+        Parameters
+        ----------
+        lat :
+            Latitude.
+        lon :
+            Longitude.
+        projection :
+            Projection name.
 
-        Returns:
-            Tuple of (x, y) projected coordinates
+    Returns
+    -------
+        Tuple of (x, y) projected coordinates.
         """
         if projection.lower() == 'mercator':
             # Web Mercator projection

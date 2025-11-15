@@ -62,8 +62,9 @@ def identify_star_patterns(
         network: HaplotypeNetwork object
         min_leaves: Minimum number of leaves for a pattern to be considered
 
-    Returns:
-        List of StarPattern objects
+    Returns
+    -------
+        List of StarPattern objects.
     """
     G = network.to_networkx()
     patterns = []
@@ -114,8 +115,9 @@ def detect_network_partitions(network: HaplotypeNetwork) -> List[Partition]:
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        List of Partition objects, sorted by size (descending)
+    Returns
+    -------
+        List of Partition objects, sorted by size (descending).
     """
     G = network.to_networkx()
     components = list(nx.connected_components(G))
@@ -166,8 +168,9 @@ def calculate_node_centrality(
                  ('degree', 'betweenness', 'closeness', 'eigenvector')
                  If None, calculates all methods
 
-    Returns:
-        Dictionary mapping node_id -> {method -> centrality_score}
+    Returns
+    -------
+        Dictionary mapping node_id -> {method -> centrality_score}.
     """
     if methods is None:
         methods = ['degree', 'betweenness', 'closeness', 'eigenvector']
@@ -225,8 +228,9 @@ def identify_ancestral_nodes(
         network: HaplotypeNetwork object
         top_n: Number of top candidates to return
 
-    Returns:
-        List of AncestralNode objects, sorted by score (descending)
+    Returns
+    -------
+        List of AncestralNode objects, sorted by score (descending).
     """
     G = network.to_networkx()
 
@@ -289,8 +293,9 @@ def calculate_topology_summary(network: HaplotypeNetwork) -> Dict[str, any]:
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        Dictionary with topology analysis results
+    Returns
+    -------
+        Dictionary with topology analysis results.
     """
     G = network.to_networkx()
 
@@ -393,8 +398,9 @@ def find_central_hub_nodes(
         degree_threshold: Minimum degree to be considered a hub
                          If None, uses mean degree + 1 std dev
 
-    Returns:
-        List of (node_id, degree) tuples, sorted by degree (descending)
+    Returns
+    -------
+        List of (node_id, degree) tuples, sorted by degree (descending).
     """
     G = network.to_networkx()
 
@@ -438,8 +444,9 @@ def detect_bridges(network: HaplotypeNetwork) -> List[Tuple[str, str]]:
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        List of (node1, node2) tuples representing bridge edges
+    Returns
+    -------
+        List of (node1, node2) tuples representing bridge edges.
     """
     G = network.to_networkx()
 
@@ -462,8 +469,9 @@ def identify_bottleneck_nodes(network: HaplotypeNetwork) -> List[Tuple[str, floa
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        List of (node_id, betweenness_score) tuples, sorted by score (descending)
+    Returns
+    -------
+        List of (node_id, betweenness_score) tuples, sorted by score (descending).
     """
     G = network.to_networkx()
 

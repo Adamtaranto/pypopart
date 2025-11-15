@@ -52,10 +52,12 @@ class PyPopARTApp:
 
         Parameters
         ----------
-        debug : bool, default=False
-            Enable debug mode for development
-        port : int, default=8050
-            Port number for the web server
+        debug :
+            bool, default=False.
+            Enable debug mode for development.
+        port :
+            int, default=8050.
+            Port number for the web server.
         """
         self.debug = debug
         self.port = port
@@ -1154,10 +1156,12 @@ def main(debug: bool = False, port: int = 8050) -> None:
 
     Parameters
     ----------
-    debug : bool, default=False
-        Enable debug mode
-    port : int, default=8050
-        Port number for web server
+    debug :
+        bool, default=False.
+        Enable debug mode.
+    port :
+        int, default=8050.
+        Port number for web server.
     """
     app = PyPopARTApp(debug=debug, port=port)
     print(f'Starting PyPopART GUI on http://localhost:{port}')

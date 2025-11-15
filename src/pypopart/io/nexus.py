@@ -24,9 +24,12 @@ class NexusReader:
         """
         Initialize NEXUS reader.
 
-        Args:
-            filepath: Path to NEXUS file
-            validate: Whether to validate sequences and alignment
+        Parameters
+        ----------
+        filepath :
+            Path to NEXUS file.
+        validate :
+            Whether to validate sequences and alignment.
         """
         self.filepath = Path(filepath)
         self.validate = validate
@@ -47,11 +50,14 @@ class NexusReader:
         """
         Parse DIMENSIONS block.
 
-        Args:
-            content: NEXUS file content
+        Parameters
+        ----------
+        content :
+            NEXUS file content.
 
-        Returns:
-            Tuple of (ntax, nchar)
+    Returns
+    -------
+        Tuple of (ntax, nchar).
         """
         dimensions_match = re.search(
             r'DIMENSIONS\s+NTAX=(\d+)\s+NCHAR=(\d+)', content, re.IGNORECASE
@@ -68,11 +74,14 @@ class NexusReader:
         """
         Parse MATRIX block.
 
-        Args:
-            content: NEXUS file content
+        Parameters
+        ----------
+        content :
+            NEXUS file content.
 
-        Returns:
-            Dictionary mapping sequence IDs to sequence data
+    Returns
+    -------
+        Dictionary mapping sequence IDs to sequence data.
         """
         sequences = {}
 
@@ -118,11 +127,14 @@ class NexusReader:
         """
         Parse TRAITS block (PopART extension).
 
-        Args:
-            content: NEXUS file content
+        Parameters
+        ----------
+        content :
+            NEXUS file content.
 
-        Returns:
-            Dictionary mapping sequence IDs to trait dictionaries
+    Returns
+    -------
+        Dictionary mapping sequence IDs to trait dictionaries.
         """
         traits = {}
 
@@ -173,11 +185,14 @@ class NexusReader:
         """
         Read alignment from NEXUS file.
 
-        Args:
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        progress_callback :
+            Optional callback function(current, total).
 
-        Returns:
-            Alignment object with metadata
+    Returns
+    -------
+        Alignment object with metadata.
         """
         with self._open_file() as handle:
             content = handle.read()
@@ -219,8 +234,9 @@ class NexusReader:
         """
         Get parsed traits/metadata.
 
-        Returns:
-            Dictionary mapping sequence IDs to trait dictionaries
+        Returns
+        -------
+            Dictionary mapping sequence IDs to trait dictionaries.
         """
         return self.traits
 
@@ -241,10 +257,14 @@ class NexusWriter:
         """
         Initialize NEXUS writer.
 
-        Args:
-            filepath: Output file path
-            interleaved: Whether to write in interleaved format
-            compress: Compression format ('gzip' or None)
+        Parameters
+        ----------
+        filepath :
+            Output file path.
+        interleaved :
+            Whether to write in interleaved format.
+        compress :
+            Compression format ('gzip' or None).
         """
         self.filepath = Path(filepath)
         self.interleaved = interleaved
@@ -266,10 +286,14 @@ class NexusWriter:
         """
         Write alignment to NEXUS file.
 
-        Args:
-            alignment: Alignment object
-            include_traits: Whether to include traits block
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        alignment :
+            Alignment object.
+        include_traits :
+            Whether to include traits block.
+        progress_callback :
+            Optional callback function(current, total).
         """
         with self._open_file() as handle:
             # Write header

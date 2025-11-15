@@ -23,17 +23,19 @@ def hamming_distance_numba(
 
     Parameters
     ----------
-    seq1_bytes : np.ndarray
-        First sequence as numpy array of bytes
-    seq2_bytes : np.ndarray
-        Second sequence as numpy array of bytes
-    ignore_gaps : bool, default=True
-        Whether to ignore gap characters ('-')
+    seq1_bytes :
+        np.ndarray.
+        First sequence as numpy array of bytes.
+    seq2_bytes :
+        np.ndarray.
+        Second sequence as numpy array of bytes.
+    ignore_gaps :
+        bool, default=True.
+        Whether to ignore gap characters ('-').
 
     Returns
     -------
-    int
-        Number of differing positions
+        int        Number of differing positions.
 
     Notes
     -----
@@ -68,17 +70,19 @@ def p_distance_numba(
 
     Parameters
     ----------
-    seq1_bytes : np.ndarray
-        First sequence as numpy array of bytes
-    seq2_bytes : np.ndarray
-        Second sequence as numpy array of bytes
-    ignore_gaps : bool, default=True
-        Whether to ignore gap characters
+    seq1_bytes :
+        np.ndarray.
+        First sequence as numpy array of bytes.
+    seq2_bytes :
+        np.ndarray.
+        Second sequence as numpy array of bytes.
+    ignore_gaps :
+        bool, default=True.
+        Whether to ignore gap characters.
 
     Returns
     -------
-    float
-        Proportion of differing sites (0.0 to 1.0)
+        float        Proportion of differing sites (0.0 to 1.0).
     """
     if len(seq1_bytes) != len(seq2_bytes):
         return -1.0  # Error indicator
@@ -114,17 +118,19 @@ def kimura_2p_counts_numba(
 
     Parameters
     ----------
-    seq1_bytes : np.ndarray
-        First sequence as numpy array of bytes
-    seq2_bytes : np.ndarray
-        Second sequence as numpy array of bytes
-    ignore_gaps : bool, default=True
-        Whether to ignore gap characters
+    seq1_bytes :
+        np.ndarray.
+        First sequence as numpy array of bytes.
+    seq2_bytes :
+        np.ndarray.
+        Second sequence as numpy array of bytes.
+    ignore_gaps :
+        bool, default=True.
+        Whether to ignore gap characters.
 
     Returns
     -------
-    tuple of (int, int, int)
-        (transitions, transversions, compared_sites)
+        tuple of (int, int, int)        (transitions, transversions, compared_sites).
 
     Notes
     -----
@@ -183,15 +189,16 @@ def pairwise_hamming_matrix_numba(
 
     Parameters
     ----------
-    sequences : np.ndarray
-        2D array where each row is a sequence (as bytes)
-    ignore_gaps : bool, default=True
-        Whether to ignore gap characters
+    sequences :
+        np.ndarray.
+        2D array where each row is a sequence (as bytes).
+    ignore_gaps :
+        bool, default=True.
+        Whether to ignore gap characters.
 
     Returns
     -------
-    np.ndarray
-        Symmetric distance matrix of shape (n_sequences, n_sequences)
+        np.ndarray        Symmetric distance matrix of shape (n_sequences, n_sequences).
 
     Notes
     -----
@@ -217,13 +224,13 @@ def prepare_sequences_for_numba(sequences: list) -> np.ndarray:
 
     Parameters
     ----------
-    sequences : list of str
-        List of sequence strings
+    sequences :
+        list of str.
+        List of sequence strings.
 
     Returns
     -------
-    np.ndarray
-        2D array where each row is a sequence as byte values
+        np.ndarray        2D array where each row is a sequence as byte values.
 
     Examples
     --------
@@ -257,17 +264,19 @@ def hamming_distance_optimized(seq1, seq2, ignore_gaps: bool = True) -> int:
 
     Parameters
     ----------
-    seq1 : Sequence or str
-        First sequence
-    seq2 : Sequence or str
-        Second sequence
-    ignore_gaps : bool, default=True
-        Whether to ignore gap characters
+    seq1 :
+        Sequence or str.
+        First sequence.
+    seq2 :
+        Sequence or str.
+        Second sequence.
+    ignore_gaps :
+        bool, default=True.
+        Whether to ignore gap characters.
 
     Returns
     -------
-    int
-        Hamming distance
+        int        Hamming distance.
 
     Notes
     -----
@@ -292,17 +301,19 @@ def p_distance_optimized(seq1, seq2, ignore_gaps: bool = True) -> float:
 
     Parameters
     ----------
-    seq1 : Sequence or str
-        First sequence
-    seq2 : Sequence or str
-        Second sequence
-    ignore_gaps : bool, default=True
-        Whether to ignore gap characters
+    seq1 :
+        Sequence or str.
+        First sequence.
+    seq2 :
+        Sequence or str.
+        Second sequence.
+    ignore_gaps :
+        bool, default=True.
+        Whether to ignore gap characters.
 
     Returns
     -------
-    float
-        Proportion of differing sites
+        float        Proportion of differing sites.
     """
     s1 = seq1.data if hasattr(seq1, 'data') else str(seq1)
     s2 = seq2.data if hasattr(seq2, 'data') else str(seq2)
@@ -321,17 +332,19 @@ def kimura_2p_counts_optimized(
 
     Parameters
     ----------
-    seq1 : Sequence or str
-        First sequence
-    seq2 : Sequence or str
-        Second sequence
-    ignore_gaps : bool, default=True
-        Whether to ignore gap characters
+    seq1 :
+        Sequence or str.
+        First sequence.
+    seq2 :
+        Sequence or str.
+        Second sequence.
+    ignore_gaps :
+        bool, default=True.
+        Whether to ignore gap characters.
 
     Returns
     -------
-    tuple of (int, int, int)
-        (transitions, transversions, compared_sites)
+        tuple of (int, int, int)        (transitions, transversions, compared_sites).
     """
     s1 = seq1.data if hasattr(seq1, 'data') else str(seq1)
     s2 = seq2.data if hasattr(seq2, 'data') else str(seq2)

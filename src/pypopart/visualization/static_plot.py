@@ -28,8 +28,10 @@ class StaticNetworkPlotter:
         """
         Initialize plotter with a haplotype network.
 
-        Args:
-            network: HaplotypeNetwork object to visualize
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object to visualize.
         """
         self.network = network
         self.figure = None
@@ -54,23 +56,38 @@ class StaticNetworkPlotter:
         """
         Create a static network plot.
 
-        Args:
-            layout: Pre-computed node positions {node_id: (x, y)}
-            layout_algorithm: NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai')
-            node_size_scale: Scaling factor for node sizes
-            node_color_map: Custom color mapping {node_id: color}
-            population_colors: Color mapping for populations {pop_name: color}
-            edge_width_scale: Scaling factor for edge widths
-            show_labels: Whether to show node labels
-            show_mutations: Whether to show mutation counts on edges
-            median_vector_color: Color for median vector nodes
-            median_vector_marker: Marker shape for median vectors ('s'=square, 'o'=circle)
-            figsize: Figure size (width, height) in inches
-            title: Plot title
-            **kwargs: Additional arguments passed to networkx drawing functions
+        Parameters
+        ----------
+        layout :
+            Pre-computed node positions {node_id: (x, y)}.
+        layout_algorithm :
+            NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
+        node_size_scale :
+            Scaling factor for node sizes.
+        node_color_map :
+            Custom color mapping {node_id: color}.
+        population_colors :
+            Color mapping for populations {pop_name: color}.
+        edge_width_scale :
+            Scaling factor for edge widths.
+        show_labels :
+            Whether to show node labels.
+        show_mutations :
+            Whether to show mutation counts on edges.
+        median_vector_color :
+            Color for median vector nodes.
+        median_vector_marker :
+            Marker shape for median vectors ('s'=square, 'o'=circle).
+        figsize :
+            Figure size (width, height) in inches.
+        title :
+            Plot title.
+        **kwargs :
+            Additional arguments passed to networkx drawing functions.
 
-        Returns:
-            Figure and axes objects
+    Returns
+    -------
+        Figure and axes objects.
         """
         # Create figure and axes
         self.figure, self.ax = plt.subplots(figsize=figsize)
@@ -181,12 +198,18 @@ class StaticNetworkPlotter:
         """
         Add a legend to the plot.
 
-        Args:
-            population_colors: Population color mapping {pop_name: color}
-            show_median_vectors: Whether to include median vectors in legend
-            show_size_scale: Whether to show node size scale
-            loc: Legend location
-            **kwargs: Additional arguments passed to plt.legend()
+        Parameters
+        ----------
+        population_colors :
+            Population color mapping {pop_name: color}.
+        show_median_vectors :
+            Whether to include median vectors in legend.
+        show_size_scale :
+            Whether to show node size scale.
+        loc :
+            Legend location.
+        **kwargs :
+            Additional arguments passed to plt.legend().
         """
         if self.ax is None:
             raise ValueError('No plot exists. Call plot() first.')
@@ -280,11 +303,16 @@ class StaticNetworkPlotter:
         """
         Add a scale bar showing mutation distance.
 
-        Args:
-            num_mutations: Number of mutations represented by scale bar
-            position: Position as fraction of axes (x, y)
-            length: Length of scale bar as fraction of axes width
-            **kwargs: Additional arguments for the line and text
+        Parameters
+        ----------
+        num_mutations :
+            Number of mutations represented by scale bar.
+        position :
+            Position as fraction of axes (x, y).
+        length :
+            Length of scale bar as fraction of axes width.
+        **kwargs :
+            Additional arguments for the line and text.
         """
         if self.ax is None:
             raise ValueError('No plot exists. Call plot() first.')
@@ -328,10 +356,14 @@ class StaticNetworkPlotter:
         """
         Add network statistics as text annotation.
 
-        Args:
-            stats: Dictionary of statistics to display
-            position: Position as fraction of axes (x, y)
-            **kwargs: Additional arguments for the text box
+        Parameters
+        ----------
+        stats :
+            Dictionary of statistics to display.
+        position :
+            Position as fraction of axes (x, y).
+        **kwargs :
+            Additional arguments for the text box.
         """
         if self.ax is None:
             raise ValueError('No plot exists. Call plot() first.')
@@ -375,11 +407,16 @@ class StaticNetworkPlotter:
         """
         Save the plot to a file.
 
-        Args:
-            filename: Output filename (extension determines format: .png, .pdf, .svg)
-            dpi: Resolution in dots per inch
-            bbox_inches: Bounding box setting
-            **kwargs: Additional arguments passed to plt.savefig()
+        Parameters
+        ----------
+        filename :
+            Output filename (extension determines format: .png, .pdf, .svg).
+        dpi :
+            Resolution in dots per inch.
+        bbox_inches :
+            Bounding box setting.
+        **kwargs :
+            Additional arguments passed to plt.savefig().
         """
         if self.figure is None:
             raise ValueError('No plot exists. Call plot() first.')
@@ -392,12 +429,16 @@ class StaticNetworkPlotter:
         """
         Compute node layout using specified algorithm.
 
-        Args:
-            graph: NetworkX graph
-            algorithm: Layout algorithm name
+        Parameters
+        ----------
+        graph :
+            NetworkX graph.
+        algorithm :
+            Layout algorithm name.
 
-        Returns:
-            Dictionary mapping node IDs to (x, y) positions
+    Returns
+    -------
+        Dictionary mapping node IDs to (x, y) positions.
         """
         if algorithm == 'spring':
             return nx.spring_layout(graph, k=1, iterations=50)
@@ -416,11 +457,14 @@ class StaticNetworkPlotter:
         """
         Compute node sizes based on haplotype frequencies.
 
-        Args:
-            scale: Scaling factor for node sizes
+        Parameters
+        ----------
+        scale :
+            Scaling factor for node sizes.
 
-        Returns:
-            Dictionary mapping node IDs to sizes
+    Returns
+    -------
+        Dictionary mapping node IDs to sizes.
         """
         sizes = {}
         for node in self.network._graph.nodes():
@@ -446,13 +490,18 @@ class StaticNetworkPlotter:
         """
         Compute node colors based on population or custom mapping.
 
-        Args:
-            node_color_map: Custom node color mapping
-            population_colors: Population color mapping
-            median_vector_color: Color for median vectors
+        Parameters
+        ----------
+        node_color_map :
+            Custom node color mapping.
+        population_colors :
+            Population color mapping.
+        median_vector_color :
+            Color for median vectors.
 
-        Returns:
-            Dictionary mapping node IDs to colors
+    Returns
+    -------
+        Dictionary mapping node IDs to colors.
         """
         colors = {}
 
@@ -483,11 +532,14 @@ class StaticNetworkPlotter:
         """
         Compute edge widths based on mutation distances.
 
-        Args:
-            scale: Scaling factor for edge widths
+        Parameters
+        ----------
+        scale :
+            Scaling factor for edge widths.
 
-        Returns:
-            List of edge widths
+    Returns
+    -------
+        List of edge widths.
         """
         widths = []
         graph = self.network._graph
@@ -507,9 +559,12 @@ class StaticNetworkPlotter:
         """
         Draw mutation counts on edges.
 
-        Args:
-            graph: NetworkX graph
-            layout: Node positions
+        Parameters
+        ----------
+        graph :
+            NetworkX graph.
+        layout :
+            Node positions.
         """
         edge_labels = {}
         for u, v in graph.edges():
@@ -538,8 +593,9 @@ def plot_network(network: HaplotypeNetwork, **kwargs) -> Tuple[plt.Figure, plt.A
         network: HaplotypeNetwork object to visualize
         **kwargs: Arguments passed to StaticNetworkPlotter.plot()
 
-    Returns:
-        Figure and axes objects
+    Returns
+    -------
+        Figure and axes objects.
 
     Example:
         >>> from pypopart.core.graph import HaplotypeNetwork
@@ -568,8 +624,9 @@ def create_publication_figure(
         filename: Optional filename to save figure
         **kwargs: Additional arguments passed to plot()
 
-    Returns:
-        Figure and axes objects
+    Returns
+    -------
+        Figure and axes objects.
 
     Example:
         >>> fig, ax = create_publication_figure(

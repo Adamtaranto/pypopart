@@ -23,8 +23,10 @@ class GraphMLExporter:
         """
         Initialize GraphML exporter.
 
-        Args:
-            filepath: Output file path
+        Parameters
+        ----------
+        filepath :
+            Output file path.
         """
         self.filepath = Path(filepath)
 
@@ -32,8 +34,10 @@ class GraphMLExporter:
         """
         Export network to GraphML format.
 
-        Args:
-            network: HaplotypeNetwork object
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
         """
         # Convert network to NetworkX graph if needed
         graph = network.graph if hasattr(network, 'graph') else network
@@ -51,8 +55,10 @@ class GMLExporter:
         """
         Initialize GML exporter.
 
-        Args:
-            filepath: Output file path
+        Parameters
+        ----------
+        filepath :
+            Output file path.
         """
         self.filepath = Path(filepath)
 
@@ -60,8 +66,10 @@ class GMLExporter:
         """
         Export network to GML format.
 
-        Args:
-            network: HaplotypeNetwork object
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
@@ -78,8 +86,10 @@ class CytoscapeExporter:
         """
         Initialize Cytoscape exporter.
 
-        Args:
-            filepath: Output file path
+        Parameters
+        ----------
+        filepath :
+            Output file path.
         """
         self.filepath = Path(filepath)
 
@@ -87,8 +97,10 @@ class CytoscapeExporter:
         """
         Export network to Cytoscape JSON format.
 
-        Args:
-            network: HaplotypeNetwork object
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
@@ -108,8 +120,10 @@ class JSONExporter:
         """
         Initialize JSON exporter.
 
-        Args:
-            filepath: Output file path
+        Parameters
+        ----------
+        filepath :
+            Output file path.
         """
         self.filepath = Path(filepath)
 
@@ -117,9 +131,12 @@ class JSONExporter:
         """
         Export network to JSON format.
 
-        Args:
-            network: HaplotypeNetwork object
-            include_layout: Whether to include node layout positions
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
+        include_layout :
+            Whether to include node layout positions.
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
@@ -157,8 +174,10 @@ class CSVExporter:
         """
         Initialize CSV exporter.
 
-        Args:
-            filepath: Output file path
+        Parameters
+        ----------
+        filepath :
+            Output file path.
         """
         self.filepath = Path(filepath)
 
@@ -166,8 +185,10 @@ class CSVExporter:
         """
         Export node attributes to CSV.
 
-        Args:
-            network: HaplotypeNetwork object
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
@@ -191,8 +212,10 @@ class CSVExporter:
         """
         Export edge attributes to CSV.
 
-        Args:
-            network: HaplotypeNetwork object
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
@@ -218,9 +241,12 @@ class CSVExporter:
         """
         Export network statistics to CSV.
 
-        Args:
-            network: HaplotypeNetwork object
-            statistics: Dictionary of statistics to export
+        Parameters
+        ----------
+        network :
+            HaplotypeNetwork object.
+        statistics :
+            Dictionary of statistics to export.
         """
         with open(self.filepath, 'w', newline='') as f:
             writer = csv.writer(f)

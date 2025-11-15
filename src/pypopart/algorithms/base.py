@@ -22,9 +22,12 @@ class NetworkAlgorithm(ABC):
         """
         Initialize network algorithm.
 
-        Args:
-            distance_method: Method for calculating distances (hamming, p, jc, k2p, tn)
-            **kwargs: Additional algorithm-specific parameters
+        Parameters
+        ----------
+        distance_method :
+            Method for calculating distances (hamming, p, jc, k2p, tn).
+        **kwargs :
+            Additional algorithm-specific parameters.
         """
         self.distance_method = distance_method
         self.params = kwargs
@@ -37,12 +40,16 @@ class NetworkAlgorithm(ABC):
         """
         Construct haplotype network from sequence alignment.
 
-        Args:
-            alignment: Multiple sequence alignment
-            distance_matrix: Optional pre-computed distance matrix
+        Parameters
+        ----------
+        alignment :
+            Multiple sequence alignment.
+        distance_matrix :
+            Optional pre-computed distance matrix.
 
-        Returns:
-            Constructed haplotype network
+    Returns
+    -------
+        Constructed haplotype network.
         """
         pass
 
@@ -50,11 +57,14 @@ class NetworkAlgorithm(ABC):
         """
         Calculate pairwise distances between sequences.
 
-        Args:
-            alignment: Multiple sequence alignment
+        Parameters
+        ----------
+        alignment :
+            Multiple sequence alignment.
 
-        Returns:
-            Distance matrix
+    Returns
+    -------
+        Distance matrix.
         """
         return calculate_pairwise_distances(
             alignment,
@@ -66,8 +76,9 @@ class NetworkAlgorithm(ABC):
         """
         Get algorithm parameters.
 
-        Returns:
-            Dictionary of parameters
+        Returns
+        -------
+            Dictionary of parameters.
         """
         return {'distance_method': self.distance_method, **self.params}
 
