@@ -19,15 +19,15 @@ classifiers = [
 
 dependencies = [
     "biopython",
-    "numpy",
-    "scipy",
-    "pandas",
+    "click",
+    "matplotlib",
     "networkx",
-    "plotly",
-    "dash",
-    "dash-bootstrap-components",
     "numba",
+    "numpy",
+    "pandas",
+    "plotly",
     "scikit-learn",
+    "scipy",
 ]
 
 
