@@ -50,8 +50,8 @@ class NexusReader:
         """
             Parse DIMENSIONS block.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             content :
                 NEXUS file content.
 
@@ -74,8 +74,8 @@ class NexusReader:
         """
             Parse MATRIX block.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             content :
                 NEXUS file content.
 
@@ -127,8 +127,8 @@ class NexusReader:
         """
             Parse TRAITS block (PopART extension).
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             content :
                 NEXUS file content.
 
@@ -185,8 +185,8 @@ class NexusReader:
         """
             Read alignment from NEXUS file.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             progress_callback :
                 Optional callback function(current, total).
 

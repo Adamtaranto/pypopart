@@ -109,8 +109,8 @@ class Haplotype:
         """
             Get population assignment for a sample.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             sample_id :
                 Sample identifier.
 
@@ -200,8 +200,8 @@ class Haplotype:
         """
             Create haplotype from dictionary.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             data :
                 Dictionary with haplotype information.
 
@@ -234,7 +234,6 @@ def identify_haplotypes_from_alignment(
     -------
         List of Haplotype objects.
     """
-
     # Group sequences by unique haplotype
     haplotype_map: Dict[str, List[str]] = {}
     sequence_map: Dict[str, Sequence] = {}

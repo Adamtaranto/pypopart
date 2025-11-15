@@ -28,7 +28,8 @@ def parse_coordinate(value: str) -> float:
     -------
         Coordinate as float.
 
-    Raises:
+    Raises
+    ------
         ValueError: If coordinate cannot be parsed
     """
     try:
@@ -46,7 +47,8 @@ def validate_latitude(lat: float) -> None:
     Args:
         lat: Latitude value
 
-    Raises:
+    Raises
+    ------
         ValueError: If latitude is out of range [-90, 90]
     """
     if not -90 <= lat <= 90:
@@ -60,7 +62,8 @@ def validate_longitude(lon: float) -> None:
     Args:
         lon: Longitude value
 
-    Raises:
+    Raises
+    ------
         ValueError: If longitude is out of range [-180, 180]
     """
     if not -180 <= lon <= 180:
@@ -86,7 +89,8 @@ def extract_coordinates(
     -------
         Tuple of (latitude, longitude) or None if coordinates not present.
 
-    Raises:
+    Raises
+    ------
         ValueError: If coordinates are invalid
     """
     if lat_column not in metadata or lon_column not in metadata:
@@ -103,9 +107,7 @@ def extract_coordinates(
 
 
 class MetadataReader:
-    """
-    Reader for CSV-based metadata files.
-    """
+    """Reader for CSV-based metadata files."""
 
     def __init__(
         self,
@@ -202,9 +204,7 @@ class MetadataReader:
 
 
 class MetadataWriter:
-    """
-    Writer for CSV-based metadata files.
-    """
+    """Writer for CSV-based metadata files."""
 
     def __init__(
         self,

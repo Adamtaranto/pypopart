@@ -68,8 +68,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
             Construct MJN from sequence alignment with iterative refinement.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             alignment :
                 Multiple sequence alignment.
             distance_matrix :
@@ -110,8 +110,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
             4. Remove obsolete vertices (degree < 2)
             5. Repeat until no new medians are added
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 Initial list of observed haplotypes.
             alignment :
@@ -228,8 +228,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
             Build MSN from current haplotypes for one iteration.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 Current list of haplotypes.
             distance_matrix :
@@ -277,8 +277,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
             A triplet consists of three nodes where at least two edges exist
             between them (not necessarily a triangle).
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             network :
                 Current MSN.
 
@@ -317,8 +317,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
 
             This matches the C++ computeQuasiMedianSeqs implementation.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
                 seq1, seq2, seq3: Three sequences
 
         Returns
@@ -379,8 +379,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
 
             Cost is sum of distances from median to the three sequences.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
                 seq1, seq2, seq3: Three sequences forming the triplet
             median_seq :
                 Candidate median sequence string.
@@ -405,8 +405,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
 
             Matches C++ removeObsoleteVerts behavior.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             network :
                 Current network.
             haplotypes :
@@ -441,8 +441,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
             Infer and add median vectors to the network.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             network :
                 Initial haplotype network.
             sequence_length :
@@ -528,8 +528,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
             Find all triplets (triangles) in the network.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             network :
                 Haplotype network.
 
@@ -562,8 +562,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
             among the three sequences. If all three are different, no
             clear median exists for that position.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
                 seq1, seq2, seq3: Three Sequence objects
 
         Returns
@@ -601,8 +601,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
             Check if a sequence already exists in the network.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             sequence :
                 Sequence to check.
             network :
@@ -628,8 +628,8 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
             - It has degree 2 (only connects two nodes)
             - It can be replaced by a direct edge without increasing total weight
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             network :
                 Network with median vectors.
 

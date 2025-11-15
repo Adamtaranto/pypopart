@@ -1,6 +1,4 @@
-"""
-FASTA file format reader and writer for PyPopART.
-"""
+"""FASTA file format reader and writer for PyPopART."""
 
 import gzip
 from pathlib import Path
@@ -102,8 +100,8 @@ class FastaReader:
         """
             Read alignment from FASTA file.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             progress_callback :
                 Optional callback function(current, total).
 
@@ -121,9 +119,7 @@ class FastaReader:
 
 
 class FastaWriter:
-    """
-    Writer for FASTA format sequence files.
-    """
+    """Writer for FASTA format sequence files."""
 
     def __init__(
         self,
@@ -170,8 +166,8 @@ class FastaWriter:
         """
             Write sequences to FASTA file.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             sequences :
                 Iterable of Sequence objects.
             progress_callback :
@@ -214,8 +210,8 @@ class FastaWriter:
         """
             Write alignment to FASTA file.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             alignment :
                 Alignment object.
             progress_callback :

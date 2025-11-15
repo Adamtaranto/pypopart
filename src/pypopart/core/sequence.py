@@ -1,6 +1,4 @@
-"""
-DNA sequence representation and manipulation for PyPopART.
-"""
+"""DNA sequence representation and manipulation for PyPopART."""
 
 from typing import Any, Dict, Optional
 
@@ -73,7 +71,8 @@ class Sequence:
         """
         Validate sequence data contains only valid IUPAC characters.
 
-        Raises:
+        Raises
+        ------
             ValueError: If invalid characters found
         """
         invalid = set(self.data) - self.VALID_CHARS
@@ -182,8 +181,8 @@ class Sequence:
         """
             Extract a slice of the sequence.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             start :
                 Start position (0-based, inclusive).
             end :
@@ -226,8 +225,8 @@ class Sequence:
         """
             Create sequence from dictionary.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             data :
                 Dictionary with sequence information.
 

@@ -120,8 +120,8 @@ class MinimumSpanningTree(NetworkAlgorithm):
         """
             Construct MST from sequence alignment.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             alignment :
                 Multiple sequence alignment.
             distance_matrix :
@@ -164,8 +164,8 @@ class MinimumSpanningTree(NetworkAlgorithm):
         """
             Construct MST using Prim's algorithm.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
             distance_matrix :
@@ -222,8 +222,8 @@ class MinimumSpanningTree(NetworkAlgorithm):
         """
             Construct MST using Kruskal's algorithm with Union-Find.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
             distance_matrix :
@@ -293,8 +293,8 @@ class MinimumSpanningTree(NetworkAlgorithm):
         """
             Build HaplotypeNetwork from haplotypes and MST edges.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
             edges :
@@ -320,8 +320,8 @@ class MinimumSpanningTree(NetworkAlgorithm):
         """
             Calculate pairwise distances between haplotypes.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
 

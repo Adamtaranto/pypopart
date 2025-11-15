@@ -1,6 +1,4 @@
-"""
-PHYLIP file format reader and writer for PyPopART.
-"""
+"""PHYLIP file format reader and writer for PyPopART."""
 
 import gzip
 from pathlib import Path
@@ -50,8 +48,8 @@ class PhylipReader:
         """
             Read alignment from PHYLIP file.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             progress_callback :
                 Optional callback function(current, total).
 
@@ -147,9 +145,7 @@ class PhylipReader:
 
 
 class PhylipWriter:
-    """
-    Writer for PHYLIP format sequence files.
-    """
+    """Writer for PHYLIP format sequence files."""
 
     def __init__(
         self,

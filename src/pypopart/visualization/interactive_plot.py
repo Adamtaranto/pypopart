@@ -53,8 +53,8 @@ class InteractiveNetworkPlotter:
         """
             Create an interactive network plot.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             layout :
                 Pre-computed node positions {node_id: (x, y)}.
             layout_algorithm :
@@ -184,8 +184,8 @@ class InteractiveNetworkPlotter:
         """
             Compute node layout using specified algorithm.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             graph :
                 NetworkX graph.
             algorithm :
@@ -425,8 +425,8 @@ class InteractiveNetworkPlotter:
         """
             Determine node color based on priority.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             node :
                 Node ID.
             hap :
@@ -459,8 +459,8 @@ class InteractiveNetworkPlotter:
         """
             Create hover text for a node.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             node :
                 Node ID.
             hap :

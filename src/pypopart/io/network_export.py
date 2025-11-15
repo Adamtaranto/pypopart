@@ -15,9 +15,7 @@ from pypopart.core.graph import HaplotypeNetwork
 
 
 class GraphMLExporter:
-    """
-    Export haplotype networks to GraphML format.
-    """
+    """Export haplotype networks to GraphML format."""
 
     def __init__(self, filepath: Union[str, Path]):
         """
@@ -47,9 +45,7 @@ class GraphMLExporter:
 
 
 class GMLExporter:
-    """
-    Export haplotype networks to GML format.
-    """
+    """Export haplotype networks to GML format."""
 
     def __init__(self, filepath: Union[str, Path]):
         """
@@ -78,9 +74,7 @@ class GMLExporter:
 
 
 class CytoscapeExporter:
-    """
-    Export haplotype networks to Cytoscape JSON format.
-    """
+    """Export haplotype networks to Cytoscape JSON format."""
 
     def __init__(self, filepath: Union[str, Path]):
         """
@@ -112,9 +106,7 @@ class CytoscapeExporter:
 
 
 class JSONExporter:
-    """
-    Export haplotype networks to JSON format.
-    """
+    """Export haplotype networks to JSON format."""
 
     def __init__(self, filepath: Union[str, Path]):
         """
@@ -166,9 +158,7 @@ class JSONExporter:
 
 
 class CSVExporter:
-    """
-    Export haplotype network statistics to CSV format.
-    """
+    """Export haplotype network statistics to CSV format."""
 
     def __init__(self, filepath: Union[str, Path]):
         """

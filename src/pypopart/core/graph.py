@@ -161,8 +161,8 @@ class HaplotypeNetwork:
         """
             Get haplotype by ID.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotype_id :
                 Haplotype identifier.
 
@@ -183,8 +183,8 @@ class HaplotypeNetwork:
         """
             Check if node exists in network.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotype_id :
                 Haplotype identifier.
 
@@ -198,8 +198,8 @@ class HaplotypeNetwork:
         """
             Check if edge exists in network.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             source :
                 Source haplotype ID.
             target :
@@ -215,8 +215,8 @@ class HaplotypeNetwork:
         """
             Get distance for an edge.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             source :
                 Source haplotype ID.
             target :
@@ -239,8 +239,8 @@ class HaplotypeNetwork:
         """
             Get neighboring haplotype IDs.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotype_id :
                 Haplotype identifier.
 
@@ -261,8 +261,8 @@ class HaplotypeNetwork:
         """
             Get degree (number of connections) for a node.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotype_id :
                 Haplotype identifier.
 
@@ -313,8 +313,8 @@ class HaplotypeNetwork:
         """
             Check if a node is a median vector.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             node_id :
                 Node identifier.
 
@@ -361,8 +361,8 @@ class HaplotypeNetwork:
         """
             Find shortest path between two nodes.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             source :
                 Source node ID.
             target :
@@ -381,8 +381,8 @@ class HaplotypeNetwork:
         """
             Get length of shortest path between two nodes.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             source :
                 Source node ID.
             target :
@@ -461,7 +461,8 @@ class HaplotypeNetwork:
         """
         Validate network structure.
 
-        Raises:
+        Raises
+        ------
             ValueError: If network is invalid
         """
         # Check all nodes have haplotypes

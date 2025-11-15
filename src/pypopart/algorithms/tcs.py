@@ -7,9 +7,8 @@ Molecular Ecology 9: 1657-1659
 """
 
 import math
-from typing import Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Tuple
 
-import networkx as nx
 
 from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix, hamming_distance
@@ -93,8 +92,8 @@ class TCS(NetworkAlgorithm):
         """
             Construct TCS network from sequence alignment.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             alignment :
                 Multiple sequence alignment.
             distance_matrix :
@@ -150,8 +149,8 @@ class TCS(NetworkAlgorithm):
             maximum number of mutational differences that can be explained
             by parsimony at the specified confidence level.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             sequence_length :
                 Length of aligned sequences.
             num_haplotypes :
@@ -193,8 +192,8 @@ class TCS(NetworkAlgorithm):
         """
             Calculate probability using Poisson distribution.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             k :
                 Number of mutations.
             seq_length :
@@ -231,8 +230,8 @@ class TCS(NetworkAlgorithm):
             Connects haplotypes in order of increasing distance, up to
             the connection limit. More frequent haplotypes are connected first.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
             distance_matrix :
@@ -297,8 +296,8 @@ class TCS(NetworkAlgorithm):
         """
             Build HaplotypeNetwork from haplotypes and edges.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
             edges :
@@ -324,8 +323,8 @@ class TCS(NetworkAlgorithm):
         """
             Calculate pairwise distances between haplotypes.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
 
@@ -360,8 +359,8 @@ class TCS(NetworkAlgorithm):
             inferring intermediate sequences for multi-step connections between
             components.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
             distance_matrix :
@@ -460,8 +459,8 @@ class TCS(NetworkAlgorithm):
             Creates (distance - 1) intermediate sequences to connect two haplotypes
             that are separated by 'distance' mutations.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             network :
                 Current network.
             start_id :
@@ -482,7 +481,7 @@ class TCS(NetworkAlgorithm):
         # Create distance-1 intermediate sequences
         # For simplicity, we create empty intermediate nodes
         # In a more sophisticated implementation, we would infer actual sequences
-        for i in range(distance - 1):
+        for _i in range(distance - 1):
             intermediate_id = f'intermediate_{self._intermediate_counter}'
             self._intermediate_counter += 1
 
@@ -510,8 +509,8 @@ class TCS(NetworkAlgorithm):
             Removes intermediate vertices that only connect two other vertices,
             replacing them with a direct edge. This matches the C++ TCS behavior.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             network :
                 Network with potential degree-2 vertices.
 

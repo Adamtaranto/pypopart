@@ -1,6 +1,4 @@
-"""
-Minimum Spanning Network (MSN) algorithm for haplotype network construction.
-"""
+"""Minimum Spanning Network (MSN) algorithm for haplotype network construction."""
 
 from typing import Dict, List, Optional, Tuple
 
@@ -55,8 +53,8 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         """
             Construct MSN from sequence alignment.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             alignment :
                 Multiple sequence alignment.
             distance_matrix :
@@ -104,8 +102,8 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
             For each distance level in the MST, add all edges at that distance
             (or within epsilon) that don't create redundancy.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
             mst_edges :
@@ -180,8 +178,8 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
             An edge is redundant if removing it doesn't disconnect the network
             and there exists an alternative path of the same or shorter total length.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             haplotypes :
                 List of Haplotype objects.
             edges :
@@ -236,8 +234,8 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         """
             Check if two nodes are connected using BFS.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             adjacency :
                 Adjacency list representation.
             start :
@@ -277,8 +275,8 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         """
             Find shortest path length between two nodes using Dijkstra's algorithm.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             adjacency :
                 Adjacency list representation.
             start :

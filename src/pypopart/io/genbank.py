@@ -1,6 +1,4 @@
-"""
-GenBank file format reader for PyPopART.
-"""
+"""GenBank file format reader for PyPopART."""
 
 import gzip
 from pathlib import Path
@@ -12,9 +10,7 @@ from pypopart.core.sequence import Sequence
 
 
 class GenBankReader:
-    """
-    Reader for GenBank format sequence files.
-    """
+    """Reader for GenBank format sequence files."""
 
     def __init__(self, filepath: Union[str, Path], validate: bool = True):
         """

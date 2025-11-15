@@ -668,9 +668,7 @@ def info(
     list_distances: bool,
     list_formats: bool,
 ) -> None:
-    """
-    Display information about PyPopART capabilities.
-    """
+    """Display information about PyPopART capabilities."""
     if list_algorithms:
         click.echo('Available Network Construction Algorithms:')
         click.echo('  mst - Minimum Spanning Tree')

@@ -37,8 +37,8 @@ class LayoutAlgorithm:
         """
             Compute node positions.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             **kwargs :
                 Algorithm-specific parameters.
 
@@ -72,8 +72,8 @@ class LayoutAlgorithm:
         """
             Load layout from a JSON file.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             filename :
                 Input filename.
 
@@ -106,8 +106,8 @@ class ForceDirectedLayout(LayoutAlgorithm):
         """
             Compute force-directed layout.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             k :
                 Optimal distance between nodes (None for auto).
             iterations :
@@ -142,8 +142,8 @@ class CircularLayout(LayoutAlgorithm):
         """
             Compute circular layout.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             scale :
                 Scale factor for the layout.
             center :
@@ -174,8 +174,8 @@ class RadialLayout(LayoutAlgorithm):
         """
             Compute radial layout.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             center_node :
                 Node to place at center (most connected if None).
             scale :
@@ -254,8 +254,8 @@ class HierarchicalLayout(LayoutAlgorithm):
         """
             Compute hierarchical layout.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             root_node :
                 Root node for hierarchy (most connected if None).
             vertical :
@@ -337,8 +337,8 @@ class KamadaKawaiLayout(LayoutAlgorithm):
         """
             Compute Kamada-Kawai layout.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             scale :
                 Scale factor for the layout.
             center :
@@ -386,8 +386,8 @@ class ManualLayout(LayoutAlgorithm):
         """
             Return current manual positions.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             **kwargs :
                 Ignored.
 
@@ -474,8 +474,8 @@ class LayoutManager:
         """
             Compute network layout using specified algorithm.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             algorithm :
                 Layout algorithm name.
             **kwargs :
@@ -518,8 +518,8 @@ class LayoutManager:
         """
             Load layout from file.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             filename :
                 Input filename (JSON format).
 
@@ -571,8 +571,8 @@ class GeographicLayout(LayoutAlgorithm):
         """
             Compute geographic layout from coordinates.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             coordinates :
                 Dictionary mapping node IDs to (latitude, longitude) tuples.
             projection :
@@ -698,8 +698,8 @@ class GeographicLayout(LayoutAlgorithm):
         """
             Project geographic coordinates to map coordinates.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             lat :
                 Latitude.
             lon :

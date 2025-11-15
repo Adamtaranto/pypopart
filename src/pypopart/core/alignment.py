@@ -1,6 +1,4 @@
-"""
-Multiple sequence alignment representation and analysis for PyPopART.
-"""
+"""Multiple sequence alignment representation and analysis for PyPopART."""
 
 from collections import Counter
 from dataclasses import dataclass
@@ -99,8 +97,8 @@ class Alignment:
         """
             Get sequence by ID.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             sequence_id :
                 ID of sequence to retrieve.
 
@@ -130,8 +128,8 @@ class Alignment:
         """
             Get sequence(s) by index, ID, or slice.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             key :
                 Index, sequence ID, or slice.
 
@@ -178,7 +176,8 @@ class Alignment:
         """
         Validate alignment and raise exception if invalid.
 
-        Raises:
+        Raises
+        ------
             ValueError: If alignment is invalid
         """
         if not self.is_valid():
@@ -191,8 +190,8 @@ class Alignment:
         """
             Get all characters at a specific position.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             position :
                 0-based position in alignment.
 
@@ -209,8 +208,8 @@ class Alignment:
         """
             Extract a slice of the alignment (specific columns).
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             start :
                 Start position (0-based, inclusive).
             end :
@@ -231,8 +230,8 @@ class Alignment:
         """
             Remove columns with gaps above threshold.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             gap_threshold :
                 Fraction of gaps required to remove column (0.0-1.0).
 
@@ -327,8 +326,8 @@ class Alignment:
         """
             Calculate pairwise distance matrix between sequences.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             distance_func :
                 Function to calculate distance between two sequences.
                               If None, uses Hamming distance.
@@ -354,8 +353,8 @@ class Alignment:
         """
             Calculate Hamming distance between two sequences.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             seq1 :
                 First sequence.
             seq2 :

@@ -1,6 +1,4 @@
-"""
-Base classes for network construction algorithms in PyPopART.
-"""
+"""Base classes for network construction algorithms in PyPopART."""
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
@@ -40,8 +38,8 @@ class NetworkAlgorithm(ABC):
         """
             Construct haplotype network from sequence alignment.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             alignment :
                 Multiple sequence alignment.
             distance_matrix :
@@ -57,8 +55,8 @@ class NetworkAlgorithm(ABC):
         """
             Calculate pairwise distances between sequences.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             alignment :
                 Multiple sequence alignment.
 

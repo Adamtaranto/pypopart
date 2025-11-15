@@ -58,8 +58,8 @@ class GeoVisualizer:
         """
             Create a geographic network visualization.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             coordinates :
                 Dictionary mapping node IDs to (latitude, longitude) tuples.
             projection :
@@ -232,8 +232,8 @@ class GeoVisualizer:
         """
             Compute node sizes based on frequency/count.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             scale :
                 Scaling factor.
 
@@ -259,8 +259,8 @@ class GeoVisualizer:
         """
             Compute node colors.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             color_map :
                 Custom color mapping.
             population_colors :
@@ -291,8 +291,8 @@ class GeoVisualizer:
         """
             Compute edge widths based on mutation distance.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             scale :
                 Scaling factor.
 
@@ -347,8 +347,8 @@ class InteractiveGeoVisualizer:
         """
             Create an interactive geographic network visualization.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             coordinates :
                 Dictionary mapping node IDs to (latitude, longitude) tuples.
             base_map :

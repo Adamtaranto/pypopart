@@ -183,7 +183,8 @@ def tamura_nei_distance(
     -------
         Tamura-Nei corrected distance.
 
-    Raises:
+    Raises
+    ------
         ValueError: If sequences have different lengths or are too divergent
 
     Reference:
@@ -388,8 +389,8 @@ class DistanceMatrix:
         """
             Visualize distance matrix as a heatmap.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             title :
                 Plot title.
             cmap :
@@ -490,8 +491,8 @@ class DistanceMatrix:
         """
             Import distance matrix from CSV file.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             filepath :
                 Path to CSV file.
             delimiter :

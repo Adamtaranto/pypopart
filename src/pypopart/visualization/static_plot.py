@@ -56,8 +56,8 @@ class StaticNetworkPlotter:
         """
             Create a static network plot.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             layout :
                 Pre-computed node positions {node_id: (x, y)}.
             layout_algorithm :
@@ -434,8 +434,8 @@ class StaticNetworkPlotter:
         """
             Compute node layout using specified algorithm.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             graph :
                 NetworkX graph.
             algorithm :
@@ -462,8 +462,8 @@ class StaticNetworkPlotter:
         """
             Compute node sizes based on haplotype frequencies.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             scale :
                 Scaling factor for node sizes.
 
@@ -495,8 +495,8 @@ class StaticNetworkPlotter:
         """
             Compute node colors based on population or custom mapping.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             node_color_map :
                 Custom node color mapping.
             population_colors :
@@ -537,8 +537,8 @@ class StaticNetworkPlotter:
         """
             Compute edge widths based on mutation distances.
 
-            Parameters
-            ----------
+        Parameters
+        ----------
             scale :
                 Scaling factor for edge widths.
 
