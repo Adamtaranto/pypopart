@@ -1,5 +1,15 @@
 """
 Minimum Spanning Tree (MST) algorithm for haplotype network construction.
+
+This module implements both Prim's and Kruskal's algorithms for constructing
+minimum spanning trees from genetic sequence data. The MST forms the foundation
+for more complex network algorithms including MSN and median-joining networks.
+
+References
+----------
+.. [1] Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies and 
+       geographic subdivision to reconstruct gene trees within a species: 
+       molecular variance parsimony. Genetics, 136(1), 343-359.
 """
 
 import heapq
@@ -16,11 +26,66 @@ class MinimumSpanningTree(NetworkAlgorithm):
     """
     Construct a Minimum Spanning Tree from haplotype data.
 
-    A minimum spanning tree connects all haplotypes with the minimum total
+    A minimum spanning tree (MST) connects all haplotypes with the minimum total
     genetic distance. This is the simplest haplotype network algorithm and
-    forms the basis for more complex methods like MSN.
+    forms the basis for more complex methods like MSN (Minimum Spanning Network).
 
-    Supports both Prim's and Kruskal's algorithms for MST construction.
+    The MST is guaranteed to be a tree (no cycles) and provides the most
+    parsimonious representation of relationships between haplotypes.
+
+    Supports both Prim's and Kruskal's algorithms for MST construction:
+    
+    - **Prim's algorithm**: Grows the tree from a single starting node,
+      always adding the minimum-weight edge that connects a new node.
+      Time complexity: O(E log V) with binary heap.
+      
+    - **Kruskal's algorithm**: Sorts all edges and adds them in order of
+      increasing weight, skipping edges that would create cycles.
+      Time complexity: O(E log E) with union-find.
+
+    Parameters
+    ----------
+    distance_method : str, default='hamming'
+        Method for calculating pairwise distances between sequences.
+        Options: 'hamming', 'jukes_cantor', 'kimura_2p', 'tamura_nei'
+    algorithm : str, default='prim'
+        MST construction algorithm to use: 'prim' or 'kruskal'
+    **kwargs : dict
+        Additional parameters passed to base NetworkAlgorithm
+
+    Attributes
+    ----------
+    algorithm : str
+        The selected MST algorithm
+    _distance_matrix : DistanceMatrix
+        Cached distance matrix from last construction
+
+    Examples
+    --------
+    >>> from pypopart.algorithms import MinimumSpanningTree
+    >>> from pypopart.io import load_alignment
+    >>> 
+    >>> # Load alignment
+    >>> alignment = load_alignment('sequences.fasta')
+    >>> 
+    >>> # Construct MST using Prim's algorithm
+    >>> mst = MinimumSpanningTree(algorithm='prim')
+    >>> network = mst.build_network(alignment)
+    >>> 
+    >>> # Construct using Kruskal's algorithm
+    >>> mst = MinimumSpanningTree(algorithm='kruskal')
+    >>> network = mst.build_network(alignment)
+
+    Notes
+    -----
+    For most applications, Prim's algorithm is preferred as it's typically
+    faster and uses less memory. Kruskal's algorithm can be advantageous
+    when the graph is sparse or when edges are already sorted.
+
+    See Also
+    --------
+    MinimumSpanningNetwork : Extension of MST allowing alternative connections
+    TCS : Statistical parsimony network construction
     """
 
     def __init__(
