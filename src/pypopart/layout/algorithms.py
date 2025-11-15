@@ -472,3 +472,184 @@ class LayoutManager:
             List of algorithm names
         """
         return list(self._algorithms.keys())
+
+
+class GeographicLayout(LayoutAlgorithm):
+    """
+    Geographic layout based on latitude/longitude coordinates.
+
+    Places nodes at their geographic positions, optionally handling
+    multiple locations for a single haplotype.
+    """
+
+    def __init__(self, network: HaplotypeNetwork):
+        """
+        Initialize geographic layout algorithm.
+
+        Args:
+            network: HaplotypeNetwork object
+        """
+        super().__init__(network)
+        self._projection = None
+
+    def compute(
+        self,
+        coordinates: Optional[Dict[str, Tuple[float, float]]] = None,
+        projection: str = 'mercator',
+        handle_multiple_locations: str = 'centroid',
+        jitter_amount: float = 0.0,
+        **kwargs,
+    ) -> Dict[str, Tuple[float, float]]:
+        """
+        Compute geographic layout from coordinates.
+
+        Args:
+            coordinates: Dictionary mapping node IDs to (latitude, longitude) tuples
+            projection: Map projection to use ('mercator', 'platecarree', 'orthographic')
+            handle_multiple_locations: How to handle nodes in multiple locations:
+                - 'centroid': Use centroid of all locations
+                - 'first': Use first location
+                - 'jitter': Place at first location with small random offset
+            jitter_amount: Amount of random jitter to add (in degrees) when multiple
+                          nodes share the same location
+            **kwargs: Additional projection parameters
+
+        Returns:
+            Dictionary mapping node IDs to (x, y) positions in projected coordinates
+
+        Raises:
+            ValueError: If coordinates are not provided or invalid
+        """
+        if coordinates is None:
+            # Try to extract coordinates from node metadata
+            coordinates = self._extract_coordinates_from_metadata()
+
+        if not coordinates:
+            raise ValueError(
+                'No geographic coordinates provided. '
+                'Coordinates must be provided as argument or in node metadata '
+                'with "latitude" and "longitude" attributes.'
+            )
+
+        # Validate coordinates
+        for node_id, (lat, lon) in coordinates.items():
+            if not -90 <= lat <= 90:
+                raise ValueError(f'Invalid latitude for node {node_id}: {lat}')
+            if not -180 <= lon <= 180:
+                raise ValueError(f'Invalid longitude for node {node_id}: {lon}')
+
+        # Apply projection
+        layout = {}
+        for node_id in self.graph.nodes():
+            if node_id not in coordinates:
+                # Node has no coordinates, will need to place it later
+                continue
+
+            lat, lon = coordinates[node_id]
+            x, y = self._project_coordinates(lat, lon, projection)
+
+            # Add jitter if requested
+            if jitter_amount > 0:
+                x += np.random.uniform(-jitter_amount, jitter_amount)
+                y += np.random.uniform(-jitter_amount, jitter_amount)
+
+            layout[node_id] = (x, y)
+
+        # Handle nodes without coordinates using default layout
+        if len(layout) < len(self.graph.nodes()):
+            # Use spring layout for nodes without coordinates
+            missing_nodes = [n for n in self.graph.nodes() if n not in layout]
+
+            if len(missing_nodes) == len(self.graph.nodes()):
+                # No nodes have coordinates, use full spring layout
+                return nx.spring_layout(self.graph)
+            else:
+                # Create subgraph of missing nodes and layout separately
+                subgraph = self.graph.subgraph(missing_nodes)
+                sub_layout = nx.spring_layout(subgraph)
+
+                # Scale and offset to place in unused space
+                if layout:
+                    # Find bounds of geographic layout
+                    xs, ys = zip(*layout.values())
+                    x_min, x_max = min(xs), max(xs)
+                    y_min, y_max = min(ys), max(ys)
+                    x_range = x_max - x_min
+
+                    # Place missing nodes to the right of the main layout
+                    for node, (x, y) in sub_layout.items():
+                        layout[node] = (
+                            x_max + x_range * 0.2 + x * x_range * 0.3,
+                            y_min + y * (y_max - y_min),
+                        )
+
+        return layout
+
+    def _extract_coordinates_from_metadata(self) -> Dict[str, Tuple[float, float]]:
+        """
+        Extract coordinates from node metadata.
+
+        Returns:
+            Dictionary mapping node IDs to (latitude, longitude) tuples
+        """
+        from ..io.metadata import extract_coordinates
+
+        coordinates = {}
+        for node_id in self.graph.nodes():
+            node_data = self.graph.nodes[node_id]
+
+            # Try to extract coordinates from node attributes
+            if 'latitude' in node_data and 'longitude' in node_data:
+                try:
+                    coords = extract_coordinates(
+                        node_data,
+                        lat_column='latitude',
+                        lon_column='longitude',
+                        validate=True,
+                    )
+                    if coords:
+                        coordinates[node_id] = coords
+                except (ValueError, KeyError):
+                    # Skip nodes with invalid coordinates
+                    pass
+
+        return coordinates
+
+    def _project_coordinates(
+        self, lat: float, lon: float, projection: str
+    ) -> Tuple[float, float]:
+        """
+        Project geographic coordinates to map coordinates.
+
+        Args:
+            lat: Latitude
+            lon: Longitude
+            projection: Projection name
+
+        Returns:
+            Tuple of (x, y) projected coordinates
+        """
+        if projection.lower() == 'mercator':
+            # Web Mercator projection
+            x = lon
+            # Handle poles (avoid division by zero)
+            if abs(lat) >= 85:
+                lat = 85 if lat > 0 else -85
+            y = np.degrees(np.log(np.tan(np.radians(45 + lat / 2))))
+        elif projection.lower() == 'platecarree':
+            # Equirectangular projection (no transformation)
+            x = lon
+            y = lat
+        elif projection.lower() == 'orthographic':
+            # Orthographic projection (3D sphere view)
+            # For simplicity, use simple perspective projection
+            lat_rad = np.radians(lat)
+            lon_rad = np.radians(lon)
+            x = np.cos(lat_rad) * np.sin(lon_rad)
+            y = np.sin(lat_rad)
+        else:
+            # Default to plate carrée
+            x = lon
+            y = lat
+
+        return (x, y)

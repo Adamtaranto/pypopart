@@ -19,9 +19,11 @@ classifiers = [
 
 dependencies = [
     "biopython",
+    "cartopy",
     "click",
     "dash",
     "dash-bootstrap-components",
+    "folium",
     "matplotlib",
     "networkx",
     "numba",

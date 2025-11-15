@@ -271,6 +271,73 @@ pypopart visualize network.graphml -o network.html \
     --layout radial --interactive
 ```
 
+### Geographic Visualization
+
+PyPopART supports overlaying haplotype networks on geographic maps using latitude/longitude coordinates.
+
+```bash
+# Create network from sequences
+pypopart network sequences.fasta -o network.graphml
+
+# Create static geographic visualization
+pypopart geo-visualize network.graphml \
+    -m metadata.csv \
+    -o geo_network.png \
+    --projection mercator \
+    --show-labels \
+    --show-borders
+
+# Create interactive geographic map
+pypopart geo-visualize network.graphml \
+    -m metadata.csv \
+    -o geo_network.html \
+    --interactive \
+    --base-map OpenStreetMap \
+    --zoom 4
+```
+
+Geographic metadata CSV format:
+```csv
+id,population,location,latitude,longitude
+Hap1,PopA,New York,40.7128,-74.0060
+Hap2,PopB,London,51.5074,-0.1278
+Hap3,PopC,Tokyo,35.6762,139.6503
+```
+
+**Supported projections:**
+- `mercator` - Web Mercator (preserves angles)
+- `platecarree` - Equirectangular (simple lat/lon)
+- `orthographic` - 3D globe view
+
+**Interactive map base layers:**
+- `OpenStreetMap` - Standard map tiles
+- `Stamen Terrain` - Terrain with hill shading
+- `CartoDB positron` - Clean, minimal style
+
+**Python API:**
+```python
+from pypopart.visualization import GeoVisualizer, InteractiveGeoVisualizer
+
+# Static map
+viz = GeoVisualizer(network)
+fig, ax = viz.plot(
+    coordinates=coordinates,
+    projection='mercator',
+    show_labels=True,
+    show_borders=True,
+    output_file='geo_network.png'
+)
+
+# Interactive map
+viz_interactive = InteractiveGeoVisualizer(network)
+map_obj = viz_interactive.plot(
+    coordinates=coordinates,
+    base_map='OpenStreetMap',
+    zoom_start=2,
+    output_file='geo_network.html'
+)
+```
+
 ## Examples and Tutorials
 
 Example data and Jupyter notebooks can be found in the `examples/` directory:
@@ -278,6 +345,8 @@ Example data and Jupyter notebooks can be found in the `examples/` directory:
 - `01_basic_workflow.ipynb` - Complete workflow from sequences to network
 - `02_algorithm_comparison.ipynb` - Comparing different network algorithms
 - `03_visualization_options.ipynb` - Customizing network plots
+- `geo_example.py` - Geographic visualization with real-world coordinates
+- `geo_data/` - Sample data with geographic metadata
 - `04_population_genetics.ipynb` - Population genetics analysis
 - `05_real_world_example.ipynb` - Case study with real data
 

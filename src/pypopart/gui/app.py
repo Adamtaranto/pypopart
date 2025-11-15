@@ -28,8 +28,9 @@ from pypopart.algorithms import (
 from pypopart.core.alignment import Alignment
 from pypopart.core.graph import HaplotypeNetwork
 from pypopart.io import FastaReader, NexusReader, PhylipReader
+from pypopart.io.metadata import MetadataReader, extract_coordinates
 from pypopart.io.network_export import GraphMLExporter, JSONExporter
-from pypopart.layout.algorithms import LayoutManager
+from pypopart.layout.algorithms import GeographicLayout, LayoutManager
 from pypopart.stats import (
     calculate_diversity_metrics,
     calculate_network_metrics,
@@ -139,9 +140,11 @@ class PyPopARTApp:
                 ),
                 # Hidden stores for data
                 dcc.Store(id='alignment-store'),
+                dcc.Store(id='metadata-store'),
                 dcc.Store(id='network-store'),
                 dcc.Store(id='layout-store'),
                 dcc.Store(id='computation-status'),
+                dcc.Store(id='geographic-mode', data=False),
             ],
             fluid=True,
             style={'padding': '20px'},
@@ -154,6 +157,7 @@ class PyPopARTApp:
                 dbc.CardHeader(html.H5('1. Upload Data')),
                 dbc.CardBody(
                     [
+                        dbc.Label('Sequence File'),
                         dcc.Upload(
                             id='upload-data',
                             children=dbc.Button(
@@ -163,8 +167,26 @@ class PyPopARTApp:
                         ),
                         html.Div(id='upload-status', className='mt-2'),
                         html.Hr(),
+                        dbc.Label('Metadata File (Optional)'),
+                        dcc.Upload(
+                            id='upload-metadata',
+                            children=dbc.Button(
+                                'Select Metadata',
+                                color='secondary',
+                                outline=True,
+                                className='w-100',
+                            ),
+                            multiple=False,
+                        ),
+                        html.Div(id='metadata-status', className='mt-2'),
+                        html.Hr(),
                         html.Small(
-                            'Supported formats: FASTA, NEXUS, PHYLIP',
+                            'Sequence formats: FASTA, NEXUS, PHYLIP',
+                            className='text-muted',
+                        ),
+                        html.Br(),
+                        html.Small(
+                            'Metadata: CSV with latitude/longitude columns',
                             className='text-muted',
                         ),
                     ]
@@ -234,8 +256,45 @@ class PyPopARTApp:
                                 {'label': 'Radial', 'value': 'radial'},
                                 {'label': 'Hierarchical', 'value': 'hierarchical'},
                                 {'label': 'Kamada-Kawai', 'value': 'kamada_kawai'},
+                                {
+                                    'label': 'Geographic (requires metadata)',
+                                    'value': 'geographic',
+                                },
                             ],
                             value='spring',
+                        ),
+                        html.Br(),
+                        html.Div(
+                            id='geographic-options',
+                            children=[
+                                dbc.Label('Map Projection'),
+                                dcc.Dropdown(
+                                    id='map-projection',
+                                    options=[
+                                        {'label': 'Mercator', 'value': 'mercator'},
+                                        {
+                                            'label': 'PlateCarree',
+                                            'value': 'platecarree',
+                                        },
+                                        {
+                                            'label': 'Orthographic',
+                                            'value': 'orthographic',
+                                        },
+                                    ],
+                                    value='mercator',
+                                ),
+                                html.Br(),
+                                dbc.Label('Zoom Level'),
+                                dcc.Slider(
+                                    id='map-zoom',
+                                    min=1,
+                                    max=10,
+                                    step=1,
+                                    value=2,
+                                    marks={i: str(i) for i in range(1, 11)},
+                                ),
+                            ],
+                            style={'display': 'none'},
                         ),
                         html.Br(),
                         dbc.Checklist(
@@ -429,6 +488,85 @@ class PyPopARTApp:
                 )
 
         @self.app.callback(
+            [Output('metadata-status', 'children'), Output('metadata-store', 'data')],
+            Input('upload-metadata', 'contents'),
+            State('upload-metadata', 'filename'),
+        )
+        def handle_metadata_upload(
+            contents: Optional[str], filename: Optional[str]
+        ) -> Tuple[html.Div, Optional[Dict]]:
+            """Handle metadata file upload and parse coordinates."""
+            if contents is None:
+                return html.Div(), None
+
+            try:
+                content_type, content_string = contents.split(',')
+                decoded = base64.b64decode(content_string)
+
+                # Parse CSV metadata
+                if not (filename.endswith('.csv') or filename.endswith('.txt')):
+                    return (
+                        dbc.Alert('Metadata must be a CSV file', color='danger'),
+                        None,
+                    )
+
+                with tempfile.NamedTemporaryFile(
+                    mode='wb', suffix='.csv', delete=False
+                ) as tmp:
+                    tmp.write(decoded)
+                    tmp.flush()
+                    reader = MetadataReader(tmp.name, validate=False)
+                    metadata_dict = reader.read_metadata()
+
+                # Extract coordinates where available
+                coordinates = {}
+                for seq_id, meta in metadata_dict.items():
+                    try:
+                        coords = extract_coordinates(
+                            meta, lat_column='latitude', lon_column='longitude'
+                        )
+                        if coords:
+                            coordinates[seq_id] = coords
+                    except (ValueError, KeyError):
+                        pass
+
+                metadata_data = {
+                    'raw': metadata_dict,
+                    'coordinates': coordinates,
+                }
+
+                status = dbc.Alert(
+                    [
+                        html.Strong('Success! '),
+                        f'Loaded metadata for {len(metadata_dict)} sequences. ',
+                        f'Found coordinates for {len(coordinates)} sequences.',
+                    ],
+                    color='success',
+                )
+
+                return status, metadata_data
+
+            except Exception as e:
+                return (
+                    dbc.Alert(f'Error parsing metadata: {str(e)}', color='danger'),
+                    None,
+                )
+
+        @self.app.callback(
+            [
+                Output('geographic-options', 'style'),
+                Output('geographic-mode', 'data'),
+            ],
+            Input('layout-select', 'value'),
+        )
+        def toggle_geographic_options(layout: str) -> Tuple[Dict, bool]:
+            """Show/hide geographic options based on layout selection."""
+            if layout == 'geographic':
+                return {'display': 'block'}, True
+            else:
+                return {'display': 'none'}, False
+
+        @self.app.callback(
             Output('algorithm-parameters', 'children'),
             Input('algorithm-select', 'value'),
         )
@@ -612,7 +750,12 @@ class PyPopARTApp:
         @self.app.callback(
             Output('layout-store', 'data'),
             [Input('apply-layout-button', 'n_clicks'), Input('network-store', 'data')],
-            [State('layout-select', 'value'), State('snap-to-grid', 'value')],
+            [
+                State('layout-select', 'value'),
+                State('snap-to-grid', 'value'),
+                State('metadata-store', 'data'),
+                State('map-projection', 'value'),
+            ],
             prevent_initial_call=False,
         )
         def apply_layout(
@@ -620,6 +763,8 @@ class PyPopARTApp:
             network_data: Optional[Dict],
             layout_method: str,
             snap_to_grid: List[str],
+            metadata_data: Optional[Dict],
+            projection: str,
         ) -> Optional[Dict]:
             """Apply layout algorithm to network."""
             if not network_data:
@@ -639,19 +784,34 @@ class PyPopARTApp:
                     G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
 
                 # Apply layout
-                layout_manager = LayoutManager()
-                if layout_method == 'spring':
-                    positions = layout_manager.spring_layout(G)
-                elif layout_method == 'circular':
-                    positions = layout_manager.circular_layout(G)
-                elif layout_method == 'radial':
-                    positions = layout_manager.radial_layout(G)
-                elif layout_method == 'hierarchical':
-                    positions = layout_manager.hierarchical_layout(G)
-                elif layout_method == 'kamada_kawai':
-                    positions = layout_manager.kamada_kawai_layout(G)
+                if layout_method == 'geographic':
+                    # Geographic layout requires metadata with coordinates
+                    if not metadata_data or not metadata_data.get('coordinates'):
+                        # Fall back to spring layout if no coordinates
+                        layout_manager = LayoutManager()
+                        positions = layout_manager.spring_layout(G)
+                    else:
+                        network = HaplotypeNetwork()
+                        network._graph = G
+                        geo_layout = GeographicLayout(network)
+                        positions = geo_layout.compute(
+                            coordinates=metadata_data['coordinates'],
+                            projection=projection or 'mercator',
+                        )
                 else:
-                    positions = layout_manager.spring_layout(G)
+                    layout_manager = LayoutManager()
+                    if layout_method == 'spring':
+                        positions = layout_manager.spring_layout(G)
+                    elif layout_method == 'circular':
+                        positions = layout_manager.circular_layout(G)
+                    elif layout_method == 'radial':
+                        positions = layout_manager.radial_layout(G)
+                    elif layout_method == 'hierarchical':
+                        positions = layout_manager.hierarchical_layout(G)
+                    elif layout_method == 'kamada_kawai':
+                        positions = layout_manager.kamada_kawai_layout(G)
+                    else:
+                        positions = layout_manager.spring_layout(G)
 
                 # Snap to grid if requested
                 if 'snap' in snap_to_grid:
@@ -676,10 +836,18 @@ class PyPopARTApp:
 
         @self.app.callback(
             Output('network-graph', 'figure'),
-            [Input('layout-store', 'data'), Input('network-store', 'data')],
+            [
+                Input('layout-store', 'data'),
+                Input('network-store', 'data'),
+                Input('geographic-mode', 'data'),
+            ],
+            State('metadata-store', 'data'),
         )
         def update_network_graph(
-            layout_data: Optional[Dict], network_data: Optional[Dict]
+            layout_data: Optional[Dict],
+            network_data: Optional[Dict],
+            geographic_mode: bool,
+            metadata_data: Optional[Dict],
         ) -> go.Figure:
             """Update network visualization."""
             if not network_data or not layout_data:
@@ -716,7 +884,7 @@ class PyPopARTApp:
                     G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
 
                 network = HaplotypeNetwork()
-                network.graph = G
+                network._graph = G
 
                 # Convert layout data
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}
@@ -724,6 +892,30 @@ class PyPopARTApp:
                 # Create interactive plot
                 plotter = InteractiveNetworkPlotter()
                 fig = plotter.plot_network(network, positions=positions)
+
+                # Add geographic context if in geographic mode
+                if (
+                    geographic_mode
+                    and metadata_data
+                    and metadata_data.get('coordinates')
+                ):
+                    # Add annotation to indicate geographic mode
+                    fig.add_annotation(
+                        text='Geographic Mode',
+                        xref='paper',
+                        yref='paper',
+                        x=0.02,
+                        y=0.98,
+                        showarrow=False,
+                        font={'size': 12, 'color': 'blue'},
+                        bgcolor='rgba(255,255,255,0.8)',
+                        bordercolor='blue',
+                        borderwidth=1,
+                        borderpad=4,
+                    )
+                    # Update axis labels for geographic coordinates
+                    fig.update_xaxes(title_text='Longitude')
+                    fig.update_yaxes(title_text='Latitude')
 
                 return fig
 
