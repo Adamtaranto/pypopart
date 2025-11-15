@@ -173,12 +173,19 @@ def network(
         dist_matrix = calculator.calculate_matrix(alignment)
         click.echo(f'✓ Distance matrix computed')
 
-        # Identify haplotypes
+        # Identify haplotypes for informational purposes
         click.echo('Identifying unique haplotypes...')
         from pypopart.core.condensation import condense_alignment
+        from pypopart.core.distance import DistanceMatrix
 
         haplotypes, freq_map = condense_alignment(alignment)
         click.echo(f'✓ Found {len(haplotypes)} unique haplotypes')
+
+        # Create DistanceMatrix object if needed
+        if not isinstance(dist_matrix, DistanceMatrix):
+            dist_matrix_obj = DistanceMatrix(alignment.sequence_ids, dist_matrix)
+        else:
+            dist_matrix_obj = dist_matrix
 
         # Construct network
         click.echo(f'Building {algorithm.upper()} network...')
@@ -194,18 +201,17 @@ def network(
         else:
             raise ValueError(f'Unknown algorithm: {algorithm}')
 
-        network = algo.construct_network(haplotypes, dist_matrix)
+        network = algo.construct_network(alignment, dist_matrix_obj)
         click.echo(f'✓ Network constructed')
 
         # Display network statistics
         click.echo('\nNetwork Statistics:')
-        click.echo(f'  Nodes: {network.number_of_nodes()}')
-        click.echo(f'  Edges: {network.number_of_edges()}')
+        click.echo(f'  Nodes: {network.num_nodes}')
+        click.echo(f'  Edges: {network.num_edges}')
 
-        if hasattr(network, 'median_vectors'):
-            n_medians = len(
-                [n for n in network.nodes() if network.nodes[n].get('is_median', False)]
-            )
+        # Count median vectors
+        n_medians = len(network.median_vector_ids)
+        if n_medians > 0:
             click.echo(f'  Median vectors: {n_medians}')
 
         # Save network

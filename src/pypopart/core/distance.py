@@ -466,3 +466,82 @@ def calculate_pairwise_distances(
         raise ValueError(f"Unknown distance method: {method}")
     
     return calculate_distance_matrix(alignment, distance_func=distance_func, ignore_gaps=ignore_gaps)
+
+
+class DistanceCalculator:
+    """
+    Convenience class for calculating distance matrices.
+    
+    Provides a simple interface for distance calculation with
+    different evolutionary models.
+    """
+    
+    def __init__(self, method: str = "hamming", ignore_gaps: bool = True):
+        """
+        Initialize distance calculator.
+        
+        Parameters
+        ----------
+        method : str
+            Distance method: 'hamming', 'jc', 'k2p', 'tamura_nei'
+        ignore_gaps : bool
+            Whether to ignore gaps in calculations
+        """
+        self.method = method.lower()
+        self.ignore_gaps = ignore_gaps
+        
+        # Map method names to functions
+        if self.method == "hamming":
+            self.distance_func = hamming_distance
+        elif self.method in ("jc", "jukes_cantor", "jukes-cantor"):
+            self.distance_func = jukes_cantor_distance
+        elif self.method in ("k2p", "kimura", "kimura_2p"):
+            self.distance_func = kimura_2p_distance
+        elif self.method in ("tn", "tamura_nei", "tamura-nei"):
+            self.distance_func = tamura_nei_distance
+        elif self.method == "p":
+            self.distance_func = p_distance
+        else:
+            raise ValueError(f"Unknown distance method: {method}")
+    
+    def calculate(self, seq1: Sequence, seq2: Sequence) -> float:
+        """
+        Calculate distance between two sequences.
+        
+        Parameters
+        ----------
+        seq1 : Sequence
+            First sequence
+        seq2 : Sequence
+            Second sequence
+            
+        Returns
+        -------
+        float
+            Distance value
+        """
+        return self.distance_func(seq1, seq2, ignore_gaps=self.ignore_gaps)
+    
+    def calculate_matrix(self, alignment: Alignment) -> np.ndarray:
+        """
+        Calculate pairwise distance matrix for alignment.
+        
+        Parameters
+        ----------
+        alignment : Alignment
+            Sequence alignment
+            
+        Returns
+        -------
+        np.ndarray
+            Square distance matrix
+        """
+        dist_matrix = calculate_pairwise_distances(
+            alignment, 
+            method=self.method, 
+            ignore_gaps=self.ignore_gaps
+        )
+        return dist_matrix.matrix
+    
+    def __repr__(self) -> str:
+        return f"DistanceCalculator(method='{self.method}', ignore_gaps={self.ignore_gaps})"
