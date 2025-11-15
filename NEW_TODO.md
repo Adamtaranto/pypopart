@@ -146,37 +146,41 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Create comparative examples
 - [ ] Document when to use each algorithm
 
-## Phase 5: Network Analysis & Statistics
+## Phase 5: Network Analysis & Statistics ✅ COMPLETED
 
-### 5.1 Frequency and Sample Data
-- [ ] Implement haplotype frequency calculations
-- [ ] Add population/group assignment tracking
-- [ ] Calculate per-population frequencies
-- [ ] Implement sample size normalization
-- [ ] Create visualization of frequency distributions
+### 5.1 Frequency and Sample Data ✅ COMPLETED
+- [x] Implement haplotype frequency calculations
+- [x] Add population/group assignment tracking
+- [x] Calculate per-population frequencies
+- [x] Implement sample size normalization
+- [ ] Create visualization of frequency distributions (deferred to Phase 6)
 
-### 5.2 Network Statistics
-- [ ] Calculate network diameter
-- [ ] Compute clustering coefficients
-- [ ] Identify central haplotypes
-- [ ] Calculate reticulation index
-- [ ] Implement diversity metrics (nucleotide, haplotype)
-- [ ] Create summary statistics report
+### 5.2 Network Statistics ✅ COMPLETED
+- [x] Calculate network diameter
+- [x] Compute clustering coefficients
+- [x] Identify central haplotypes (degree, betweenness, closeness, eigenvector centrality)
+- [x] Calculate reticulation index
+- [x] Implement diversity metrics (nucleotide, haplotype, Shannon diversity)
+- [x] Create summary statistics report
+- [x] Create unit tests (29 tests, 91% coverage)
 
-### 5.3 Population Genetics Measures
-- [ ] Implement Tajima's D
-- [ ] Calculate Fu's Fs
-- [ ] Compute pairwise FST
-- [ ] Implement AMOVA framework
-- [ ] Add mismatch distribution analysis
-- [ ] Create unit tests for each measure
+### 5.3 Population Genetics Measures ✅ COMPLETED
+- [x] Implement Tajima's D
+- [x] Calculate Fu's Fs
+- [x] Compute pairwise FST
+- [x] Calculate FST matrix for all population pairs
+- [x] Implement AMOVA framework
+- [x] Add mismatch distribution analysis
+- [x] Create unit tests for each measure (21 tests, 97% coverage)
 
-### 5.4 Network Topology Analysis
-- [ ] Identify star-like patterns
-- [ ] Detect network partitions
-- [ ] Calculate node centrality measures
-- [ ] Identify potential ancestral nodes
-- [ ] Create topology summary reports
+### 5.4 Network Topology Analysis ✅ COMPLETED
+- [x] Identify star-like patterns (perfect and partial stars)
+- [x] Detect network partitions (connected components)
+- [x] Calculate node centrality measures (degree, betweenness, closeness, eigenvector)
+- [x] Identify potential ancestral nodes (composite scoring)
+- [x] Find hub nodes and bridges
+- [x] Identify bottleneck nodes (articulation points)
+- [x] Create topology summary reports (21 tests, 93% coverage)
 
 ## Phase 6: Visualization
 
