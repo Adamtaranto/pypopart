@@ -1206,27 +1206,93 @@ class PyPopARTApp:
         @self.app.callback(
             Output('alignment-display', 'children'), Input('alignment-store', 'data')
         )
-        def update_alignment_display(alignment_data: Optional[Dict]) -> str:
-            """Update alignment viewer."""
+        def update_alignment_display(alignment_data: Optional[Dict]):
+            """Update alignment viewer with colored nucleotides for polymorphic sites."""
             if not alignment_data:
                 return 'Upload data to view alignment'
 
             try:
-                # Format alignment for display
+                # Standard nucleotide color scheme
+                nuc_colors = {
+                    'A': '#64F73F',  # Green
+                    'a': '#64F73F',
+                    'C': '#3C88EE',  # Blue
+                    'c': '#3C88EE',
+                    'G': '#FFB340',  # Orange/Yellow
+                    'g': '#FFB340',
+                    'T': '#EB413E',  # Red
+                    't': '#EB413E',
+                    'U': '#EB413E',  # Red (for RNA)
+                    'u': '#EB413E',
+                    '-': '#CCCCCC',  # Gray for gaps
+                    'N': '#999999',  # Dark gray for N
+                    'n': '#999999',
+                }
+
                 sequences = alignment_data['sequences'][:50]  # Limit to first 50
+                if not sequences:
+                    return 'No sequences to display'
+
                 max_id_len = max(len(seq['id']) for seq in sequences)
+                seq_length = len(sequences[0]['data'])
 
-                lines = []
+                # Identify polymorphic sites (positions with >1 base type)
+                polymorphic_sites = set()
+                for pos in range(seq_length):
+                    bases_at_pos = set()
+                    for seq in sequences:
+                        if pos < len(seq['data']):
+                            base = seq['data'][pos].upper()
+                            bases_at_pos.add(base)
+                    # Position is polymorphic if it has more than one unique base
+                    if len(bases_at_pos) > 1:
+                        polymorphic_sites.add(pos)
+
+                # Build HTML rows
+                rows = []
                 for seq in sequences:
-                    # Format: ID (padded) + sequence
-                    lines.append(f'{seq["id"]:<{max_id_len}}  {seq["data"]}')
+                    seq_id = seq['id']
+                    seq_data = seq['data']
 
-                if len(alignment_data['sequences']) > 50:
-                    lines.append(
-                        f'\n... ({len(alignment_data["sequences"]) - 50} more sequences)'
+                    # Create sequence ID span
+                    id_span = html.Span(
+                        f'{seq_id:<{max_id_len}}  ',
+                        style={'color': 'black', 'fontWeight': 'bold'},
                     )
 
-                return '\n'.join(lines)
+                    # Create colored nucleotide spans
+                    seq_spans = []
+                    for pos, base in enumerate(seq_data):
+                        if pos in polymorphic_sites:
+                            # Color polymorphic positions
+                            color = nuc_colors.get(base, '#000000')
+                            seq_spans.append(
+                                html.Span(
+                                    base,
+                                    style={
+                                        'backgroundColor': color,
+                                        'color': 'white' if base.upper() not in ['-', 'N'] else 'black',
+                                        'padding': '0 1px',
+                                    },
+                                )
+                            )
+                        else:
+                            # Keep invariant positions as plain text
+                            seq_spans.append(html.Span(base, style={'color': 'black'}))
+
+                    # Combine ID and sequence
+                    rows.append(html.Div([id_span] + seq_spans, style={'whiteSpace': 'pre'}))
+
+                # Add note if sequences were truncated
+                if len(alignment_data['sequences']) > 50:
+                    rows.append(
+                        html.Div(
+                            f'\n... ({len(alignment_data["sequences"]) - 50} more sequences)',
+                            style={'color': 'gray', 'fontStyle': 'italic', 'marginTop': '10px'},
+                        )
+                    )
+
+                return html.Div(rows)
 
             except Exception as e:
                 self.logger.error(f'Error displaying alignment: {e}')
@@ -1367,7 +1433,7 @@ class PyPopARTApp:
                 sequence_ids = [seq['id'] for seq in alignment_data['sequences']]
 
                 # Create CSV content with headers
-                csv_lines = ['sequence_id,population,latitude,longitude,color,notes']
+                csv_lines = ['id,population,latitude,longitude,color,notes']
 
                 # Add a row for each sequence with empty fields
                 for seq_id in sequence_ids:
