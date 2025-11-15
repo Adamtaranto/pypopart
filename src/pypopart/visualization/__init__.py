@@ -5,13 +5,13 @@ Provides functions for creating static and interactive visualizations
 of haplotype networks, including geographic visualizations.
 """
 
+from .geo_visualization import GeoVisualizer, InteractiveGeoVisualizer
 from .interactive_plot import (
     InteractiveNetworkPlotter,
     create_interactive_figure,
     plot_interactive_network,
 )
 from .static_plot import StaticNetworkPlotter, create_publication_figure, plot_network
-from .geo_visualization import GeoVisualizer, InteractiveGeoVisualizer
 
 __all__ = [
     # Static plotting

@@ -38,33 +38,33 @@ class NetworkAlgorithm(ABC):
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-        Construct haplotype network from sequence alignment.
+            Construct haplotype network from sequence alignment.
 
-        Parameters
-        ----------
-        alignment :
-            Multiple sequence alignment.
-        distance_matrix :
-            Optional pre-computed distance matrix.
+            Parameters
+            ----------
+            alignment :
+                Multiple sequence alignment.
+            distance_matrix :
+                Optional pre-computed distance matrix.
 
-    Returns
-    -------
-        Constructed haplotype network.
+        Returns
+        -------
+            Constructed haplotype network.
         """
         pass
 
     def calculate_distances(self, alignment: Alignment) -> DistanceMatrix:
         """
-        Calculate pairwise distances between sequences.
+            Calculate pairwise distances between sequences.
 
-        Parameters
-        ----------
-        alignment :
-            Multiple sequence alignment.
+            Parameters
+            ----------
+            alignment :
+                Multiple sequence alignment.
 
-    Returns
-    -------
-        Distance matrix.
+        Returns
+        -------
+            Distance matrix.
         """
         return calculate_pairwise_distances(
             alignment,

@@ -35,16 +35,16 @@ class LayoutAlgorithm:
 
     def compute(self, **kwargs) -> Dict[str, Tuple[float, float]]:
         """
-        Compute node positions.
+            Compute node positions.
 
-        Parameters
-        ----------
-        **kwargs :
-            Algorithm-specific parameters.
+            Parameters
+            ----------
+            **kwargs :
+                Algorithm-specific parameters.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to (x, y) positions.
+        Returns
+        -------
+            Dictionary mapping node IDs to (x, y) positions.
         """
         raise NotImplementedError('Subclasses must implement compute()')
 
@@ -70,16 +70,16 @@ class LayoutAlgorithm:
     @staticmethod
     def load_layout(filename: str) -> Dict[str, Tuple[float, float]]:
         """
-        Load layout from a JSON file.
+            Load layout from a JSON file.
 
-        Parameters
-        ----------
-        filename :
-            Input filename.
+            Parameters
+            ----------
+            filename :
+                Input filename.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to (x, y) positions.
+        Returns
+        -------
+            Dictionary mapping node IDs to (x, y) positions.
         """
         with open(filename, 'r') as f:
             layout_data = json.load(f)
@@ -104,22 +104,22 @@ class ForceDirectedLayout(LayoutAlgorithm):
         **kwargs,
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute force-directed layout.
+            Compute force-directed layout.
 
-        Parameters
-        ----------
-        k :
-            Optimal distance between nodes (None for auto).
-        iterations :
-            Number of iterations for optimization.
-        seed :
-            Random seed for reproducibility.
-        **kwargs :
-            Additional parameters passed to spring_layout.
+            Parameters
+            ----------
+            k :
+                Optimal distance between nodes (None for auto).
+            iterations :
+                Number of iterations for optimization.
+            seed :
+                Random seed for reproducibility.
+            **kwargs :
+                Additional parameters passed to spring_layout.
 
-    Returns
-    -------
-        Node positions dictionary.
+        Returns
+        -------
+            Node positions dictionary.
         """
         layout = nx.spring_layout(
             self.graph, k=k, iterations=iterations, seed=seed, **kwargs
@@ -140,20 +140,20 @@ class CircularLayout(LayoutAlgorithm):
         self, scale: float = 1.0, center: Optional[Tuple[float, float]] = None, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute circular layout.
+            Compute circular layout.
 
-        Parameters
-        ----------
-        scale :
-            Scale factor for the layout.
-        center :
-            Center position (x, y).
-        **kwargs :
-            Additional parameters passed to circular_layout.
+            Parameters
+            ----------
+            scale :
+                Scale factor for the layout.
+            center :
+                Center position (x, y).
+            **kwargs :
+                Additional parameters passed to circular_layout.
 
-    Returns
-    -------
-        Node positions dictionary.
+        Returns
+        -------
+            Node positions dictionary.
         """
         layout = nx.circular_layout(self.graph, scale=scale, center=center, **kwargs)
         # Convert numpy arrays to tuples
@@ -172,20 +172,20 @@ class RadialLayout(LayoutAlgorithm):
         self, center_node: Optional[str] = None, scale: float = 1.0, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute radial layout.
+            Compute radial layout.
 
-        Parameters
-        ----------
-        center_node :
-            Node to place at center (most connected if None).
-        scale :
-            Scale factor for the layout.
-        **kwargs :
-            Additional parameters.
+            Parameters
+            ----------
+            center_node :
+                Node to place at center (most connected if None).
+            scale :
+                Scale factor for the layout.
+            **kwargs :
+                Additional parameters.
 
-    Returns
-    -------
-        Node positions dictionary.
+        Returns
+        -------
+            Node positions dictionary.
         """
         if not self.graph.nodes():
             return {}
@@ -252,24 +252,24 @@ class HierarchicalLayout(LayoutAlgorithm):
         **kwargs,
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute hierarchical layout.
+            Compute hierarchical layout.
 
-        Parameters
-        ----------
-        root_node :
-            Root node for hierarchy (most connected if None).
-        vertical :
-            If True, levels are horizontal; if False, levels are vertical.
-        width :
-            Total width of the layout.
-        height :
-            Total height of the layout.
-        **kwargs :
-            Additional parameters.
+            Parameters
+            ----------
+            root_node :
+                Root node for hierarchy (most connected if None).
+            vertical :
+                If True, levels are horizontal; if False, levels are vertical.
+            width :
+                Total width of the layout.
+            height :
+                Total height of the layout.
+            **kwargs :
+                Additional parameters.
 
-    Returns
-    -------
-        Node positions dictionary.
+        Returns
+        -------
+            Node positions dictionary.
         """
         if not self.graph.nodes():
             return {}
@@ -335,20 +335,20 @@ class KamadaKawaiLayout(LayoutAlgorithm):
         self, scale: float = 1.0, center: Optional[Tuple[float, float]] = None, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute Kamada-Kawai layout.
+            Compute Kamada-Kawai layout.
 
-        Parameters
-        ----------
-        scale :
-            Scale factor for the layout.
-        center :
-            Center position (x, y).
-        **kwargs :
-            Additional parameters passed to kamada_kawai_layout.
+            Parameters
+            ----------
+            scale :
+                Scale factor for the layout.
+            center :
+                Center position (x, y).
+            **kwargs :
+                Additional parameters passed to kamada_kawai_layout.
 
-    Returns
-    -------
-        Node positions dictionary.
+        Returns
+        -------
+            Node positions dictionary.
         """
         layout = nx.kamada_kawai_layout(
             self.graph, scale=scale, center=center, **kwargs
@@ -384,16 +384,16 @@ class ManualLayout(LayoutAlgorithm):
 
     def compute(self, **kwargs) -> Dict[str, Tuple[float, float]]:
         """
-        Return current manual positions.
+            Return current manual positions.
 
-        Parameters
-        ----------
-        **kwargs :
-            Ignored.
+            Parameters
+            ----------
+            **kwargs :
+                Ignored.
 
-    Returns
-    -------
-        Node positions dictionary.
+        Returns
+        -------
+            Node positions dictionary.
         """
         # Fill in missing nodes with default layout
         if len(self.positions) < len(self.graph.nodes()):
@@ -472,22 +472,22 @@ class LayoutManager:
         self, algorithm: str = 'force_directed', **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute network layout using specified algorithm.
+            Compute network layout using specified algorithm.
 
-        Parameters
-        ----------
-        algorithm :
-            Layout algorithm name.
-        **kwargs :
-            Algorithm-specific parameters.
+            Parameters
+            ----------
+            algorithm :
+                Layout algorithm name.
+            **kwargs :
+                Algorithm-specific parameters.
 
-    Returns
-    -------
-        Node positions dictionary.
+        Returns
+        -------
+            Node positions dictionary.
 
-        Raises :
-        ValueError :
-            If algorithm not recognized.
+            Raises :
+            ValueError :
+                If algorithm not recognized.
         """
         if algorithm not in self._algorithms:
             available = ', '.join(self._algorithms.keys())
@@ -516,16 +516,16 @@ class LayoutManager:
 
     def load_layout(self, filename: str) -> Dict[str, Tuple[float, float]]:
         """
-        Load layout from file.
+            Load layout from file.
 
-        Parameters
-        ----------
-        filename :
-            Input filename (JSON format).
+            Parameters
+            ----------
+            filename :
+                Input filename (JSON format).
 
-    Returns
-    -------
-        Node positions dictionary.
+        Returns
+        -------
+            Node positions dictionary.
         """
         return LayoutAlgorithm.load_layout(filename)
 
@@ -569,32 +569,32 @@ class GeographicLayout(LayoutAlgorithm):
         **kwargs,
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute geographic layout from coordinates.
+            Compute geographic layout from coordinates.
 
-        Parameters
-        ----------
-        coordinates :
-            Dictionary mapping node IDs to (latitude, longitude) tuples.
-        projection :
-            Map projection to use ('mercator', 'platecarree', 'orthographic').
-        handle_multiple_locations :
-            How to handle nodes in multiple locations:.
-                - 'centroid': Use centroid of all locations
-                - 'first': Use first location
-                - 'jitter': Place at first location with small random offset.
-        jitter_amount :
-            Amount of random jitter to add (in degrees) when multiple.
-                          nodes share the same location.
-        **kwargs :
-            Additional projection parameters.
+            Parameters
+            ----------
+            coordinates :
+                Dictionary mapping node IDs to (latitude, longitude) tuples.
+            projection :
+                Map projection to use ('mercator', 'platecarree', 'orthographic').
+            handle_multiple_locations :
+                How to handle nodes in multiple locations:.
+                    - 'centroid': Use centroid of all locations
+                    - 'first': Use first location
+                    - 'jitter': Place at first location with small random offset.
+            jitter_amount :
+                Amount of random jitter to add (in degrees) when multiple.
+                              nodes share the same location.
+            **kwargs :
+                Additional projection parameters.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to (x, y) positions in projected coordinates.
+        Returns
+        -------
+            Dictionary mapping node IDs to (x, y) positions in projected coordinates.
 
-        Raises :
-        ValueError :
-            If coordinates are not provided or invalid.
+            Raises :
+            ValueError :
+                If coordinates are not provided or invalid.
         """
         if coordinates is None:
             # Try to extract coordinates from node metadata
@@ -696,20 +696,20 @@ class GeographicLayout(LayoutAlgorithm):
         self, lat: float, lon: float, projection: str
     ) -> Tuple[float, float]:
         """
-        Project geographic coordinates to map coordinates.
+            Project geographic coordinates to map coordinates.
 
-        Parameters
-        ----------
-        lat :
-            Latitude.
-        lon :
-            Longitude.
-        projection :
-            Projection name.
+            Parameters
+            ----------
+            lat :
+                Latitude.
+            lon :
+                Longitude.
+            projection :
+                Projection name.
 
-    Returns
-    -------
-        Tuple of (x, y) projected coordinates.
+        Returns
+        -------
+            Tuple of (x, y) projected coordinates.
         """
         if projection.lower() == 'mercator':
             # Web Mercator projection

@@ -180,18 +180,18 @@ class Sequence:
 
     def slice(self, start: int, end: Optional[int] = None) -> 'Sequence':
         """
-        Extract a slice of the sequence.
+            Extract a slice of the sequence.
 
-        Parameters
-        ----------
-        start :
-            Start position (0-based, inclusive).
-        end :
-            End position (0-based, exclusive), None for end of sequence.
+            Parameters
+            ----------
+            start :
+                Start position (0-based, inclusive).
+            end :
+                End position (0-based, exclusive), None for end of sequence.
 
-    Returns
-    -------
-        New Sequence object with sliced data.
+        Returns
+        -------
+            New Sequence object with sliced data.
         """
         sliced_data = self.data[start:end]
         slice_desc = f'slice[{start}:{end if end else "end"}]'
@@ -224,16 +224,16 @@ class Sequence:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Sequence':
         """
-        Create sequence from dictionary.
+            Create sequence from dictionary.
 
-        Parameters
-        ----------
-        data :
-            Dictionary with sequence information.
+            Parameters
+            ----------
+            data :
+                Dictionary with sequence information.
 
-    Returns
-    -------
-        New Sequence object.
+        Returns
+        -------
+            New Sequence object.
         """
         return cls(
             id=data['id'],

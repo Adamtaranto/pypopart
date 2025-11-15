@@ -54,40 +54,40 @@ class StaticNetworkPlotter:
         **kwargs,
     ) -> Tuple[plt.Figure, plt.Axes]:
         """
-        Create a static network plot.
+            Create a static network plot.
 
-        Parameters
-        ----------
-        layout :
-            Pre-computed node positions {node_id: (x, y)}.
-        layout_algorithm :
-            NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
-        node_size_scale :
-            Scaling factor for node sizes.
-        node_color_map :
-            Custom color mapping {node_id: color}.
-        population_colors :
-            Color mapping for populations {pop_name: color}.
-        edge_width_scale :
-            Scaling factor for edge widths.
-        show_labels :
-            Whether to show node labels.
-        show_mutations :
-            Whether to show mutation counts on edges.
-        median_vector_color :
-            Color for median vector nodes.
-        median_vector_marker :
-            Marker shape for median vectors ('s'=square, 'o'=circle).
-        figsize :
-            Figure size (width, height) in inches.
-        title :
-            Plot title.
-        **kwargs :
-            Additional arguments passed to networkx drawing functions.
+            Parameters
+            ----------
+            layout :
+                Pre-computed node positions {node_id: (x, y)}.
+            layout_algorithm :
+                NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
+            node_size_scale :
+                Scaling factor for node sizes.
+            node_color_map :
+                Custom color mapping {node_id: color}.
+            population_colors :
+                Color mapping for populations {pop_name: color}.
+            edge_width_scale :
+                Scaling factor for edge widths.
+            show_labels :
+                Whether to show node labels.
+            show_mutations :
+                Whether to show mutation counts on edges.
+            median_vector_color :
+                Color for median vector nodes.
+            median_vector_marker :
+                Marker shape for median vectors ('s'=square, 'o'=circle).
+            figsize :
+                Figure size (width, height) in inches.
+            title :
+                Plot title.
+            **kwargs :
+                Additional arguments passed to networkx drawing functions.
 
-    Returns
-    -------
-        Figure and axes objects.
+        Returns
+        -------
+            Figure and axes objects.
         """
         # Create figure and axes
         self.figure, self.ax = plt.subplots(figsize=figsize)
@@ -388,7 +388,12 @@ class StaticNetworkPlotter:
         text = '\n'.join(text_lines)
 
         # Add text box
-        props = {'boxstyle': 'round', 'facecolor': 'white', 'alpha': 0.8, 'edgecolor': 'black'}
+        props = {
+            'boxstyle': 'round',
+            'facecolor': 'white',
+            'alpha': 0.8,
+            'edgecolor': 'black',
+        }
         props.update(kwargs.get('bbox', {}))
 
         self.ax.text(
@@ -427,18 +432,18 @@ class StaticNetworkPlotter:
         self, graph: nx.Graph, algorithm: str
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute node layout using specified algorithm.
+            Compute node layout using specified algorithm.
 
-        Parameters
-        ----------
-        graph :
-            NetworkX graph.
-        algorithm :
-            Layout algorithm name.
+            Parameters
+            ----------
+            graph :
+                NetworkX graph.
+            algorithm :
+                Layout algorithm name.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to (x, y) positions.
+        Returns
+        -------
+            Dictionary mapping node IDs to (x, y) positions.
         """
         if algorithm == 'spring':
             return nx.spring_layout(graph, k=1, iterations=50)
@@ -455,16 +460,16 @@ class StaticNetworkPlotter:
 
     def _compute_node_sizes(self, scale: float) -> Dict[str, float]:
         """
-        Compute node sizes based on haplotype frequencies.
+            Compute node sizes based on haplotype frequencies.
 
-        Parameters
-        ----------
-        scale :
-            Scaling factor for node sizes.
+            Parameters
+            ----------
+            scale :
+                Scaling factor for node sizes.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to sizes.
+        Returns
+        -------
+            Dictionary mapping node IDs to sizes.
         """
         sizes = {}
         for node in self.network._graph.nodes():
@@ -488,20 +493,20 @@ class StaticNetworkPlotter:
         median_vector_color: str,
     ) -> Dict[str, str]:
         """
-        Compute node colors based on population or custom mapping.
+            Compute node colors based on population or custom mapping.
 
-        Parameters
-        ----------
-        node_color_map :
-            Custom node color mapping.
-        population_colors :
-            Population color mapping.
-        median_vector_color :
-            Color for median vectors.
+            Parameters
+            ----------
+            node_color_map :
+                Custom node color mapping.
+            population_colors :
+                Population color mapping.
+            median_vector_color :
+                Color for median vectors.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to colors.
+        Returns
+        -------
+            Dictionary mapping node IDs to colors.
         """
         colors = {}
 
@@ -530,16 +535,16 @@ class StaticNetworkPlotter:
 
     def _compute_edge_widths(self, scale: float) -> List[float]:
         """
-        Compute edge widths based on mutation distances.
+            Compute edge widths based on mutation distances.
 
-        Parameters
-        ----------
-        scale :
-            Scaling factor for edge widths.
+            Parameters
+            ----------
+            scale :
+                Scaling factor for edge widths.
 
-    Returns
-    -------
-        List of edge widths.
+        Returns
+        -------
+            List of edge widths.
         """
         widths = []
         graph = self.network._graph
@@ -579,7 +584,10 @@ class StaticNetworkPlotter:
                 edge_labels=edge_labels,
                 font_size=7,
                 bbox={
-                    'boxstyle': 'round', 'facecolor': 'white', 'alpha': 0.7, 'edgecolor': 'none'
+                    'boxstyle': 'round',
+                    'facecolor': 'white',
+                    'alpha': 0.7,
+                    'edgecolor': 'none',
                 },
                 ax=self.ax,
             )

@@ -51,38 +51,38 @@ class InteractiveNetworkPlotter:
         **kwargs,
     ) -> Figure:
         """
-        Create an interactive network plot.
+            Create an interactive network plot.
 
-        Parameters
-        ----------
-        layout :
-            Pre-computed node positions {node_id: (x, y)}.
-        layout_algorithm :
-            NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
-        node_size_scale :
-            Scaling factor for node sizes.
-        node_color_map :
-            Custom color mapping {node_id: color}.
-        population_colors :
-            Color mapping for populations {pop_name: color}.
-        edge_width_scale :
-            Scaling factor for edge widths.
-        show_labels :
-            Whether to show node labels.
-        median_vector_color :
-            Color for median vector nodes.
-        title :
-            Plot title.
-        width :
-            Figure width in pixels.
-        height :
-            Figure height in pixels.
-        **kwargs :
-            Additional layout arguments.
+            Parameters
+            ----------
+            layout :
+                Pre-computed node positions {node_id: (x, y)}.
+            layout_algorithm :
+                NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
+            node_size_scale :
+                Scaling factor for node sizes.
+            node_color_map :
+                Custom color mapping {node_id: color}.
+            population_colors :
+                Color mapping for populations {pop_name: color}.
+            edge_width_scale :
+                Scaling factor for edge widths.
+            show_labels :
+                Whether to show node labels.
+            median_vector_color :
+                Color for median vector nodes.
+            title :
+                Plot title.
+            width :
+                Figure width in pixels.
+            height :
+                Figure height in pixels.
+            **kwargs :
+                Additional layout arguments.
 
-    Returns
-    -------
-        Plotly Figure object.
+        Returns
+        -------
+            Plotly Figure object.
         """
         # Get graph and compute layout if not provided
         graph = self.network._graph
@@ -109,7 +109,12 @@ class InteractiveNetworkPlotter:
         # Update layout
         plot_title = title if title else self.network.name
         self.figure.update_layout(
-            title={'text': plot_title, 'x': 0.5, 'xanchor': 'center', 'font': {'size': 20}},
+            title={
+                'text': plot_title,
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 20},
+            },
             showlegend=True,
             hovermode='closest',
             width=width,
@@ -177,18 +182,18 @@ class InteractiveNetworkPlotter:
         self, graph: nx.Graph, algorithm: str
     ) -> Dict[str, Tuple[float, float]]:
         """
-        Compute node layout using specified algorithm.
+            Compute node layout using specified algorithm.
 
-        Parameters
-        ----------
-        graph :
-            NetworkX graph.
-        algorithm :
-            Layout algorithm name.
+            Parameters
+            ----------
+            graph :
+                NetworkX graph.
+            algorithm :
+                Layout algorithm name.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to (x, y) positions.
+        Returns
+        -------
+            Dictionary mapping node IDs to (x, y) positions.
         """
         if algorithm == 'spring':
             return nx.spring_layout(graph, k=1, iterations=50)
@@ -418,24 +423,24 @@ class InteractiveNetworkPlotter:
         is_median: bool,
     ) -> str:
         """
-        Determine node color based on priority.
+            Determine node color based on priority.
 
-        Parameters
-        ----------
-        node :
-            Node ID.
-        hap :
-            Haplotype object or None.
-        node_color_map :
-            Custom color mapping.
-        population_colors :
-            Population color mapping.
-        is_median :
-            Whether this is a median vector.
+            Parameters
+            ----------
+            node :
+                Node ID.
+            hap :
+                Haplotype object or None.
+            node_color_map :
+                Custom color mapping.
+            population_colors :
+                Population color mapping.
+            is_median :
+                Whether this is a median vector.
 
-    Returns
-    -------
-        Color string.
+        Returns
+        -------
+            Color string.
         """
         if is_median:
             return 'lightgray'
@@ -452,20 +457,20 @@ class InteractiveNetworkPlotter:
 
     def _create_hover_text(self, node: str, hap: Any, is_median: bool) -> str:
         """
-        Create hover text for a node.
+            Create hover text for a node.
 
-        Parameters
-        ----------
-        node :
-            Node ID.
-        hap :
-            Haplotype object or None.
-        is_median :
-            Whether this is a median vector.
+            Parameters
+            ----------
+            node :
+                Node ID.
+            hap :
+                Haplotype object or None.
+            is_median :
+                Whether this is a median vector.
 
-    Returns
-    -------
-        Formatted hover text string.
+        Returns
+        -------
+            Formatted hover text string.
         """
         lines = [f'<b>{node}</b>']
 

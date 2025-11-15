@@ -48,16 +48,16 @@ class PhylipReader:
 
     def read_alignment(self, progress_callback=None) -> Alignment:
         """
-        Read alignment from PHYLIP file.
+            Read alignment from PHYLIP file.
 
-        Parameters
-        ----------
-        progress_callback :
-            Optional callback function(current, total).
+            Parameters
+            ----------
+            progress_callback :
+                Optional callback function(current, total).
 
-    Returns
-    -------
-        Alignment object.
+        Returns
+        -------
+            Alignment object.
         """
         with self._open_file() as handle:
             lines = [line.rstrip() for line in handle if line.strip()]

@@ -48,16 +48,16 @@ class NexusReader:
 
     def _parse_dimensions(self, content: str) -> Tuple[int, int]:
         """
-        Parse DIMENSIONS block.
+            Parse DIMENSIONS block.
 
-        Parameters
-        ----------
-        content :
-            NEXUS file content.
+            Parameters
+            ----------
+            content :
+                NEXUS file content.
 
-    Returns
-    -------
-        Tuple of (ntax, nchar).
+        Returns
+        -------
+            Tuple of (ntax, nchar).
         """
         dimensions_match = re.search(
             r'DIMENSIONS\s+NTAX=(\d+)\s+NCHAR=(\d+)', content, re.IGNORECASE
@@ -72,16 +72,16 @@ class NexusReader:
 
     def _parse_matrix(self, content: str) -> Dict[str, str]:
         """
-        Parse MATRIX block.
+            Parse MATRIX block.
 
-        Parameters
-        ----------
-        content :
-            NEXUS file content.
+            Parameters
+            ----------
+            content :
+                NEXUS file content.
 
-    Returns
-    -------
-        Dictionary mapping sequence IDs to sequence data.
+        Returns
+        -------
+            Dictionary mapping sequence IDs to sequence data.
         """
         sequences = {}
 
@@ -125,16 +125,16 @@ class NexusReader:
 
     def _parse_traits(self, content: str) -> Dict[str, Dict[str, str]]:
         """
-        Parse TRAITS block (PopART extension).
+            Parse TRAITS block (PopART extension).
 
-        Parameters
-        ----------
-        content :
-            NEXUS file content.
+            Parameters
+            ----------
+            content :
+                NEXUS file content.
 
-    Returns
-    -------
-        Dictionary mapping sequence IDs to trait dictionaries.
+        Returns
+        -------
+            Dictionary mapping sequence IDs to trait dictionaries.
         """
         traits = {}
 
@@ -183,16 +183,16 @@ class NexusReader:
 
     def read_alignment(self, progress_callback=None) -> Alignment:
         """
-        Read alignment from NEXUS file.
+            Read alignment from NEXUS file.
 
-        Parameters
-        ----------
-        progress_callback :
-            Optional callback function(current, total).
+            Parameters
+            ----------
+            progress_callback :
+                Optional callback function(current, total).
 
-    Returns
-    -------
-        Alignment object with metadata.
+        Returns
+        -------
+            Alignment object with metadata.
         """
         with self._open_file() as handle:
             content = handle.read()

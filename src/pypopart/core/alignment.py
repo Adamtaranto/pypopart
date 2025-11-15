@@ -97,20 +97,20 @@ class Alignment:
 
     def get_sequence(self, sequence_id: str) -> Sequence:
         """
-        Get sequence by ID.
+            Get sequence by ID.
 
-        Parameters
-        ----------
-        sequence_id :
-            ID of sequence to retrieve.
+            Parameters
+            ----------
+            sequence_id :
+                ID of sequence to retrieve.
 
-    Returns
-    -------
-        Sequence object.
+        Returns
+        -------
+            Sequence object.
 
-        Raises :
-        KeyError :
-            If sequence ID not found.
+            Raises :
+            KeyError :
+                If sequence ID not found.
         """
         if sequence_id not in self._sequence_index:
             raise KeyError(f"Sequence ID '{sequence_id}' not found in alignment")
@@ -128,16 +128,16 @@ class Alignment:
 
     def __getitem__(self, key: Union[int, str, slice]) -> Union[Sequence, 'Alignment']:
         """
-        Get sequence(s) by index, ID, or slice.
+            Get sequence(s) by index, ID, or slice.
 
-        Parameters
-        ----------
-        key :
-            Index, sequence ID, or slice.
+            Parameters
+            ----------
+            key :
+                Index, sequence ID, or slice.
 
-    Returns
-    -------
-        Sequence object or new Alignment object for slices.
+        Returns
+        -------
+            Sequence object or new Alignment object for slices.
         """
         if isinstance(key, str):
             return self.get_sequence(key)
@@ -189,16 +189,16 @@ class Alignment:
 
     def get_column(self, position: int) -> List[str]:
         """
-        Get all characters at a specific position.
+            Get all characters at a specific position.
 
-        Parameters
-        ----------
-        position :
-            0-based position in alignment.
+            Parameters
+            ----------
+            position :
+                0-based position in alignment.
 
-    Returns
-    -------
-        List of characters at that position.
+        Returns
+        -------
+            List of characters at that position.
         """
         if position < 0 or position >= self.length:
             raise IndexError(f'Position {position} out of range [0, {self.length})')
@@ -207,18 +207,18 @@ class Alignment:
 
     def slice_alignment(self, start: int, end: Optional[int] = None) -> 'Alignment':
         """
-        Extract a slice of the alignment (specific columns).
+            Extract a slice of the alignment (specific columns).
 
-        Parameters
-        ----------
-        start :
-            Start position (0-based, inclusive).
-        end :
-            End position (0-based, exclusive, None for end).
+            Parameters
+            ----------
+            start :
+                Start position (0-based, inclusive).
+            end :
+                End position (0-based, exclusive, None for end).
 
-    Returns
-    -------
-        New Alignment object with sliced sequences.
+        Returns
+        -------
+            New Alignment object with sliced sequences.
         """
         sliced_sequences = []
         for seq in self._sequences:
@@ -229,16 +229,16 @@ class Alignment:
 
     def remove_gaps_columns(self, gap_threshold: float = 1.0) -> 'Alignment':
         """
-        Remove columns with gaps above threshold.
+            Remove columns with gaps above threshold.
 
-        Parameters
-        ----------
-        gap_threshold :
-            Fraction of gaps required to remove column (0.0-1.0).
+            Parameters
+            ----------
+            gap_threshold :
+                Fraction of gaps required to remove column (0.0-1.0).
 
-    Returns
-    -------
-        New Alignment object with gap columns removed.
+        Returns
+        -------
+            New Alignment object with gap columns removed.
         """
         columns_to_keep = []
 
@@ -325,17 +325,17 @@ class Alignment:
 
     def get_distance_matrix(self, distance_func=None) -> np.ndarray:
         """
-        Calculate pairwise distance matrix between sequences.
+            Calculate pairwise distance matrix between sequences.
 
-        Parameters
-        ----------
-        distance_func :
-            Function to calculate distance between two sequences.
-                          If None, uses Hamming distance.
+            Parameters
+            ----------
+            distance_func :
+                Function to calculate distance between two sequences.
+                              If None, uses Hamming distance.
 
-    Returns
-    -------
-        Square numpy array with pairwise distances.
+        Returns
+        -------
+            Square numpy array with pairwise distances.
         """
         if distance_func is None:
             distance_func = self._hamming_distance
@@ -352,18 +352,18 @@ class Alignment:
 
     def _hamming_distance(self, seq1: Sequence, seq2: Sequence) -> int:
         """
-        Calculate Hamming distance between two sequences.
+            Calculate Hamming distance between two sequences.
 
-        Parameters
-        ----------
-        seq1 :
-            First sequence.
-        seq2 :
-            Second sequence.
+            Parameters
+            ----------
+            seq1 :
+                First sequence.
+            seq2 :
+                Second sequence.
 
-    Returns
-    -------
-        Number of differing positions.
+        Returns
+        -------
+            Number of differing positions.
         """
         if len(seq1) != len(seq2):
             raise ValueError('Sequences must have same length for Hamming distance')

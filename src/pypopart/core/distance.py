@@ -386,28 +386,28 @@ class DistanceMatrix:
         save_path: Optional[str] = None,
     ) -> 'matplotlib.figure.Figure':
         """
-        Visualize distance matrix as a heatmap.
+            Visualize distance matrix as a heatmap.
 
-        Parameters
-        ----------
-        title :
-            Plot title.
-        cmap :
-            Matplotlib colormap name.
-        figsize :
-            Figure size (width, height), auto-calculated if None.
-        show_values :
-            Whether to show distance values in cells.
-        save_path :
-            Optional path to save figure.
+            Parameters
+            ----------
+            title :
+                Plot title.
+            cmap :
+                Matplotlib colormap name.
+            figsize :
+                Figure size (width, height), auto-calculated if None.
+            show_values :
+                Whether to show distance values in cells.
+            save_path :
+                Optional path to save figure.
 
-    Returns
-    -------
-        Matplotlib figure object.
+        Returns
+        -------
+            Matplotlib figure object.
 
-        Raises :
-        ImportError :
-            If matplotlib is not installed.
+            Raises :
+            ImportError :
+                If matplotlib is not installed.
         """
         try:
             import matplotlib
@@ -488,18 +488,18 @@ class DistanceMatrix:
     @classmethod
     def from_csv(cls, filepath: str, delimiter: str = ',') -> 'DistanceMatrix':
         """
-        Import distance matrix from CSV file.
+            Import distance matrix from CSV file.
 
-        Parameters
-        ----------
-        filepath :
-            Path to CSV file.
-        delimiter :
-            Delimiter character (default: comma).
+            Parameters
+            ----------
+            filepath :
+                Path to CSV file.
+            delimiter :
+                Delimiter character (default: comma).
 
-    Returns
-    -------
-        DistanceMatrix object.
+        Returns
+        -------
+            DistanceMatrix object.
         """
         with open(filepath, 'r') as f:
             lines = [line.strip() for line in f if line.strip()]

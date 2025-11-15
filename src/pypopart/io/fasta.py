@@ -100,16 +100,16 @@ class FastaReader:
 
     def read_alignment(self, progress_callback=None) -> Alignment:
         """
-        Read alignment from FASTA file.
+            Read alignment from FASTA file.
 
-        Parameters
-        ----------
-        progress_callback :
-            Optional callback function(current, total).
+            Parameters
+            ----------
+            progress_callback :
+                Optional callback function(current, total).
 
-    Returns
-    -------
-        Alignment object.
+        Returns
+        -------
+            Alignment object.
         """
         sequences = list(self.read_sequences(progress_callback))
         alignment = Alignment(sequences)
@@ -168,18 +168,18 @@ class FastaWriter:
         self, sequences: Iterator[Sequence], progress_callback=None
     ) -> int:
         """
-        Write sequences to FASTA file.
+            Write sequences to FASTA file.
 
-        Parameters
-        ----------
-        sequences :
-            Iterable of Sequence objects.
-        progress_callback :
-            Optional callback function(current, total).
+            Parameters
+            ----------
+            sequences :
+                Iterable of Sequence objects.
+            progress_callback :
+                Optional callback function(current, total).
 
-    Returns
-    -------
-        Number of sequences written.
+        Returns
+        -------
+            Number of sequences written.
         """
         count = 0
 
@@ -212,17 +212,17 @@ class FastaWriter:
 
     def write_alignment(self, alignment: Alignment, progress_callback=None) -> int:
         """
-        Write alignment to FASTA file.
+            Write alignment to FASTA file.
 
-        Parameters
-        ----------
-        alignment :
-            Alignment object.
-        progress_callback :
-            Optional callback function(current, total).
+            Parameters
+            ----------
+            alignment :
+                Alignment object.
+            progress_callback :
+                Optional callback function(current, total).
 
-    Returns
-    -------
-        Number of sequences written.
+        Returns
+        -------
+            Number of sequences written.
         """
         return self.write_sequences(iter(alignment), progress_callback)

@@ -155,10 +155,10 @@ def network(
     INPUT_FILE: Path to sequence alignment file
     """
     from pypopart.algorithms import (
+        TCS,
         MedianJoiningNetwork,
         MinimumSpanningNetwork,
         MinimumSpanningTree,
-        TCS,
     )
     from pypopart.io import load_alignment, save_network
 

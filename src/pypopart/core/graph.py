@@ -159,20 +159,20 @@ class HaplotypeNetwork:
 
     def get_haplotype(self, haplotype_id: str) -> Haplotype:
         """
-        Get haplotype by ID.
+            Get haplotype by ID.
 
-        Parameters
-        ----------
-        haplotype_id :
-            Haplotype identifier.
+            Parameters
+            ----------
+            haplotype_id :
+                Haplotype identifier.
 
-    Returns
-    -------
-        Haplotype object.
+        Returns
+        -------
+            Haplotype object.
 
-        Raises :
-        KeyError :
-            If haplotype not found.
+            Raises :
+            KeyError :
+                If haplotype not found.
         """
         if haplotype_id not in self._haplotype_map:
             raise KeyError(f"Haplotype '{haplotype_id}' not found in network")
@@ -181,54 +181,54 @@ class HaplotypeNetwork:
 
     def has_node(self, haplotype_id: str) -> bool:
         """
-        Check if node exists in network.
+            Check if node exists in network.
 
-        Parameters
-        ----------
-        haplotype_id :
-            Haplotype identifier.
+            Parameters
+            ----------
+            haplotype_id :
+                Haplotype identifier.
 
-    Returns
-    -------
-        True if node exists.
+        Returns
+        -------
+            True if node exists.
         """
         return haplotype_id in self._graph
 
     def has_edge(self, source: str, target: str) -> bool:
         """
-        Check if edge exists in network.
+            Check if edge exists in network.
 
-        Parameters
-        ----------
-        source :
-            Source haplotype ID.
-        target :
-            Target haplotype ID.
+            Parameters
+            ----------
+            source :
+                Source haplotype ID.
+            target :
+                Target haplotype ID.
 
-    Returns
-    -------
-        True if edge exists.
+        Returns
+        -------
+            True if edge exists.
         """
         return self._graph.has_edge(source, target)
 
     def get_edge_distance(self, source: str, target: str) -> float:
         """
-        Get distance for an edge.
+            Get distance for an edge.
 
-        Parameters
-        ----------
-        source :
-            Source haplotype ID.
-        target :
-            Target haplotype ID.
+            Parameters
+            ----------
+            source :
+                Source haplotype ID.
+            target :
+                Target haplotype ID.
 
-    Returns
-    -------
-        Edge distance.
+        Returns
+        -------
+            Edge distance.
 
-        Raises :
-        KeyError :
-            If edge not found.
+            Raises :
+            KeyError :
+                If edge not found.
         """
         if not self.has_edge(source, target):
             raise KeyError(f'Edge ({source}, {target}) not found')
@@ -237,20 +237,20 @@ class HaplotypeNetwork:
 
     def get_neighbors(self, haplotype_id: str) -> List[str]:
         """
-        Get neighboring haplotype IDs.
+            Get neighboring haplotype IDs.
 
-        Parameters
-        ----------
-        haplotype_id :
-            Haplotype identifier.
+            Parameters
+            ----------
+            haplotype_id :
+                Haplotype identifier.
 
-    Returns
-    -------
-        List of neighbor IDs.
+        Returns
+        -------
+            List of neighbor IDs.
 
-        Raises :
-        KeyError :
-            If haplotype not found.
+            Raises :
+            KeyError :
+                If haplotype not found.
         """
         if not self.has_node(haplotype_id):
             raise KeyError(f"Haplotype '{haplotype_id}' not found")
@@ -259,16 +259,16 @@ class HaplotypeNetwork:
 
     def get_degree(self, haplotype_id: str) -> int:
         """
-        Get degree (number of connections) for a node.
+            Get degree (number of connections) for a node.
 
-        Parameters
-        ----------
-        haplotype_id :
-            Haplotype identifier.
+            Parameters
+            ----------
+            haplotype_id :
+                Haplotype identifier.
 
-    Returns
-    -------
-        Node degree.
+        Returns
+        -------
+            Node degree.
         """
         if not self.has_node(haplotype_id):
             raise KeyError(f"Haplotype '{haplotype_id}' not found")
@@ -311,16 +311,16 @@ class HaplotypeNetwork:
 
     def is_median_vector(self, node_id: str) -> bool:
         """
-        Check if a node is a median vector.
+            Check if a node is a median vector.
 
-        Parameters
-        ----------
-        node_id :
-            Node identifier.
+            Parameters
+            ----------
+            node_id :
+                Node identifier.
 
-    Returns
-    -------
-        True if node is a median vector.
+        Returns
+        -------
+            True if node is a median vector.
         """
         return node_id in self._median_vectors
 
@@ -359,41 +359,41 @@ class HaplotypeNetwork:
 
     def get_shortest_path(self, source: str, target: str) -> List[str]:
         """
-        Find shortest path between two nodes.
+            Find shortest path between two nodes.
 
-        Parameters
-        ----------
-        source :
-            Source node ID.
-        target :
-            Target node ID.
+            Parameters
+            ----------
+            source :
+                Source node ID.
+            target :
+                Target node ID.
 
-    Returns
-    -------
-        List of node IDs in the shortest path.
+        Returns
+        -------
+            List of node IDs in the shortest path.
 
-        Raises :
-            nx.NetworkXNoPath: If no path exists
+            Raises :
+                nx.NetworkXNoPath: If no path exists
         """
         return nx.shortest_path(self._graph, source, target)
 
     def get_shortest_path_length(self, source: str, target: str) -> int:
         """
-        Get length of shortest path between two nodes.
+            Get length of shortest path between two nodes.
 
-        Parameters
-        ----------
-        source :
-            Source node ID.
-        target :
-            Target node ID.
+            Parameters
+            ----------
+            source :
+                Source node ID.
+            target :
+                Target node ID.
 
-    Returns
-    -------
-        Number of edges in shortest path.
+        Returns
+        -------
+            Number of edges in shortest path.
 
-        Raises :
-            nx.NetworkXNoPath: If no path exists
+            Raises :
+                nx.NetworkXNoPath: If no path exists
         """
         return nx.shortest_path_length(self._graph, source, target)
 

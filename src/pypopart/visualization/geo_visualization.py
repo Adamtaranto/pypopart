@@ -56,52 +56,52 @@ class GeoVisualizer:
         **kwargs,
     ) -> Tuple[plt.Figure, plt.Axes]:
         """
-        Create a geographic network visualization.
+            Create a geographic network visualization.
 
-        Parameters
-        ----------
-        coordinates :
-            Dictionary mapping node IDs to (latitude, longitude) tuples.
-        projection :
-            Map projection ('mercator', 'platecarree', 'orthographic').
-        extent :
-            Map extent as (lon_min, lon_max, lat_min, lat_max).
-        node_size_scale :
-            Scaling factor for node sizes.
-        node_color_map :
-            Custom color mapping {node_id: color}.
-        population_colors :
-            Color mapping for populations {pop_name: color}.
-        edge_width_scale :
-            Scaling factor for edge widths.
-        show_labels :
-            Whether to show node labels.
-        show_land :
-            Whether to show land features.
-        show_coastlines :
-            Whether to show coastlines.
-        show_borders :
-            Whether to show country borders.
-        land_color :
-            Color for land areas.
-        ocean_color :
-            Color for ocean areas.
-        figsize :
-            Figure size (width, height) in inches.
-        title :
-            Plot title.
-        output_file :
-            Output file path (if provided, saves figure).
-        **kwargs :
-            Additional arguments.
+            Parameters
+            ----------
+            coordinates :
+                Dictionary mapping node IDs to (latitude, longitude) tuples.
+            projection :
+                Map projection ('mercator', 'platecarree', 'orthographic').
+            extent :
+                Map extent as (lon_min, lon_max, lat_min, lat_max).
+            node_size_scale :
+                Scaling factor for node sizes.
+            node_color_map :
+                Custom color mapping {node_id: color}.
+            population_colors :
+                Color mapping for populations {pop_name: color}.
+            edge_width_scale :
+                Scaling factor for edge widths.
+            show_labels :
+                Whether to show node labels.
+            show_land :
+                Whether to show land features.
+            show_coastlines :
+                Whether to show coastlines.
+            show_borders :
+                Whether to show country borders.
+            land_color :
+                Color for land areas.
+            ocean_color :
+                Color for ocean areas.
+            figsize :
+                Figure size (width, height) in inches.
+            title :
+                Plot title.
+            output_file :
+                Output file path (if provided, saves figure).
+            **kwargs :
+                Additional arguments.
 
-    Returns
-    -------
-        Figure and axes objects.
+        Returns
+        -------
+            Figure and axes objects.
 
-        Raises :
-        ImportError :
-            If cartopy is not installed.
+            Raises :
+            ImportError :
+                If cartopy is not installed.
         """
         try:
             import cartopy.crs as ccrs
@@ -230,16 +230,16 @@ class GeoVisualizer:
 
     def _compute_node_sizes(self, scale: float) -> Dict[str, float]:
         """
-        Compute node sizes based on frequency/count.
+            Compute node sizes based on frequency/count.
 
-        Parameters
-        ----------
-        scale :
-            Scaling factor.
+            Parameters
+            ----------
+            scale :
+                Scaling factor.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to sizes.
+        Returns
+        -------
+            Dictionary mapping node IDs to sizes.
         """
         sizes = {}
         graph = self.network._graph
@@ -257,18 +257,18 @@ class GeoVisualizer:
         population_colors: Optional[Dict[str, str]] = None,
     ) -> Dict[str, str]:
         """
-        Compute node colors.
+            Compute node colors.
 
-        Parameters
-        ----------
-        color_map :
-            Custom color mapping.
-        population_colors :
-            Population-based colors.
+            Parameters
+            ----------
+            color_map :
+                Custom color mapping.
+            population_colors :
+                Population-based colors.
 
-    Returns
-    -------
-        Dictionary mapping node IDs to colors.
+        Returns
+        -------
+            Dictionary mapping node IDs to colors.
         """
         if color_map:
             return color_map
@@ -289,16 +289,16 @@ class GeoVisualizer:
 
     def _compute_edge_widths(self, scale: float) -> Dict[Tuple[str, str], float]:
         """
-        Compute edge widths based on mutation distance.
+            Compute edge widths based on mutation distance.
 
-        Parameters
-        ----------
-        scale :
-            Scaling factor.
+            Parameters
+            ----------
+            scale :
+                Scaling factor.
 
-    Returns
-    -------
-        Dictionary mapping edge tuples to widths.
+        Returns
+        -------
+            Dictionary mapping edge tuples to widths.
         """
         widths = {}
         graph = self.network._graph
@@ -345,38 +345,38 @@ class InteractiveGeoVisualizer:
         **kwargs,
     ) -> Any:
         """
-        Create an interactive geographic network visualization.
+            Create an interactive geographic network visualization.
 
-        Parameters
-        ----------
-        coordinates :
-            Dictionary mapping node IDs to (latitude, longitude) tuples.
-        base_map :
-            Base map style ('OpenStreetMap', 'Stamen Terrain', 'CartoDB positron').
-        zoom_start :
-            Initial zoom level (1-18).
-        node_size_scale :
-            Scaling factor for node sizes.
-        node_color_map :
-            Custom color mapping {node_id: color}.
-        population_colors :
-            Color mapping for populations {pop_name: color}.
-        show_edges :
-            Whether to show edges.
-        show_labels :
-            Whether to show labels in popups.
-        output_file :
-            Output HTML file path (if provided, saves map).
-        **kwargs :
-            Additional arguments.
+            Parameters
+            ----------
+            coordinates :
+                Dictionary mapping node IDs to (latitude, longitude) tuples.
+            base_map :
+                Base map style ('OpenStreetMap', 'Stamen Terrain', 'CartoDB positron').
+            zoom_start :
+                Initial zoom level (1-18).
+            node_size_scale :
+                Scaling factor for node sizes.
+            node_color_map :
+                Custom color mapping {node_id: color}.
+            population_colors :
+                Color mapping for populations {pop_name: color}.
+            show_edges :
+                Whether to show edges.
+            show_labels :
+                Whether to show labels in popups.
+            output_file :
+                Output HTML file path (if provided, saves map).
+            **kwargs :
+                Additional arguments.
 
-    Returns
-    -------
-        Folium Map object.
+        Returns
+        -------
+            Folium Map object.
 
-        Raises :
-        ImportError :
-            If folium is not installed.
+            Raises :
+            ImportError :
+                If folium is not installed.
         """
         try:
             import folium

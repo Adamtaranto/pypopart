@@ -53,18 +53,18 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-        Construct MSN from sequence alignment.
+            Construct MSN from sequence alignment.
 
-        Parameters
-        ----------
-        alignment :
-            Multiple sequence alignment.
-        distance_matrix :
-            Optional pre-computed distance matrix.
+            Parameters
+            ----------
+            alignment :
+                Multiple sequence alignment.
+            distance_matrix :
+                Optional pre-computed distance matrix.
 
-    Returns
-    -------
-        Haplotype network representing the MSN.
+        Returns
+        -------
+            Haplotype network representing the MSN.
         """
         # Identify unique haplotypes
         haplotypes = identify_haplotypes(alignment)
@@ -99,23 +99,23 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         distance_matrix: DistanceMatrix,
     ) -> List[Tuple[str, str, float]]:
         """
-        Add alternative connections at the same distance level.
+            Add alternative connections at the same distance level.
 
-        For each distance level in the MST, add all edges at that distance
-        (or within epsilon) that don't create redundancy.
+            For each distance level in the MST, add all edges at that distance
+            (or within epsilon) that don't create redundancy.
 
-        Parameters
-        ----------
-        haplotypes :
-            List of Haplotype objects.
-        mst_edges :
-            MST edges from Prim's algorithm.
-        distance_matrix :
-            Distance matrix.
+            Parameters
+            ----------
+            haplotypes :
+                List of Haplotype objects.
+            mst_edges :
+                MST edges from Prim's algorithm.
+            distance_matrix :
+                Distance matrix.
 
-    Returns
-    -------
-        Extended list of edges including alternatives.
+        Returns
+        -------
+            Extended list of edges including alternatives.
         """
         hap_ids = [h.id for h in haplotypes]
 
@@ -175,21 +175,21 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         self, haplotypes: List, edges: List[Tuple[str, str, float]]
     ) -> List[Tuple[str, str, float]]:
         """
-        Remove redundant edges from the network.
+            Remove redundant edges from the network.
 
-        An edge is redundant if removing it doesn't disconnect the network
-        and there exists an alternative path of the same or shorter total length.
+            An edge is redundant if removing it doesn't disconnect the network
+            and there exists an alternative path of the same or shorter total length.
 
-        Parameters
-        ----------
-        haplotypes :
-            List of Haplotype objects.
-        edges :
-            List of edges.
+            Parameters
+            ----------
+            haplotypes :
+                List of Haplotype objects.
+            edges :
+                List of edges.
 
-    Returns
-    -------
-        List of non-redundant edges.
+        Returns
+        -------
+            List of non-redundant edges.
         """
         if len(edges) <= len(haplotypes) - 1:
             # Already minimal - can't remove any edges without disconnecting
@@ -234,20 +234,20 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         self, adjacency: Dict[str, List[Tuple[str, float]]], start: str, end: str
     ) -> bool:
         """
-        Check if two nodes are connected using BFS.
+            Check if two nodes are connected using BFS.
 
-        Parameters
-        ----------
-        adjacency :
-            Adjacency list representation.
-        start :
-            Start node ID.
-        end :
-            End node ID.
+            Parameters
+            ----------
+            adjacency :
+                Adjacency list representation.
+            start :
+                Start node ID.
+            end :
+                End node ID.
 
-    Returns
-    -------
-        True if connected, False otherwise.
+        Returns
+        -------
+            True if connected, False otherwise.
         """
         if start == end:
             return True
@@ -275,20 +275,20 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         self, adjacency: Dict[str, List[Tuple[str, float]]], start: str, end: str
     ) -> Optional[float]:
         """
-        Find shortest path length between two nodes using Dijkstra's algorithm.
+            Find shortest path length between two nodes using Dijkstra's algorithm.
 
-        Parameters
-        ----------
-        adjacency :
-            Adjacency list representation.
-        start :
-            Start node ID.
-        end :
-            End node ID.
+            Parameters
+            ----------
+            adjacency :
+                Adjacency list representation.
+            start :
+                Start node ID.
+            end :
+                End node ID.
 
-    Returns
-    -------
-        Shortest path length, or None if no path exists.
+        Returns
+        -------
+            Shortest path length, or None if no path exists.
         """
         import heapq
 

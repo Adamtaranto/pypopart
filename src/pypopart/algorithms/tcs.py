@@ -7,13 +7,17 @@ Molecular Ecology 9: 1657-1659
 """
 
 import math
-import networkx as nx
 from typing import Dict, List, Optional, Set, Tuple
+
+import networkx as nx
 
 from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix, hamming_distance
 from ..core.graph import HaplotypeNetwork
-from ..core.haplotype import Haplotype, identify_haplotypes_from_alignment as identify_haplotypes
+from ..core.haplotype import (
+    Haplotype,
+)
+from ..core.haplotype import identify_haplotypes_from_alignment as identify_haplotypes
 from ..core.sequence import Sequence
 from .base import NetworkAlgorithm
 
@@ -29,11 +33,11 @@ class TCS(NetworkAlgorithm):
 
     This method is particularly useful for intraspecific data and closely
     related sequences where parsimony is a reasonable assumption.
-    
+
     Includes intermediate sequence inference and post-processing vertex collapse
     to match the original C++ PopART implementation.
     """
-    
+
     # Scoring constants for intermediate inference (from C++ implementation)
     BONUS = 20
     SHORTCUTPENALTY = 10
@@ -79,25 +83,26 @@ class TCS(NetworkAlgorithm):
 
             warnings.warn(
                 f"TCS is designed for hamming distance. Using '{distance_method}' "
-                'may not produce theoretically correct results.', stacklevel=2
+                'may not produce theoretically correct results.',
+                stacklevel=2,
             )
 
     def construct_network(
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-        Construct TCS network from sequence alignment.
+            Construct TCS network from sequence alignment.
 
-        Parameters
-        ----------
-        alignment :
-            Multiple sequence alignment.
-        distance_matrix :
-            Optional pre-computed distance matrix.
+            Parameters
+            ----------
+            alignment :
+                Multiple sequence alignment.
+            distance_matrix :
+                Optional pre-computed distance matrix.
 
-    Returns
-    -------
-        Haplotype network constructed using statistical parsimony.
+        Returns
+        -------
+            Haplotype network constructed using statistical parsimony.
         """
         # Identify unique haplotypes
         haplotypes = identify_haplotypes(alignment)
@@ -128,7 +133,7 @@ class TCS(NetworkAlgorithm):
         else:
             edges = self._build_parsimony_network(haplotypes, haplotype_dist_matrix)
             network = self._build_network_from_edges(haplotypes, edges)
-        
+
         # Collapse degree-2 vertices (post-processing simplification)
         if self.collapse_vertices:
             network = self._collapse_degree2_vertices(network)
@@ -139,22 +144,22 @@ class TCS(NetworkAlgorithm):
         self, sequence_length: int, num_haplotypes: int
     ) -> int:
         """
-        Calculate maximum parsimony connection limit.
+            Calculate maximum parsimony connection limit.
 
-        Uses the formula from Templeton et al. (1992) to estimate the
-        maximum number of mutational differences that can be explained
-        by parsimony at the specified confidence level.
+            Uses the formula from Templeton et al. (1992) to estimate the
+            maximum number of mutational differences that can be explained
+            by parsimony at the specified confidence level.
 
-        Parameters
-        ----------
-        sequence_length :
-            Length of aligned sequences.
-        num_haplotypes :
-            Number of unique haplotypes.
+            Parameters
+            ----------
+            sequence_length :
+                Length of aligned sequences.
+            num_haplotypes :
+                Number of unique haplotypes.
 
-    Returns
-    -------
-        Maximum connection distance for parsimony criterion.
+        Returns
+        -------
+            Maximum connection distance for parsimony criterion.
         """
         # Calculate probability of finding n or more differences by chance
         # Using cumulative Poisson distribution
@@ -186,20 +191,20 @@ class TCS(NetworkAlgorithm):
 
     def _poisson_probability(self, k: int, seq_length: int, sample_size: int) -> float:
         """
-        Calculate probability using Poisson distribution.
+            Calculate probability using Poisson distribution.
 
-        Parameters
-        ----------
-        k :
-            Number of mutations.
-        seq_length :
-            Sequence length.
-        sample_size :
-            Number of sequences.
+            Parameters
+            ----------
+            k :
+                Number of mutations.
+            seq_length :
+                Sequence length.
+            sample_size :
+                Number of sequences.
 
-    Returns
-    -------
-        Probability.
+        Returns
+        -------
+            Probability.
         """
         # Simple Poisson probability: P(X = k) = (λ^k * e^(-λ)) / k!
         # where λ is the expected number of mutations
@@ -221,21 +226,21 @@ class TCS(NetworkAlgorithm):
         self, haplotypes: List, distance_matrix: DistanceMatrix
     ) -> List[Tuple[str, str, float]]:
         """
-        Build network using statistical parsimony criterion.
+            Build network using statistical parsimony criterion.
 
-        Connects haplotypes in order of increasing distance, up to
-        the connection limit. More frequent haplotypes are connected first.
+            Connects haplotypes in order of increasing distance, up to
+            the connection limit. More frequent haplotypes are connected first.
 
-        Parameters
-        ----------
-        haplotypes :
-            List of Haplotype objects.
-        distance_matrix :
-            Distance matrix.
+            Parameters
+            ----------
+            haplotypes :
+                List of Haplotype objects.
+            distance_matrix :
+                Distance matrix.
 
-    Returns
-    -------
-        List of edges (id1, id2, distance).
+        Returns
+        -------
+            List of edges (id1, id2, distance).
         """
         # Sort haplotypes by frequency (most frequent first)
         sorted_haps = sorted(haplotypes, key=lambda h: h.frequency, reverse=True)
@@ -290,18 +295,18 @@ class TCS(NetworkAlgorithm):
         self, haplotypes: List, edges: List[Tuple[str, str, float]]
     ) -> HaplotypeNetwork:
         """
-        Build HaplotypeNetwork from haplotypes and edges.
+            Build HaplotypeNetwork from haplotypes and edges.
 
-        Parameters
-        ----------
-        haplotypes :
-            List of Haplotype objects.
-        edges :
-            List of edges (id1, id2, distance).
+            Parameters
+            ----------
+            haplotypes :
+                List of Haplotype objects.
+            edges :
+                List of edges (id1, id2, distance).
 
-    Returns
-    -------
-        Constructed haplotype network.
+        Returns
+        -------
+            Constructed haplotype network.
         """
         network = HaplotypeNetwork()
 
@@ -317,16 +322,16 @@ class TCS(NetworkAlgorithm):
 
     def _calculate_haplotype_distances(self, haplotypes: List) -> DistanceMatrix:
         """
-        Calculate pairwise distances between haplotypes.
+            Calculate pairwise distances between haplotypes.
 
-        Parameters
-        ----------
-        haplotypes :
-            List of Haplotype objects.
+            Parameters
+            ----------
+            haplotypes :
+                List of Haplotype objects.
 
-    Returns
-    -------
-        DistanceMatrix with distances between haplotypes.
+        Returns
+        -------
+            DistanceMatrix with distances between haplotypes.
         """
         import numpy as np
 
@@ -346,40 +351,37 @@ class TCS(NetworkAlgorithm):
         return DistanceMatrix(labels, matrix)
 
     def _build_parsimony_network_with_intermediates(
-        self,
-        haplotypes: List,
-        distance_matrix: DistanceMatrix,
-        sequence_length: int
+        self, haplotypes: List, distance_matrix: DistanceMatrix, sequence_length: int
     ) -> HaplotypeNetwork:
         """
-        Build network with intermediate sequence inference.
-        
-        This implements the full TCS algorithm from the C++ version, including
-        inferring intermediate sequences for multi-step connections between
-        components.
-        
-        Parameters
-        ----------
-        haplotypes :
-            List of Haplotype objects.
-        distance_matrix :
-            Distance matrix.
-        sequence_length :
-            Length of sequences for creating intermediates.
-            
-    Returns
-    -------
-        Network with inferred intermediate sequences.
+            Build network with intermediate sequence inference.
+
+            This implements the full TCS algorithm from the C++ version, including
+            inferring intermediate sequences for multi-step connections between
+            components.
+
+            Parameters
+            ----------
+            haplotypes :
+                List of Haplotype objects.
+            distance_matrix :
+                Distance matrix.
+            sequence_length :
+                Length of sequences for creating intermediates.
+
+        Returns
+        -------
+            Network with inferred intermediate sequences.
         """
         # Create network with all haplotypes
         network = HaplotypeNetwork()
         for haplotype in haplotypes:
             network.add_haplotype(haplotype)
-        
+
         # Track component membership for each haplotype
         component_ids = {h.id: i for i, h in enumerate(haplotypes)}
         n_components = len(haplotypes)
-        
+
         # Sort connections by distance
         connections = []
         for i, h1 in enumerate(haplotypes):
@@ -388,21 +390,21 @@ class TCS(NetworkAlgorithm):
                 dist = distance_matrix.get_distance(h1.id, h2.id)
                 if dist <= self.connection_limit:
                     connections.append((h1.id, h2.id, int(dist)))
-        
+
         connections.sort(key=lambda x: x[2])  # Sort by distance
-        
+
         # Process connections by distance level
         for dist_level in range(1, self.connection_limit + 1):
             level_connections = [c for c in connections if c[2] == dist_level]
-            
+
             for h1_id, h2_id, dist in level_connections:
                 comp1 = component_ids[h1_id]
                 comp2 = component_ids[h2_id]
-                
+
                 # Skip if already in same component
                 if comp1 == comp2:
                     continue
-                
+
                 # If distance is 1, directly connect
                 if dist == 1:
                     network.add_edge(h1_id, h2_id, distance=1)
@@ -411,7 +413,7 @@ class TCS(NetworkAlgorithm):
                     intermediates = self._create_intermediate_path(
                         network, h1_id, h2_id, dist, sequence_length
                     )
-                    
+
                     # Add intermediates to network
                     if intermediates:
                         prev_id = h1_id
@@ -421,10 +423,10 @@ class TCS(NetworkAlgorithm):
                             prev_id = intermediate_hap.id
                             # Mark intermediate as part of no component initially
                             component_ids[intermediate_hap.id] = -1
-                        
+
                         # Connect last intermediate to target
                         network.add_edge(prev_id, h2_id, distance=1)
-                
+
                 # Merge components
                 old_comp = max(comp1, comp2)
                 new_comp = min(comp1, comp2)
@@ -433,130 +435,130 @@ class TCS(NetworkAlgorithm):
                         component_ids[hap_id] = new_comp
                     elif component_ids[hap_id] > old_comp:
                         component_ids[hap_id] -= 1
-                
+
                 n_components -= 1
-                
+
                 if n_components == 1:
                     break
-            
+
             if n_components == 1:
                 break
-        
+
         return network
-    
+
     def _create_intermediate_path(
         self,
         network: HaplotypeNetwork,
         start_id: str,
         end_id: str,
         distance: int,
-        sequence_length: int
+        sequence_length: int,
     ) -> List[Haplotype]:
         """
-        Create intermediate haplotypes for a multi-step connection.
-        
-        Creates (distance - 1) intermediate sequences to connect two haplotypes
-        that are separated by 'distance' mutations.
-        
-        Parameters
-        ----------
-        network :
-            Current network.
-        start_id :
-            Starting haplotype ID.
-        end_id :
-            Ending haplotype ID.
-        distance :
-            Number of mutations between them.
-        sequence_length :
-            Length of sequences.
-            
-    Returns
-    -------
-        List of intermediate Haplotype objects.
+            Create intermediate haplotypes for a multi-step connection.
+
+            Creates (distance - 1) intermediate sequences to connect two haplotypes
+            that are separated by 'distance' mutations.
+
+            Parameters
+            ----------
+            network :
+                Current network.
+            start_id :
+                Starting haplotype ID.
+            end_id :
+                Ending haplotype ID.
+            distance :
+                Number of mutations between them.
+            sequence_length :
+                Length of sequences.
+
+        Returns
+        -------
+            List of intermediate Haplotype objects.
         """
         intermediates = []
-        
+
         # Create distance-1 intermediate sequences
         # For simplicity, we create empty intermediate nodes
         # In a more sophisticated implementation, we would infer actual sequences
         for i in range(distance - 1):
             intermediate_id = f'intermediate_{self._intermediate_counter}'
             self._intermediate_counter += 1
-            
+
             # Create a placeholder sequence (could be improved with actual inference)
             intermediate_seq = Sequence(
                 id=intermediate_id,
                 data='N' * sequence_length,  # Placeholder
-                description='Inferred intermediate sequence'
+                description='Inferred intermediate sequence',
             )
-            
+
             intermediate_hap = Haplotype(
                 sequence=intermediate_seq,
                 id=intermediate_id,
-                frequency=0  # Inferred, not observed
+                frequency=0,  # Inferred, not observed
             )
-            
+
             intermediates.append(intermediate_hap)
-        
+
         return intermediates
-    
+
     def _collapse_degree2_vertices(self, network: HaplotypeNetwork) -> HaplotypeNetwork:
         """
-        Collapse vertices with degree 2 (post-processing simplification).
-        
-        Removes intermediate vertices that only connect two other vertices,
-        replacing them with a direct edge. This matches the C++ TCS behavior.
-        
-        Parameters
-        ----------
-        network :
-            Network with potential degree-2 vertices.
-            
-    Returns
-    -------
-        Simplified network.
+            Collapse vertices with degree 2 (post-processing simplification).
+
+            Removes intermediate vertices that only connect two other vertices,
+            replacing them with a direct edge. This matches the C++ TCS behavior.
+
+            Parameters
+            ----------
+            network :
+                Network with potential degree-2 vertices.
+
+        Returns
+        -------
+            Simplified network.
         """
         collapsed = True
-        
+
         while collapsed:
             collapsed = False
             to_remove = []
-            
+
             # Find all degree-2 vertices
             for hap_id in list({h.id for h in network.haplotypes}):
                 degree = network.get_degree(hap_id)
-                
+
                 if degree == 2:
                     neighbors = network.get_neighbors(hap_id)
-                    
+
                     if len(neighbors) == 2:
                         n1, n2 = neighbors
-                        
+
                         # Get edge weights
                         w1 = network.get_edge_distance(hap_id, n1) or 1
                         w2 = network.get_edge_distance(hap_id, n2) or 1
-                        
+
                         # Check if this is an intermediate (not an original haplotype)
                         hap = network.get_haplotype(hap_id)
                         if hap.frequency == 0 or 'intermediate' in hap_id.lower():
                             # Mark for removal
                             to_remove.append((hap_id, n1, n2, w1 + w2))
                             collapsed = True
-            
+
             # Remove marked vertices and add direct edges
             for hap_id, n1, n2, combined_weight in to_remove:
                 try:
                     # Remove the intermediate vertex
                     network.remove_haplotype(hap_id)
-                    
+
                     # Add direct edge if it doesn't exist
                     if not network.has_edge(n1, n2):
                         network.add_edge(n1, n2, distance=combined_weight)
                 except Exception:
                     # Skip if removal fails
                     pass
-        
+
         return network
 
     def get_parameters(self) -> dict:

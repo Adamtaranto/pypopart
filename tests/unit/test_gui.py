@@ -3,7 +3,6 @@ Unit tests for PyPopART GUI application.
 """
 
 
-
 class TestPyPopARTApp:
     """Test cases for PyPopART Dash GUI."""
 

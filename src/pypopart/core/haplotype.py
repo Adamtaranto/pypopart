@@ -107,16 +107,16 @@ class Haplotype:
 
     def get_population(self, sample_id: str) -> Optional[str]:
         """
-        Get population assignment for a sample.
+            Get population assignment for a sample.
 
-        Parameters
-        ----------
-        sample_id :
-            Sample identifier.
+            Parameters
+            ----------
+            sample_id :
+                Sample identifier.
 
-    Returns
-    -------
-        Population name or None if not assigned.
+        Returns
+        -------
+            Population name or None if not assigned.
         """
         return self._populations.get(sample_id)
 
@@ -198,16 +198,16 @@ class Haplotype:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Haplotype':
         """
-        Create haplotype from dictionary.
+            Create haplotype from dictionary.
 
-        Parameters
-        ----------
-        data :
-            Dictionary with haplotype information.
+            Parameters
+            ----------
+            data :
+                Dictionary with haplotype information.
 
-    Returns
-    -------
-        New Haplotype object.
+        Returns
+        -------
+            New Haplotype object.
         """
         sequence = Sequence.from_dict(data['sequence'])
         return cls(
