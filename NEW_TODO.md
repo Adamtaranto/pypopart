@@ -283,7 +283,7 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Create high-level convenience functions
 - [ ] Implement pipeline/workflow classes
 - [ ] Add method chaining support
-- [ ] Create comprehensive docstrings
+- [ ] Create comprehensive numpydoc style docstrings
 - [ ] Write API reference documentation
 
 ### 8.3 Jupyter Notebook Integration
