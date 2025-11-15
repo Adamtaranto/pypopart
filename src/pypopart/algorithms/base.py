@@ -81,7 +81,7 @@ class NetworkAlgorithm(ABC):
         return {'distance_method': self.distance_method, **self.params}
 
     def __str__(self) -> str:
-        """String representation."""
+        """Return string representation."""
         return f'{self.__class__.__name__}(distance={self.distance_method})'
 
     def __repr__(self) -> str:

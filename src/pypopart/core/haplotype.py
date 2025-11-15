@@ -171,7 +171,7 @@ class Haplotype:
         return hash(self.sequence)
 
     def __str__(self) -> str:
-        """String representation."""
+        """Return string representation."""
         return f'Haplotype {self.id}: {self.frequency} samples, {len(self.get_populations())} populations'
 
     def __repr__(self) -> str:

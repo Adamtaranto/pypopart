@@ -535,7 +535,7 @@ class HaplotypeNetwork:
         return self.num_nodes
 
     def __str__(self) -> str:
-        """String representation."""
+        """Return string representation."""
         stats = self.calculate_stats()
         return (
             f'{self.name}: {stats.num_haplotypes} haplotypes, '

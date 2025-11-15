@@ -403,7 +403,7 @@ class Alignment:
         return '\n'.join(str(seq) for seq in self._sequences)
 
     def __str__(self) -> str:
-        """String representation of alignment."""
+        """Return string representation of alignment."""
         stats = self.calculate_stats()
         return (
             f'Alignment: {stats.num_sequences} sequences, '
