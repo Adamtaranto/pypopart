@@ -25,7 +25,7 @@ from pypopart import __version__
 @click.pass_context
 def main(ctx: click.Context, verbose: int, quiet: bool) -> None:
     """
-    PyPopART - Pure Python implementation of PopART haplotype network analysis.
+    Cli: PyPopART - Pure Python implementation of PopART haplotype network analysis.
 
     Construct and visualize haplotype networks from DNA sequence alignments.
     """
