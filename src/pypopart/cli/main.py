@@ -155,12 +155,11 @@ def network(
     INPUT_FILE: Path to sequence alignment file
     """
     from pypopart.algorithms import (
-        MJNAlgorithm,
-        MSNAlgorithm,
-        MSTAlgorithm,
-        TCSAlgorithm,
+        MedianJoiningNetwork,
+        MinimumSpanningNetwork,
+        MinimumSpanningTree,
+        TCS,
     )
-    from pypopart.core.distance import DistanceCalculator
     from pypopart.io import load_alignment, save_network
 
     verbose = ctx.obj.get('verbose', 0)
@@ -172,57 +171,44 @@ def network(
         alignment = load_alignment(input_file)
         click.echo(f'✓ Loaded {len(alignment)} sequences ({alignment.length} bp)')
 
-        # Calculate distances
-        click.echo(f'Calculating {distance} distances...')
-        calculator = DistanceCalculator(method=distance)
-        dist_matrix = calculator.calculate_matrix(alignment)
-        click.echo('✓ Distance matrix computed')
-
-        # Identify haplotypes for informational purposes
+        # Identify unique haplotypes for informational purposes
         click.echo('Identifying unique haplotypes...')
-        from pypopart.core.condensation import condense_alignment
-        from pypopart.core.distance import DistanceMatrix
-
-        haplotypes, freq_map = condense_alignment(alignment)
+        from pypopart.core.haplotype import identify_haplotypes_from_alignment
+        
+        haplotypes = identify_haplotypes_from_alignment(alignment)
         click.echo(f'✓ Found {len(haplotypes)} unique haplotypes')
-
-        # Create DistanceMatrix object if needed
-        if not isinstance(dist_matrix, DistanceMatrix):
-            dist_matrix_obj = DistanceMatrix(alignment.sequence_ids, dist_matrix)
-        else:
-            dist_matrix_obj = dist_matrix
 
         # Construct network
         click.echo(f'Building {algorithm.upper()} network...')
 
         if algorithm == 'mst':
-            algo = MSTAlgorithm()
+            algo = MinimumSpanningTree(distance_method=distance)
         elif algorithm == 'msn':
-            algo = MSNAlgorithm()
+            algo = MinimumSpanningNetwork(distance_method=distance)
         elif algorithm == 'tcs':
-            algo = TCSAlgorithm(connection_limit=parsimony_limit)
+            algo = TCS(distance_method=distance, connection_limit=int(parsimony_limit) if parsimony_limit else None)
         elif algorithm == 'mjn':
-            algo = MJNAlgorithm(epsilon=epsilon)
+            algo = MedianJoiningNetwork(distance_method=distance, epsilon=epsilon)
         else:
             raise ValueError(f'Unknown algorithm: {algorithm}')
 
-        network = algo.construct_network(alignment, dist_matrix_obj)
+        network = algo.build_network(alignment)
         click.echo('✓ Network constructed')
 
         # Display network statistics
         click.echo('\nNetwork Statistics:')
-        click.echo(f'  Nodes: {network.num_nodes}')
-        click.echo(f'  Edges: {network.num_edges}')
+        click.echo(f'  Nodes: {len(network.graph.nodes)}')
+        click.echo(f'  Edges: {len(network.graph.edges)}')
 
         # Count median vectors
-        n_medians = len(network.median_vector_ids)
+        n_medians = sum(1 for node in network.graph.nodes if 'Median_' in str(node))
         if n_medians > 0:
             click.echo(f'  Median vectors: {n_medians}')
 
         # Save network
         if output:
             click.echo(f'\nSaving network to {output}...')
-            save_network(network, output, format=output_format)
+            save_network(network.graph, output, format=output_format)
             click.echo(f'✓ Network saved as {output_format.upper()}')
         else:
             click.echo('\nℹ Use -o/--output to save the network to a file', err=True)
