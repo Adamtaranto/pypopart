@@ -312,31 +312,9 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Create visualization customization guide
 - [ ] Write population genetics analysis tutorial
 - [ ] Create real-world case studies
-- [ ] Add video tutorials (optional)
-
-## Phase 9: Performance & Optimization
-
-### 9.1 Profiling
-- [ ] Profile code with realistic datasets
-- [ ] Identify bottlenecks
-- [ ] Create performance benchmarks
-- [ ] Document performance characteristics
-
-### 9.2 Optimization
-- [ ] Optimize distance calculations with NumPy
-- [ ] Implement parallel processing where appropriate
-- [ ] Add caching for repeated calculations
-- [ ] Optimize network algorithms
-- [ ] Consider Numba for critical paths
-
-### 9.3 Memory Management
-- [ ] Profile memory usage
-- [ ] Implement memory-efficient data structures
-- [ ] Add streaming for large files
-- [ ] Create memory usage documentation
 
 
-## Phase 10 Core GUI (Dash)
+## Phase 9 Core GUI (Dash)
 
 - [ ] Create Dash application structure
 - [ ] Implement file upload component
@@ -348,6 +326,30 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Create export options
 - [ ] Error handling and validation
 - [ ] User testing and refinement
+
+## Phase 10: Performance & Optimization
+
+### 10.1 Profiling
+- [ ] Profile code with realistic datasets
+- [ ] Identify bottlenecks
+- [ ] Create performance benchmarks
+- [ ] Document performance characteristics
+
+### 10.2 Optimization
+- [ ] Optimize distance calculations with NumPy
+- [ ] Implement parallel processing where appropriate
+- [ ] Add caching for repeated calculations
+- [ ] Optimize network algorithms
+- [ ] Consider Numba for critical paths
+
+### 10.3 Memory Management
+- [ ] Profile memory usage
+- [ ] Implement memory-efficient data structures
+- [ ] Add streaming for large files
+- [ ] Create memory usage documentation
+
+
+
 
 ## Phase 11: Validation & Testing
 
