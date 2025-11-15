@@ -64,6 +64,7 @@ repository = "https://github.com/adamtaranto/pypopart"
 
 [project.scripts]
 pypopart = "pypopart.cli:main"
+pypopart-gui = "pypopart.gui:main"
 
 [tool.hatch.build]
 source = "src"

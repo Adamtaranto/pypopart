@@ -156,24 +156,36 @@ class PyPopARTApp:
         """Create file upload card."""
         return dbc.Card(
             [
-                dbc.CardHeader(html.H5('1. Upload Data')),
+                dbc.CardHeader(
+                    html.H5('1. Upload Data', className='mb-0'),
+                ),
                 dbc.CardBody(
                     [
-                        dbc.Label('Sequence File'),
+                        dbc.Label('Sequence File', className='fw-bold'),
+                        html.Small(
+                            'Upload aligned sequences in FASTA, NEXUS, or PHYLIP format',
+                            className='text-muted d-block mb-2',
+                        ),
                         dcc.Upload(
                             id='upload-data',
                             children=dbc.Button(
-                                'Select File', color='primary', className='w-100'
+                                '📁 Select Sequence File',
+                                color='primary',
+                                className='w-100',
                             ),
                             multiple=False,
                         ),
                         html.Div(id='upload-status', className='mt-2'),
                         html.Hr(),
-                        dbc.Label('Metadata File (Optional)'),
+                        dbc.Label('Metadata File (Optional)', className='fw-bold'),
+                        html.Small(
+                            'CSV file with population, location, or trait data',
+                            className='text-muted d-block mb-2',
+                        ),
                         dcc.Upload(
                             id='upload-metadata',
                             children=dbc.Button(
-                                'Select Metadata',
+                                '📊 Select Metadata File',
                                 color='secondary',
                                 outline=True,
                                 className='w-100',
@@ -181,15 +193,25 @@ class PyPopARTApp:
                             multiple=False,
                         ),
                         html.Div(id='metadata-status', className='mt-2'),
-                        html.Hr(),
-                        html.Small(
-                            'Sequence formats: FASTA, NEXUS, PHYLIP',
-                            className='text-muted',
-                        ),
-                        html.Br(),
-                        html.Small(
-                            'Metadata: CSV with latitude/longitude columns',
-                            className='text-muted',
+                        html.Div(
+                            id='metadata-template-section',
+                            children=[
+                                html.Hr(),
+                                dbc.Button(
+                                    '⬇️ Download Metadata Template',
+                                    id='download-template-button',
+                                    color='info',
+                                    outline=True,
+                                    size='sm',
+                                    className='w-100',
+                                    disabled=True,
+                                ),
+                                dcc.Download(id='download-template'),
+                                html.Small(
+                                    'Get a CSV template pre-filled with your sequence IDs',
+                                    className='text-muted d-block mt-1',
+                                ),
+                            ],
                         ),
                     ]
                 ),
@@ -200,27 +222,33 @@ class PyPopARTApp:
         """Create algorithm selection and parameter card."""
         return dbc.Card(
             [
-                dbc.CardHeader(html.H5('2. Configure Algorithm')),
+                dbc.CardHeader(
+                    html.H5('2. Configure Algorithm', className='mb-0'),
+                ),
                 dbc.CardBody(
                     [
-                        dbc.Label('Algorithm'),
+                        dbc.Label('Network Algorithm', className='fw-bold'),
+                        html.Small(
+                            'Choose the method for constructing the haplotype network',
+                            className='text-muted d-block mb-2',
+                        ),
                         dcc.Dropdown(
                             id='algorithm-select',
                             options=[
                                 {
-                                    'label': 'Minimum Spanning Tree (MST)',
+                                    'label': '🌳 Minimum Spanning Tree (MST) - Simple tree',
                                     'value': 'mst',
                                 },
                                 {
-                                    'label': 'Minimum Spanning Network (MSN)',
+                                    'label': '🔗 Minimum Spanning Network (MSN) - Tree with alternative connections',
                                     'value': 'msn',
                                 },
                                 {
-                                    'label': 'TCS (Statistical Parsimony)',
+                                    'label': '📊 TCS - Statistical parsimony with confidence limits',
                                     'value': 'tcs',
                                 },
                                 {
-                                    'label': 'Median-Joining Network (MJN)',
+                                    'label': '⭐ Median-Joining Network (MJN) - Full network with inferred nodes',
                                     'value': 'mjn',
                                 },
                             ],
@@ -230,7 +258,7 @@ class PyPopARTApp:
                         html.Div(id='algorithm-parameters'),
                         html.Br(),
                         dbc.Button(
-                            'Compute Network',
+                            '⚡ Compute Network',
                             id='compute-button',
                             color='success',
                             className='w-100',
@@ -246,20 +274,35 @@ class PyPopARTApp:
         """Create layout configuration card."""
         return dbc.Card(
             [
-                dbc.CardHeader(html.H5('3. Layout Options')),
+                dbc.CardHeader(
+                    html.H5('3. Layout Options', className='mb-0'),
+                ),
                 dbc.CardBody(
                     [
-                        dbc.Label('Layout Algorithm'),
+                        dbc.Label('Layout Algorithm', className='fw-bold'),
+                        html.Small(
+                            'Choose how to position nodes in the visualization',
+                            className='text-muted d-block mb-2',
+                        ),
                         dcc.Dropdown(
                             id='layout-select',
                             options=[
-                                {'label': 'Spring (Force-Directed)', 'value': 'spring'},
-                                {'label': 'Circular', 'value': 'circular'},
-                                {'label': 'Radial', 'value': 'radial'},
-                                {'label': 'Hierarchical', 'value': 'hierarchical'},
-                                {'label': 'Kamada-Kawai', 'value': 'kamada_kawai'},
                                 {
-                                    'label': 'Geographic (requires metadata)',
+                                    'label': '🌀 Spring - Force-directed (natural clustering)',
+                                    'value': 'spring',
+                                },
+                                {'label': '⭕ Circular - Nodes in a circle', 'value': 'circular'},
+                                {'label': '☀️ Radial - Star pattern from center', 'value': 'radial'},
+                                {
+                                    'label': '🎄 Hierarchical - Tree-like structure',
+                                    'value': 'hierarchical',
+                                },
+                                {
+                                    'label': '⚖️ Kamada-Kawai - Balanced distances',
+                                    'value': 'kamada_kawai',
+                                },
+                                {
+                                    'label': '🗺️ Geographic - Map overlay (needs coordinates)',
                                     'value': 'geographic',
                                 },
                             ],
@@ -307,7 +350,7 @@ class PyPopARTApp:
                         ),
                         html.Br(),
                         dbc.Button(
-                            'Apply Layout',
+                            '🎨 Apply Layout',
                             id='apply-layout-button',
                             color='info',
                             className='w-100',
@@ -322,24 +365,30 @@ class PyPopARTApp:
         """Create export options card."""
         return dbc.Card(
             [
-                dbc.CardHeader(html.H5('4. Export')),
+                dbc.CardHeader(
+                    html.H5('4. Export', className='mb-0'),
+                ),
                 dbc.CardBody(
                     [
-                        dbc.Label('Format'),
+                        dbc.Label('Export Format', className='fw-bold'),
+                        html.Small(
+                            'Save your network for further analysis or publication',
+                            className='text-muted d-block mb-2',
+                        ),
                         dcc.Dropdown(
                             id='export-format',
                             options=[
-                                {'label': 'GraphML', 'value': 'graphml'},
-                                {'label': 'GML', 'value': 'gml'},
-                                {'label': 'JSON', 'value': 'json'},
-                                {'label': 'PNG Image', 'value': 'png'},
-                                {'label': 'SVG Image', 'value': 'svg'},
+                                {'label': '📄 GraphML - For Cytoscape/Gephi', 'value': 'graphml'},
+                                {'label': '📄 GML - Graph Modeling Language', 'value': 'gml'},
+                                {'label': '📋 JSON - Web-friendly format', 'value': 'json'},
+                                {'label': '🖼️ PNG Image - High quality raster', 'value': 'png'},
+                                {'label': '🎨 SVG Image - Scalable vector', 'value': 'svg'},
                             ],
                             value='graphml',
                         ),
                         html.Br(),
                         dbc.Button(
-                            'Download',
+                            '💾 Download',
                             id='export-button',
                             color='secondary',
                             className='w-100',
@@ -405,16 +454,17 @@ class PyPopARTApp:
                 Output('upload-status', 'children'),
                 Output('alignment-store', 'data'),
                 Output('compute-button', 'disabled'),
+                Output('download-template-button', 'disabled'),
             ],
             Input('upload-data', 'contents'),
             State('upload-data', 'filename'),
         )
         def handle_file_upload(
             contents: Optional[str], filename: Optional[str]
-        ) -> Tuple[html.Div, Optional[Dict], bool]:
+        ) -> Tuple[html.Div, Optional[Dict], bool, bool]:
             """Handle file upload and parse alignment."""
             if contents is None:
-                return html.Div(), None, True
+                return html.Div(), None, True, True
 
             try:
                 content_type, content_string = contents.split(',')
@@ -449,10 +499,33 @@ class PyPopARTApp:
                 else:
                     return (
                         dbc.Alert(
-                            'Unsupported file format. Use FASTA, NEXUS, or PHYLIP.',
+                            [
+                                html.Strong('❌ Unsupported file format'),
+                                html.Br(),
+                                f'File: {filename}',
+                                html.Br(),
+                                'Please use FASTA (.fasta, .fa), NEXUS (.nex, .nexus), or PHYLIP (.phy, .phylip) format.',
+                            ],
                             color='danger',
                         ),
                         None,
+                        True,
+                        True,
+                    )
+
+                # Validate alignment
+                if len(alignment) == 0:
+                    return (
+                        dbc.Alert(
+                            [
+                                html.Strong('⚠️ Empty alignment'),
+                                html.Br(),
+                                'The file contains no sequences. Please check your input file.',
+                            ],
+                            color='warning',
+                        ),
+                        None,
+                        True,
                         True,
                     )
 
@@ -473,19 +546,31 @@ class PyPopARTApp:
 
                 status = dbc.Alert(
                     [
-                        html.Strong('Success! '),
+                        html.Strong('✅ Success! '),
                         f'Loaded {len(alignment)} sequences '
-                        f'of length {alignment.length}',
+                        f'of length {alignment.length} bp',
                     ],
                     color='success',
                 )
 
-                return status, alignment_data, False
+                # Enable both compute button and template download button
+                return status, alignment_data, False, False
 
             except Exception as e:
+                self.logger.error(f'Error parsing file: {e}')
                 return (
-                    dbc.Alert(f'Error parsing file: {str(e)}', color='danger'),
+                    dbc.Alert(
+                        [
+                            html.Strong('❌ Error parsing file'),
+                            html.Br(),
+                            f'Error: {str(e)}',
+                            html.Br(),
+                            'Please check that your file is properly formatted.',
+                        ],
+                        color='danger',
+                    ),
                     None,
+                    True,
                     True,
                 )
 
@@ -508,7 +593,14 @@ class PyPopARTApp:
                 # Parse CSV metadata
                 if not (filename.endswith('.csv') or filename.endswith('.txt')):
                     return (
-                        dbc.Alert('Metadata must be a CSV file', color='danger'),
+                        dbc.Alert(
+                            [
+                                html.Strong('❌ Invalid file type'),
+                                html.Br(),
+                                'Metadata must be a CSV (.csv) or text (.txt) file.',
+                            ],
+                            color='danger',
+                        ),
                         None,
                     )
 
@@ -537,20 +629,40 @@ class PyPopARTApp:
                     'coordinates': coordinates,
                 }
 
-                status = dbc.Alert(
-                    [
-                        html.Strong('Success! '),
-                        f'Loaded metadata for {len(metadata_dict)} sequences. ',
-                        f'Found coordinates for {len(coordinates)} sequences.',
-                    ],
-                    color='success',
+                # Build status message
+                status_parts = [html.Strong('✅ Success! ')]
+                status_parts.append(
+                    f'Loaded metadata for {len(metadata_dict)} sequences.'
                 )
+
+                if coordinates:
+                    status_parts.append(html.Br())
+                    status_parts.append(
+                        f'📍 Found geographic coordinates for {len(coordinates)} sequences.'
+                    )
+                else:
+                    status_parts.append(html.Br())
+                    status_parts.append(
+                        '💡 Tip: Add latitude/longitude columns for geographic visualization.'
+                    )
+
+                status = dbc.Alert(status_parts, color='success')
 
                 return status, metadata_data
 
             except Exception as e:
+                self.logger.error(f'Error parsing metadata: {e}')
                 return (
-                    dbc.Alert(f'Error parsing metadata: {str(e)}', color='danger'),
+                    dbc.Alert(
+                        [
+                            html.Strong('❌ Error parsing metadata'),
+                            html.Br(),
+                            f'Error: {str(e)}',
+                            html.Br(),
+                            'Please check your CSV file format.',
+                        ],
+                        color='danger',
+                    ),
                     None,
                 )
 
@@ -728,23 +840,41 @@ class PyPopARTApp:
                     ],
                 }
 
-                feedback = dbc.Alert(
-                    [
-                        html.Strong('Network computed! '),
-                        f'{len(network.graph.nodes)} nodes, '
-                        f'{len(network.graph.edges)} edges',
-                    ],
-                    color='success',
+                # Count median/inferred nodes
+                n_medians = sum(
+                    1 for node in network.graph.nodes()
+                    if network.graph.nodes[node].get('is_median', False)
                 )
+
+                feedback_parts = [html.Strong('✅ Network computed! ')]
+                feedback_parts.append(
+                    f'{len(network.graph.nodes)} haplotypes, '
+                    f'{len(network.graph.edges)} connections'
+                )
+
+                if n_medians > 0:
+                    feedback_parts.append(html.Br())
+                    feedback_parts.append(f'🔵 {n_medians} inferred median nodes')
+
+                feedback = dbc.Alert(feedback_parts, color='success')
 
                 return network_data, feedback, False, False
 
             except Exception as e:
-                logging.error(f'Error computing network: {e}')
-                logging.error(traceback.format_exc())
+                self.logger.error(f'Error computing network: {e}')
+                self.logger.error(traceback.format_exc())
                 return (
                     None,
-                    dbc.Alert(f'Error computing network: {str(e)}', color='danger'),
+                    dbc.Alert(
+                        [
+                            html.Strong('❌ Error computing network'),
+                            html.Br(),
+                            f'Error: {str(e)}',
+                            html.Br(),
+                            'Please try a different algorithm or check your data.',
+                        ],
+                        color='danger',
+                    ),
                     True,
                     True,
                 )
@@ -1042,6 +1172,42 @@ class PyPopARTApp:
                 return f'Error displaying alignment: {str(e)}'
 
         @self.app.callback(
+            Output('download-template', 'data'),
+            Input('download-template-button', 'n_clicks'),
+            State('alignment-store', 'data'),
+            prevent_initial_call=True,
+        )
+        def download_metadata_template(
+            n_clicks: int, alignment_data: Optional[Dict]
+        ) -> Dict:
+            """Generate and download metadata template CSV."""
+            if not alignment_data:
+                raise PreventUpdate
+
+            try:
+                # Generate CSV template with sequence IDs
+                sequence_ids = [seq['id'] for seq in alignment_data['sequences']]
+
+                # Create CSV content with headers
+                csv_lines = ['sequence_id,population,latitude,longitude,color,notes']
+
+                # Add a row for each sequence with empty fields
+                for seq_id in sequence_ids:
+                    csv_lines.append(f'{seq_id},,,,,')
+
+                csv_content = '\n'.join(csv_lines)
+
+                return {
+                    'content': csv_content,
+                    'filename': 'metadata_template.csv',
+                    'type': 'text/csv',
+                }
+
+            except Exception as e:
+                logging.error(f'Error generating template: {e}')
+                raise PreventUpdate from None
+
+        @self.app.callback(
             Output('download-data', 'data'),
             Input('export-button', 'n_clicks'),
             [
@@ -1163,8 +1329,57 @@ def main(debug: bool = False, port: int = 8050) -> None:
         int, default=8050.
         Port number for web server.
     """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='PyPopART - Haplotype Network Analysis GUI',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  pypopart-gui                    # Start GUI on default port 8050
+  pypopart-gui --port 8080        # Start GUI on custom port
+  pypopart-gui --debug            # Start GUI in debug mode
+
+Once started, open your browser to http://localhost:8050
+Press Ctrl+C to stop the server.
+        """,
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode for development',
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=8050,
+        help='Port number for web server (default: 8050)',
+    )
+
+    # Parse args only if running from command line
+    import sys
+
+    if len(sys.argv) > 1:
+        args = parser.parse_args()
+        debug = args.debug
+        port = args.port
+
+    print('=' * 60)
+    print('PyPopART GUI - Haplotype Network Analysis')
+    print('=' * 60)
+    print(f'\n🚀 Starting web server on http://localhost:{port}')
+    if debug:
+        print('⚠️  Debug mode enabled')
+    print('\n📖 Quick Start:')
+    print('   1. Upload your sequence alignment (FASTA, NEXUS, or PHYLIP)')
+    print('   2. Optionally upload metadata (CSV with population/location data)')
+    print('   3. Choose a network algorithm and click "Compute Network"')
+    print('   4. Customize the layout and export your results')
+    print('\n⚠️  To stop the server, press Ctrl+C')
+    print('=' * 60)
+    print()
+
     app = PyPopARTApp(debug=debug, port=port)
-    print(f'Starting PyPopART GUI on http://localhost:{port}')
     app.run()
 
 
