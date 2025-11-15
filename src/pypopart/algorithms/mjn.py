@@ -192,8 +192,7 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
                         sequence=Sequence(
                             id=f'Median_{self._median_counter}', data=median_seq
                         ),
-                        id=f'Median_{self._median_counter}',
-                        frequency=0,
+                        sample_ids=[],
                     )
                     self._median_counter += 1
 
