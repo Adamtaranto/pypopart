@@ -185,7 +185,7 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
                         candidate_medians.append((median_seq, cost, triplet))
 
             # Add medians within epsilon of minimum cost
-            for median_seq, cost, triplet in candidate_medians:
+            for median_seq, cost, _triplet in candidate_medians:
                 if cost <= min_cost + self.epsilon:
                     # Create median haplotype
                     median_hap = Haplotype(

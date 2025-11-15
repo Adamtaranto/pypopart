@@ -434,7 +434,7 @@ class HaplotypeNetwork:
         # Calculate diameter (handle disconnected networks)
         try:
             diameter = self.calculate_diameter()
-        except:
+        except Exception:
             diameter = -1
 
         # Calculate average degree

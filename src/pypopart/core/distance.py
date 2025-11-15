@@ -6,20 +6,19 @@ Hamming distance and evolutionary models.
 """
 
 from math import log
-from typing import Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 import numpy as np
 
 from .alignment import Alignment
 from .sequence import Sequence
 
+if TYPE_CHECKING:
+    import matplotlib.figure
+
 # Try to import optimized Numba versions
 try:
-    from .distance_optimized import (
-        hamming_distance_optimized,
-        kimura_2p_counts_optimized,
-        p_distance_optimized,
-    )
+    from .distance_optimized import hamming_distance_optimized
 
     _NUMBA_AVAILABLE = True
 except ImportError:
@@ -411,13 +410,12 @@ class DistanceMatrix:
                 If matplotlib is not installed.
         """
         try:
-            import matplotlib
             import matplotlib.pyplot as plt
         except ImportError:
             raise ImportError(
                 'Matplotlib is required for visualization. '
                 'Install it with: pip install matplotlib'
-            )
+            ) from None
 
         # Auto-calculate figure size based on matrix size
         if figsize is None:

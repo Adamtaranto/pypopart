@@ -119,7 +119,7 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
 
         # Track which edges are already in the network
         existing_edges = set()
-        for id1, id2, dist in mst_edges:
+        for id1, id2, _dist in mst_edges:
             existing_edges.add((min(id1, id2), max(id1, id2)))
 
         # Get unique distances from MST
