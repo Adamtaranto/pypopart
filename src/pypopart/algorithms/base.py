@@ -1,0 +1,85 @@
+"""
+Base classes for network construction algorithms in PyPopART.
+"""
+
+from abc import ABC, abstractmethod
+from typing import Optional, Dict, Any
+from ..core.alignment import Alignment
+from ..core.graph import HaplotypeNetwork
+from ..core.distance import DistanceMatrix, calculate_pairwise_distances
+
+
+class NetworkAlgorithm(ABC):
+    """
+    Abstract base class for haplotype network construction algorithms.
+    
+    All network construction algorithms should inherit from this class
+    and implement the construct_network method.
+    """
+    
+    def __init__(self, distance_method: str = "hamming", **kwargs):
+        """
+        Initialize network algorithm.
+        
+        Args:
+            distance_method: Method for calculating distances (hamming, p, jc, k2p, tn)
+            **kwargs: Additional algorithm-specific parameters
+        """
+        self.distance_method = distance_method
+        self.params = kwargs
+        self._distance_matrix: Optional[DistanceMatrix] = None
+    
+    @abstractmethod
+    def construct_network(
+        self,
+        alignment: Alignment,
+        distance_matrix: Optional[DistanceMatrix] = None
+    ) -> HaplotypeNetwork:
+        """
+        Construct haplotype network from sequence alignment.
+        
+        Args:
+            alignment: Multiple sequence alignment
+            distance_matrix: Optional pre-computed distance matrix
+            
+        Returns:
+            Constructed haplotype network
+        """
+        pass
+    
+    def calculate_distances(self, alignment: Alignment) -> DistanceMatrix:
+        """
+        Calculate pairwise distances between sequences.
+        
+        Args:
+            alignment: Multiple sequence alignment
+            
+        Returns:
+            Distance matrix
+        """
+        return calculate_pairwise_distances(
+            alignment,
+            method=self.distance_method,
+            ignore_gaps=self.params.get('ignore_gaps', True)
+        )
+    
+    def get_parameters(self) -> Dict[str, Any]:
+        """
+        Get algorithm parameters.
+        
+        Returns:
+            Dictionary of parameters
+        """
+        return {
+            'distance_method': self.distance_method,
+            **self.params
+        }
+    
+    def __str__(self) -> str:
+        """String representation."""
+        return f"{self.__class__.__name__}(distance={self.distance_method})"
+    
+    def __repr__(self) -> str:
+        """Detailed representation."""
+        params_str = ', '.join(f"{k}={v}" for k, v in self.get_parameters().items())
+        return f"{self.__class__.__name__}({params_str})"
