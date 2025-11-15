@@ -89,43 +89,13 @@ class PyPopARTApp:
         """Set up the application layout with all components."""
         self.app.layout = html.Div(
             [
-                # Add custom CSS for resizable sidebar
-                html.Style(
-                    """
-                    .resizable-container {
-                        display: flex;
-                        height: 100vh;
-                        overflow: hidden;
-                    }
-                    .sidebar {
-                        min-width: 250px;
-                        width: 300px;
-                        max-width: 600px;
-                        height: 100vh;
-                        overflow-y: auto;
-                        padding: 20px;
-                        background-color: #f8f9fa;
-                        resize: horizontal;
-                        overflow: auto;
-                    }
-                    .main-content {
-                        flex: 1;
-                        padding: 20px;
-                        overflow: auto;
-                    }
-                    .header-section {
-                        padding: 20px;
-                        background-color: white;
-                    }
-                    """
-                ),
                 # Header
                 html.Div(
                     html.H1(
                         'PyPopART: Haplotype Network Analysis',
                         className='text-center mb-4',
                     ),
-                    className='header-section',
+                    style={'padding': '20px', 'backgroundColor': 'white'},
                 ),
                 # Main resizable container
                 html.Div(
@@ -141,7 +111,17 @@ class PyPopARTApp:
                                 html.Br(),
                                 self._create_export_card(),
                             ],
-                            className='sidebar',
+                            style={
+                                'minWidth': '250px',
+                                'width': '300px',
+                                'maxWidth': '600px',
+                                'height': '90vh',
+                                'overflowY': 'auto',
+                                'padding': '20px',
+                                'backgroundColor': '#f8f9fa',
+                                'resize': 'horizontal',
+                                'overflow': 'auto',
+                            },
                         ),
                         # Right panel - Visualization
                         html.Div(
@@ -163,10 +143,18 @@ class PyPopARTApp:
                                     ]
                                 )
                             ],
-                            className='main-content',
+                            style={
+                                'flex': '1',
+                                'padding': '20px',
+                                'overflow': 'auto',
+                            },
                         ),
                     ],
-                    className='resizable-container',
+                    style={
+                        'display': 'flex',
+                        'height': '90vh',
+                        'overflow': 'hidden',
+                    },
                 ),
                 # Hidden stores for data
                 dcc.Store(id='alignment-store'),
@@ -279,7 +267,7 @@ class PyPopARTApp:
                                 },
                             ],
                             value='msn',
-                            style={'white-space': 'nowrap'},
+                            style={'whiteSpace': 'nowrap'},
                         ),
                         html.Br(),
                         html.Div(id='algorithm-parameters'),
@@ -334,7 +322,7 @@ class PyPopARTApp:
                                 },
                             ],
                             value='spring',
-                            style={'white-space': 'nowrap'},
+                            style={'whiteSpace': 'nowrap'},
                         ),
                         html.Br(),
                         html.Div(
@@ -413,7 +401,7 @@ class PyPopARTApp:
                                 {'label': 'SVG Image', 'value': 'svg'},
                             ],
                             value='graphml',
-                            style={'white-space': 'nowrap'},
+                            style={'whiteSpace': 'nowrap'},
                         ),
                         html.Br(),
                         dbc.Button(
@@ -468,8 +456,8 @@ class PyPopARTApp:
                         'padding': '20px',
                         'height': '85vh',
                         'overflow': 'auto',
-                        'font-family': 'monospace',
-                        'white-space': 'pre',
+                        'fontFamily': 'monospace',
+                        'whiteSpace': 'pre',
                     },
                 )
             ]
