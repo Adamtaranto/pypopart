@@ -13,12 +13,62 @@ import numpy as np
 from .alignment import Alignment
 from .sequence import Sequence
 
+# Try to import optimized Numba versions
+try:
+    from .distance_optimized import (
+        hamming_distance_optimized,
+        kimura_2p_counts_optimized,
+        p_distance_optimized,
+    )
 
-def hamming_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True) -> int:
-    """Calculate Hamming distance between two sequences."""
+    _NUMBA_AVAILABLE = True
+except ImportError:
+    _NUMBA_AVAILABLE = False
+
+
+def hamming_distance(
+    seq1: Sequence,
+    seq2: Sequence,
+    ignore_gaps: bool = True,
+    use_numba: bool = True,
+) -> int:
+    """
+    Calculate Hamming distance between two sequences.
+
+    Parameters
+    ----------
+    seq1 : Sequence
+        First sequence
+    seq2 : Sequence
+        Second sequence
+    ignore_gaps : bool, default=True
+        Whether to ignore gap characters ('-')
+    use_numba : bool, default=True
+        Use Numba-optimized version if available
+
+    Returns
+    -------
+    int
+        Number of differing positions
+
+    Raises
+    ------
+    ValueError
+        If sequences have different lengths
+
+    Notes
+    -----
+    When use_numba=True and Numba is available, uses JIT-compiled
+    optimized version for better performance on large datasets.
+    """
     if len(seq1) != len(seq2):
         raise ValueError(f'Sequences must have same length: {len(seq1)} vs {len(seq2)}')
 
+    # Use Numba optimized version if available and requested
+    if use_numba and _NUMBA_AVAILABLE:
+        return hamming_distance_optimized(seq1, seq2, ignore_gaps)
+
+    # Fall back to pure Python implementation
     differences = 0
     for c1, c2 in zip(seq1.data, seq2.data):
         if ignore_gaps and (c1 == '-' or c2 == '-'):
