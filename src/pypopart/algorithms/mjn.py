@@ -44,12 +44,18 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
         Initialize MJN algorithm.
 
-        Args:
-            distance_method: Method for calculating distances
-            epsilon: Weight parameter for controlling network complexity
-            max_median_vectors: Maximum number of median vectors to add
-            simplify: Whether to simplify network after median vector addition
-            **kwargs: Additional parameters
+        Parameters
+        ----------
+        distance_method :
+            Method for calculating distances.
+        epsilon :
+            Weight parameter for controlling network complexity.
+        max_median_vectors :
+            Maximum number of median vectors to add.
+        simplify :
+            Whether to simplify network after median vector addition.
+        **kwargs :
+            Additional parameters.
         """
         super().__init__(distance_method, epsilon=epsilon, **kwargs)
         self.max_median_vectors = max_median_vectors
@@ -62,12 +68,16 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
         Construct MJN from sequence alignment with iterative refinement.
 
-        Args:
-            alignment: Multiple sequence alignment
-            distance_matrix: Optional pre-computed distance matrix
+        Parameters
+        ----------
+        alignment :
+            Multiple sequence alignment.
+        distance_matrix :
+            Optional pre-computed distance matrix.
 
-        Returns:
-            Haplotype network with inferred median vectors
+    Returns
+    -------
+        Haplotype network with inferred median vectors.
         """
         # Identify unique haplotypes
         haplotypes = identify_haplotypes(alignment)
@@ -105,13 +115,18 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         4. Remove obsolete vertices (degree < 2)
         5. Repeat until no new medians are added
         
-        Args:
-            haplotypes: Initial list of observed haplotypes
-            alignment: Sequence alignment
-            distance_matrix: Distance matrix
+        Parameters
+        ----------
+        haplotypes :
+            Initial list of observed haplotypes.
+        alignment :
+            Sequence alignment.
+        distance_matrix :
+            Distance matrix.
             
-        Returns:
-            Refined network with median vectors
+    Returns
+    -------
+        Refined network with median vectors.
         """
         # Track all sequences seen (observed + inferred)
         all_sequences = {h.sequence.data for h in haplotypes}
@@ -220,12 +235,16 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
         Build MSN from current haplotypes for one iteration.
         
-        Args:
-            haplotypes: Current list of haplotypes
-            distance_matrix: Distance matrix (may need recalculation)
+        Parameters
+        ----------
+        haplotypes :
+            Current list of haplotypes.
+        distance_matrix :
+            Distance matrix (may need recalculation).
             
-        Returns:
-            MSN network
+    Returns
+    -------
+        MSN network.
         """
         # Recalculate distances including any new median vectors
         n = len(haplotypes)
@@ -265,11 +284,14 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         A triplet consists of three nodes where at least two edges exist
         between them (not necessarily a triangle).
         
-        Args:
-            network: Current MSN
+        Parameters
+        ----------
+        network :
+            Current MSN.
             
-        Returns:
-            List of triplets
+    Returns
+    -------
+        List of triplets.
         """
         triplets = []
         hap_ids = list({h.id for h in network.haplotypes})
@@ -302,11 +324,13 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         
         This matches the C++ computeQuasiMedianSeqs implementation.
         
-        Args:
+        Parameters
+        ----------
             seq1, seq2, seq3: Three sequences
             
-        Returns:
-            Set of quasi-median sequence strings
+    Returns
+    -------
+        Set of quasi-median sequence strings.
         """
         if len(seq1) != len(seq2) or len(seq1) != len(seq3):
             return set()
@@ -358,12 +382,15 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         
         Cost is sum of distances from median to the three sequences.
         
-        Args:
+        Parameters
+        ----------
             seq1, seq2, seq3: Three sequences forming the triplet
-            median_seq: Candidate median sequence string
+        median_seq :
+            Candidate median sequence string.
             
-        Returns:
-            Total cost (sum of Hamming distances)
+    Returns
+    -------
+        Total cost (sum of Hamming distances).
         """
         median = Sequence(id='temp', data=median_seq)
         
@@ -381,12 +408,16 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         
         Matches C++ removeObsoleteVerts behavior.
         
-        Args:
-            network: Current network
-            haplotypes: List of all haplotypes
+        Parameters
+        ----------
+        network :
+            Current network.
+        haplotypes :
+            List of all haplotypes.
             
-        Returns:
-            Updated list with obsolete medians removed
+    Returns
+    -------
+        Updated list with obsolete medians removed.
         """
         changed = True
         
@@ -413,12 +444,16 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
         Infer and add median vectors to the network.
 
-        Args:
-            network: Initial haplotype network
-            sequence_length: Length of sequences
+        Parameters
+        ----------
+        network :
+            Initial haplotype network.
+        sequence_length :
+            Length of sequences.
 
-        Returns:
-            Network with median vectors added
+    Returns
+    -------
+        Network with median vectors added.
         """
         self._median_counter = 0
         median_vectors_added = 0
@@ -496,11 +531,14 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
         Find all triplets (triangles) in the network.
 
-        Args:
-            network: Haplotype network
+        Parameters
+        ----------
+        network :
+            Haplotype network.
 
-        Returns:
-            List of triplets (id1, id2, id3)
+    Returns
+    -------
+        List of triplets (id1, id2, id3).
         """
         triplets = []
         hap_ids = list({h.id for h in network.haplotypes})
@@ -527,11 +565,13 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         among the three sequences. If all three are different, no
         clear median exists for that position.
 
-        Args:
+        Parameters
+        ----------
             seq1, seq2, seq3: Three Sequence objects
 
-        Returns:
-            Median Sequence, or None if no clear median exists
+    Returns
+    -------
+        Median Sequence, or None if no clear median exists.
         """
         if len(seq1) != len(seq2) or len(seq1) != len(seq3):
             return None
@@ -564,12 +604,16 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
         Check if a sequence already exists in the network.
 
-        Args:
-            sequence: Sequence to check
-            network: Haplotype network
+        Parameters
+        ----------
+        sequence :
+            Sequence to check.
+        network :
+            Haplotype network.
 
-        Returns:
-            True if sequence exists in network
+    Returns
+    -------
+        True if sequence exists in network.
         """
         seq_data = sequence.data
 
@@ -587,11 +631,14 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         - It has degree 2 (only connects two nodes)
         - It can be replaced by a direct edge without increasing total weight
 
-        Args:
-            network: Network with median vectors
+        Parameters
+        ----------
+        network :
+            Network with median vectors.
 
-        Returns:
-            Simplified network
+    Returns
+    -------
+        Simplified network.
         """
         # Find median vectors with degree 2
         to_remove = []

@@ -24,9 +24,12 @@ class FastaReader:
         """
         Initialize FASTA reader.
 
-        Args:
-            filepath: Path to FASTA file
-            validate: Whether to validate sequences
+        Parameters
+        ----------
+        filepath :
+            Path to FASTA file.
+        validate :
+            Whether to validate sequences.
         """
         self.filepath = Path(filepath)
         self.validate = validate
@@ -38,8 +41,9 @@ class FastaReader:
         """
         Open file handling compression automatically.
 
-        Returns:
-            File handle
+        Returns
+        -------
+            File handle.
         """
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
@@ -57,11 +61,13 @@ class FastaReader:
         """
         Read sequences from FASTA file.
 
-        Args:
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        progress_callback :
+            Optional callback function(current, total).
 
-        Yields:
-            Sequence objects
+        Yields :
+            Sequence objects.
         """
         count = 0
         with self._open_file() as handle:
@@ -96,11 +102,14 @@ class FastaReader:
         """
         Read alignment from FASTA file.
 
-        Args:
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        progress_callback :
+            Optional callback function(current, total).
 
-        Returns:
-            Alignment object
+    Returns
+    -------
+        Alignment object.
         """
         sequences = list(self.read_sequences(progress_callback))
         alignment = Alignment(sequences)
@@ -125,10 +134,14 @@ class FastaWriter:
         """
         Initialize FASTA writer.
 
-        Args:
-            filepath: Output file path
-            line_length: Maximum line length for sequences (0 for no wrapping)
-            compress: Compression format ('gzip' or None)
+        Parameters
+        ----------
+        filepath :
+            Output file path.
+        line_length :
+            Maximum line length for sequences (0 for no wrapping).
+        compress :
+            Compression format ('gzip' or None).
         """
         self.filepath = Path(filepath)
         self.line_length = line_length
@@ -142,8 +155,9 @@ class FastaWriter:
         """
         Open file for writing with optional compression.
 
-        Returns:
-            File handle
+        Returns
+        -------
+            File handle.
         """
         if self.compress == 'gzip':
             return gzip.open(self.filepath, 'wt')
@@ -156,12 +170,16 @@ class FastaWriter:
         """
         Write sequences to FASTA file.
 
-        Args:
-            sequences: Iterable of Sequence objects
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        sequences :
+            Iterable of Sequence objects.
+        progress_callback :
+            Optional callback function(current, total).
 
-        Returns:
-            Number of sequences written
+    Returns
+    -------
+        Number of sequences written.
         """
         count = 0
 
@@ -196,11 +214,15 @@ class FastaWriter:
         """
         Write alignment to FASTA file.
 
-        Args:
-            alignment: Alignment object
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        alignment :
+            Alignment object.
+        progress_callback :
+            Optional callback function(current, total).
 
-        Returns:
-            Number of sequences written
+    Returns
+    -------
+        Number of sequences written.
         """
         return self.write_sequences(iter(alignment), progress_callback)

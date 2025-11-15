@@ -31,16 +31,17 @@ def load_alignment(filepath: Union[str, Path], format: Optional[str] = None):
 
     Parameters
     ----------
-    filepath : str or Path
-        Path to sequence file
-    format : str, optional
+    filepath :
+        str or Path.
+        Path to sequence file.
+    format :
+        str, optional.
         File format: 'fasta', 'nexus', 'phylip', 'genbank'
-        If None, auto-detect from extension
+        If None, auto-detect from extension.
 
     Returns
     -------
-    Alignment
-        Alignment object with sequences
+        Alignment        Alignment object with sequences.
     """
     filepath = Path(filepath)
 
@@ -80,12 +81,15 @@ def save_alignment(alignment, filepath: Union[str, Path], format: str = 'fasta')
 
     Parameters
     ----------
-    alignment : Alignment
-        Alignment to save
-    filepath : str or Path
-        Output file path
-    format : str
-        Output format: 'fasta', 'nexus', 'phylip'
+    alignment :
+        Alignment.
+        Alignment to save.
+    filepath :
+        str or Path.
+        Output file path.
+    format :
+        str.
+        Output format: 'fasta', 'nexus', 'phylip'.
     """
     filepath = Path(filepath)
 
@@ -107,16 +111,17 @@ def load_network(filepath: Union[str, Path], format: Optional[str] = None) -> nx
 
     Parameters
     ----------
-    filepath : str or Path
-        Path to network file
-    format : str, optional
+    filepath :
+        str or Path.
+        Path to network file.
+    format :
+        str, optional.
         File format: 'graphml', 'gml', 'json'
-        If None, auto-detect from extension
+        If None, auto-detect from extension.
 
     Returns
     -------
-    networkx.Graph
-        Network object
+        networkx.Graph        Network object.
     """
     filepath = Path(filepath)
 
@@ -155,12 +160,15 @@ def save_network(
 
     Parameters
     ----------
-    network : networkx.Graph
-        Network to save
-    filepath : str or Path
-        Output file path
-    format : str
-        Output format: 'graphml', 'gml', 'json', 'nexus', 'cytoscape', 'csv'
+    network :
+        networkx.Graph.
+        Network to save.
+    filepath :
+        str or Path.
+        Output file path.
+    format :
+        str.
+        Output format: 'graphml', 'gml', 'json', 'nexus', 'cytoscape', 'csv'.
     """
     filepath = Path(filepath)
 

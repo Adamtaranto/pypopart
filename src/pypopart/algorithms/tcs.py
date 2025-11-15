@@ -51,13 +51,20 @@ class TCS(NetworkAlgorithm):
         """
         Initialize TCS algorithm.
 
-        Args:
-            distance_method: Method for calculating distances (should be hamming)
-            confidence: Confidence level for parsimony criterion (default 0.95)
-            connection_limit: Maximum connection distance (auto-calculated if None)
-            infer_intermediates: Whether to infer intermediate sequences (default True)
-            collapse_vertices: Whether to collapse degree-2 vertices (default True)
-            **kwargs: Additional parameters
+        Parameters
+        ----------
+        distance_method :
+            Method for calculating distances (should be hamming).
+        confidence :
+            Confidence level for parsimony criterion (default 0.95).
+        connection_limit :
+            Maximum connection distance (auto-calculated if None).
+        infer_intermediates :
+            Whether to infer intermediate sequences (default True).
+        collapse_vertices :
+            Whether to collapse degree-2 vertices (default True).
+        **kwargs :
+            Additional parameters.
         """
         super().__init__(distance_method, **kwargs)
         self.confidence = confidence
@@ -81,12 +88,16 @@ class TCS(NetworkAlgorithm):
         """
         Construct TCS network from sequence alignment.
 
-        Args:
-            alignment: Multiple sequence alignment
-            distance_matrix: Optional pre-computed distance matrix
+        Parameters
+        ----------
+        alignment :
+            Multiple sequence alignment.
+        distance_matrix :
+            Optional pre-computed distance matrix.
 
-        Returns:
-            Haplotype network constructed using statistical parsimony
+    Returns
+    -------
+        Haplotype network constructed using statistical parsimony.
         """
         # Identify unique haplotypes
         haplotypes = identify_haplotypes(alignment)
@@ -134,12 +145,16 @@ class TCS(NetworkAlgorithm):
         maximum number of mutational differences that can be explained
         by parsimony at the specified confidence level.
 
-        Args:
-            sequence_length: Length of aligned sequences
-            num_haplotypes: Number of unique haplotypes
+        Parameters
+        ----------
+        sequence_length :
+            Length of aligned sequences.
+        num_haplotypes :
+            Number of unique haplotypes.
 
-        Returns:
-            Maximum connection distance for parsimony criterion
+    Returns
+    -------
+        Maximum connection distance for parsimony criterion.
         """
         # Calculate probability of finding n or more differences by chance
         # Using cumulative Poisson distribution
@@ -173,13 +188,18 @@ class TCS(NetworkAlgorithm):
         """
         Calculate probability using Poisson distribution.
 
-        Args:
-            k: Number of mutations
-            seq_length: Sequence length
-            sample_size: Number of sequences
+        Parameters
+        ----------
+        k :
+            Number of mutations.
+        seq_length :
+            Sequence length.
+        sample_size :
+            Number of sequences.
 
-        Returns:
-            Probability
+    Returns
+    -------
+        Probability.
         """
         # Simple Poisson probability: P(X = k) = (λ^k * e^(-λ)) / k!
         # where λ is the expected number of mutations
@@ -206,12 +226,16 @@ class TCS(NetworkAlgorithm):
         Connects haplotypes in order of increasing distance, up to
         the connection limit. More frequent haplotypes are connected first.
 
-        Args:
-            haplotypes: List of Haplotype objects
-            distance_matrix: Distance matrix
+        Parameters
+        ----------
+        haplotypes :
+            List of Haplotype objects.
+        distance_matrix :
+            Distance matrix.
 
-        Returns:
-            List of edges (id1, id2, distance)
+    Returns
+    -------
+        List of edges (id1, id2, distance).
         """
         # Sort haplotypes by frequency (most frequent first)
         sorted_haps = sorted(haplotypes, key=lambda h: h.frequency, reverse=True)
@@ -268,12 +292,16 @@ class TCS(NetworkAlgorithm):
         """
         Build HaplotypeNetwork from haplotypes and edges.
 
-        Args:
-            haplotypes: List of Haplotype objects
-            edges: List of edges (id1, id2, distance)
+        Parameters
+        ----------
+        haplotypes :
+            List of Haplotype objects.
+        edges :
+            List of edges (id1, id2, distance).
 
-        Returns:
-            Constructed haplotype network
+    Returns
+    -------
+        Constructed haplotype network.
         """
         network = HaplotypeNetwork()
 
@@ -291,11 +319,14 @@ class TCS(NetworkAlgorithm):
         """
         Calculate pairwise distances between haplotypes.
 
-        Args:
-            haplotypes: List of Haplotype objects
+        Parameters
+        ----------
+        haplotypes :
+            List of Haplotype objects.
 
-        Returns:
-            DistanceMatrix with distances between haplotypes
+    Returns
+    -------
+        DistanceMatrix with distances between haplotypes.
         """
         import numpy as np
 
@@ -327,13 +358,18 @@ class TCS(NetworkAlgorithm):
         inferring intermediate sequences for multi-step connections between
         components.
         
-        Args:
-            haplotypes: List of Haplotype objects
-            distance_matrix: Distance matrix
-            sequence_length: Length of sequences for creating intermediates
+        Parameters
+        ----------
+        haplotypes :
+            List of Haplotype objects.
+        distance_matrix :
+            Distance matrix.
+        sequence_length :
+            Length of sequences for creating intermediates.
             
-        Returns:
-            Network with inferred intermediate sequences
+    Returns
+    -------
+        Network with inferred intermediate sequences.
         """
         # Create network with all haplotypes
         network = HaplotypeNetwork()
@@ -422,15 +458,22 @@ class TCS(NetworkAlgorithm):
         Creates (distance - 1) intermediate sequences to connect two haplotypes
         that are separated by 'distance' mutations.
         
-        Args:
-            network: Current network
-            start_id: Starting haplotype ID
-            end_id: Ending haplotype ID
-            distance: Number of mutations between them
-            sequence_length: Length of sequences
+        Parameters
+        ----------
+        network :
+            Current network.
+        start_id :
+            Starting haplotype ID.
+        end_id :
+            Ending haplotype ID.
+        distance :
+            Number of mutations between them.
+        sequence_length :
+            Length of sequences.
             
-        Returns:
-            List of intermediate Haplotype objects
+    Returns
+    -------
+        List of intermediate Haplotype objects.
         """
         intermediates = []
         
@@ -465,11 +508,14 @@ class TCS(NetworkAlgorithm):
         Removes intermediate vertices that only connect two other vertices,
         replacing them with a direct edge. This matches the C++ TCS behavior.
         
-        Args:
-            network: Network with potential degree-2 vertices
+        Parameters
+        ----------
+        network :
+            Network with potential degree-2 vertices.
             
-        Returns:
-            Simplified network
+    Returns
+    -------
+        Simplified network.
         """
         collapsed = True
         

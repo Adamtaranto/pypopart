@@ -46,14 +46,20 @@ class Sequence:
         """
         Initialize a sequence.
 
-        Args:
-            id: Sequence identifier
-            data: DNA sequence string
-            metadata: Optional metadata dictionary
-            description: Optional sequence description
+        Parameters
+        ----------
+        id :
+            Sequence identifier.
+        data :
+            DNA sequence string.
+        metadata :
+            Optional metadata dictionary.
+        description :
+            Optional sequence description.
 
-        Raises:
-            ValueError: If sequence contains invalid characters
+        Raises :
+        ValueError :
+            If sequence contains invalid characters.
         """
         self.id = id
         self.data = data.strip().upper()
@@ -105,8 +111,9 @@ class Sequence:
         """
         Calculate reverse complement of sequence.
 
-        Returns:
-            New Sequence object with reverse complement
+        Returns
+        -------
+            New Sequence object with reverse complement.
         """
         rev_comp_data = ''.join(self.COMPLEMENT[base] for base in reversed(self.data))
         return Sequence(
@@ -122,8 +129,9 @@ class Sequence:
 
         Ignores gaps (-) and ambiguous characters (N, ?).
 
-        Returns:
-            GC content fraction
+        Returns
+        -------
+            GC content fraction.
         """
         # Count G, C, and S (which represents G or C)
         gc_count = sum(1 for base in self.data if base in 'GCS')
@@ -138,8 +146,9 @@ class Sequence:
         """
         Count number of gap characters.
 
-        Returns:
-            Number of gaps
+        Returns
+        -------
+            Number of gaps.
         """
         return self.data.count('-')
 
@@ -147,8 +156,9 @@ class Sequence:
         """
         Count number of ambiguous characters (N and ?).
 
-        Returns:
-            Number of ambiguous characters
+        Returns
+        -------
+            Number of ambiguous characters.
         """
         return sum(1 for base in self.data if base in 'N?')
 
@@ -156,8 +166,9 @@ class Sequence:
         """
         Create new sequence with gaps removed.
 
-        Returns:
-            New Sequence object without gaps
+        Returns
+        -------
+            New Sequence object without gaps.
         """
         ungapped_data = self.data.replace('-', '')
         return Sequence(
@@ -171,12 +182,16 @@ class Sequence:
         """
         Extract a slice of the sequence.
 
-        Args:
-            start: Start position (0-based, inclusive)
-            end: End position (0-based, exclusive), None for end of sequence
+        Parameters
+        ----------
+        start :
+            Start position (0-based, inclusive).
+        end :
+            End position (0-based, exclusive), None for end of sequence.
 
-        Returns:
-            New Sequence object with sliced data
+    Returns
+    -------
+        New Sequence object with sliced data.
         """
         sliced_data = self.data[start:end]
         slice_desc = f'slice[{start}:{end if end else "end"}]'
@@ -191,8 +206,9 @@ class Sequence:
         """
         Convert sequence to dictionary representation.
 
-        Returns:
-            Dictionary with sequence data and statistics
+        Returns
+        -------
+            Dictionary with sequence data and statistics.
         """
         return {
             'id': self.id,
@@ -210,11 +226,14 @@ class Sequence:
         """
         Create sequence from dictionary.
 
-        Args:
-            data: Dictionary with sequence information
+        Parameters
+        ----------
+        data :
+            Dictionary with sequence information.
 
-        Returns:
-            New Sequence object
+    Returns
+    -------
+        New Sequence object.
         """
         return cls(
             id=data['id'],

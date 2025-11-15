@@ -50,8 +50,9 @@ def calculate_haplotype_frequencies(
         network: HaplotypeNetwork object
         normalize: If True, return frequencies as proportions (0-1)
 
-    Returns:
-        Dictionary with:
+    Returns
+    -------
+        Dictionary with:.
             'overall': Dict[haplotype_id -> frequency/count]
             'by_population': Dict[population -> Dict[haplotype_id -> frequency/count]]
     """
@@ -111,8 +112,9 @@ def calculate_diversity_metrics(
         network: HaplotypeNetwork object
         alignment: Optional alignment for nucleotide diversity calculation
 
-    Returns:
-        DiversityMetrics object with calculated metrics
+    Returns
+    -------
+        DiversityMetrics object with calculated metrics.
     """
     # Get frequencies
     freq_info = calculate_haplotype_frequencies(network, normalize=True)
@@ -205,8 +207,9 @@ def calculate_network_metrics(network: HaplotypeNetwork) -> NetworkMetrics:
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        NetworkMetrics object with calculated metrics
+    Returns
+    -------
+        NetworkMetrics object with calculated metrics.
     """
     G = network.to_networkx()
 
@@ -275,8 +278,9 @@ def identify_central_haplotypes(
         network: HaplotypeNetwork object
         method: Centrality method ('degree', 'betweenness', 'closeness', 'eigenvector')
 
-    Returns:
-        List of (haplotype_id, centrality_score) tuples, sorted by score (descending)
+    Returns
+    -------
+        List of (haplotype_id, centrality_score) tuples, sorted by score (descending).
     """
     G = network.to_networkx()
 
@@ -322,8 +326,9 @@ def calculate_reticulation_index(network: HaplotypeNetwork) -> float:
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        Reticulation index (0 for a tree, >0 for networks with reticulations)
+    Returns
+    -------
+        Reticulation index (0 for a tree, >0 for networks with reticulations).
     """
     G = network.to_networkx()
 
@@ -354,8 +359,9 @@ def get_frequency_distribution(network: HaplotypeNetwork) -> Dict[int, int]:
     Args:
         network: HaplotypeNetwork object
 
-    Returns:
-        Dictionary mapping frequency -> count of haplotypes
+    Returns
+    -------
+        Dictionary mapping frequency -> count of haplotypes.
     """
     frequencies = []
 
@@ -377,8 +383,9 @@ def calculate_summary_statistics(
         network: HaplotypeNetwork object
         alignment: Optional alignment for additional metrics
 
-    Returns:
-        Dictionary with all calculated statistics
+    Returns
+    -------
+        Dictionary with all calculated statistics.
     """
     # Get diversity metrics
     diversity = calculate_diversity_metrics(network, alignment)

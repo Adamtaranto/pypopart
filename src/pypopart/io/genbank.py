@@ -20,9 +20,12 @@ class GenBankReader:
         """
         Initialize GenBank reader.
 
-        Args:
-            filepath: Path to GenBank file
-            validate: Whether to validate sequences
+        Parameters
+        ----------
+        filepath :
+            Path to GenBank file.
+        validate :
+            Whether to validate sequences.
         """
         self.filepath = Path(filepath)
         self.validate = validate
@@ -41,11 +44,13 @@ class GenBankReader:
         """
         Read sequences from GenBank file.
 
-        Args:
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        progress_callback :
+            Optional callback function(current, total).
 
-        Yields:
-            Sequence objects
+        Yields :
+            Sequence objects.
         """
         count = 0
         with self._open_file() as handle:

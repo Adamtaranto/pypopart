@@ -34,11 +34,16 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         """
         Initialize MSN algorithm.
 
-        Args:
-            distance_method: Method for calculating distances
-            epsilon: Tolerance for considering distances equal (default 0.0)
-            max_connections: Maximum number of alternative connections per node
-            **kwargs: Additional parameters
+        Parameters
+        ----------
+        distance_method :
+            Method for calculating distances.
+        epsilon :
+            Tolerance for considering distances equal (default 0.0).
+        max_connections :
+            Maximum number of alternative connections per node.
+        **kwargs :
+            Additional parameters.
         """
         super().__init__(distance_method, algorithm='prim', **kwargs)
         self.epsilon = epsilon
@@ -50,12 +55,16 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         """
         Construct MSN from sequence alignment.
 
-        Args:
-            alignment: Multiple sequence alignment
-            distance_matrix: Optional pre-computed distance matrix
+        Parameters
+        ----------
+        alignment :
+            Multiple sequence alignment.
+        distance_matrix :
+            Optional pre-computed distance matrix.
 
-        Returns:
-            Haplotype network representing the MSN
+    Returns
+    -------
+        Haplotype network representing the MSN.
         """
         # Identify unique haplotypes
         haplotypes = identify_haplotypes(alignment)
@@ -95,13 +104,18 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         For each distance level in the MST, add all edges at that distance
         (or within epsilon) that don't create redundancy.
 
-        Args:
-            haplotypes: List of Haplotype objects
-            mst_edges: MST edges from Prim's algorithm
-            distance_matrix: Distance matrix
+        Parameters
+        ----------
+        haplotypes :
+            List of Haplotype objects.
+        mst_edges :
+            MST edges from Prim's algorithm.
+        distance_matrix :
+            Distance matrix.
 
-        Returns:
-            Extended list of edges including alternatives
+    Returns
+    -------
+        Extended list of edges including alternatives.
         """
         hap_ids = [h.id for h in haplotypes]
 
@@ -166,12 +180,16 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         An edge is redundant if removing it doesn't disconnect the network
         and there exists an alternative path of the same or shorter total length.
 
-        Args:
-            haplotypes: List of Haplotype objects
-            edges: List of edges
+        Parameters
+        ----------
+        haplotypes :
+            List of Haplotype objects.
+        edges :
+            List of edges.
 
-        Returns:
-            List of non-redundant edges
+    Returns
+    -------
+        List of non-redundant edges.
         """
         if len(edges) <= len(haplotypes) - 1:
             # Already minimal - can't remove any edges without disconnecting
@@ -218,13 +236,18 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         """
         Check if two nodes are connected using BFS.
 
-        Args:
-            adjacency: Adjacency list representation
-            start: Start node ID
-            end: End node ID
+        Parameters
+        ----------
+        adjacency :
+            Adjacency list representation.
+        start :
+            Start node ID.
+        end :
+            End node ID.
 
-        Returns:
-            True if connected, False otherwise
+    Returns
+    -------
+        True if connected, False otherwise.
         """
         if start == end:
             return True
@@ -254,13 +277,18 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
         """
         Find shortest path length between two nodes using Dijkstra's algorithm.
 
-        Args:
-            adjacency: Adjacency list representation
-            start: Start node ID
-            end: End node ID
+        Parameters
+        ----------
+        adjacency :
+            Adjacency list representation.
+        start :
+            Start node ID.
+        end :
+            End node ID.
 
-        Returns:
-            Shortest path length, or None if no path exists
+    Returns
+    -------
+        Shortest path length, or None if no path exists.
         """
         import heapq
 

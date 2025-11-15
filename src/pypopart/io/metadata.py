@@ -24,8 +24,9 @@ def parse_coordinate(value: str) -> float:
     Args:
         value: Coordinate string
 
-    Returns:
-        Coordinate as float
+    Returns
+    -------
+        Coordinate as float.
 
     Raises:
         ValueError: If coordinate cannot be parsed
@@ -81,8 +82,9 @@ def extract_coordinates(
         lon_column: Name of longitude column
         validate: Whether to validate coordinate ranges
 
-    Returns:
-        Tuple of (latitude, longitude) or None if coordinates not present
+    Returns
+    -------
+        Tuple of (latitude, longitude) or None if coordinates not present.
 
     Raises:
         ValueError: If coordinates are invalid
@@ -115,11 +117,16 @@ class MetadataReader:
         """
         Initialize metadata reader.
 
-        Args:
-            filepath: Path to metadata CSV file
-            id_column: Name of column containing sequence IDs
-            delimiter: CSV delimiter character
-            validate: Whether to validate metadata
+        Parameters
+        ----------
+        filepath :
+            Path to metadata CSV file.
+        id_column :
+            Name of column containing sequence IDs.
+        delimiter :
+            CSV delimiter character.
+        validate :
+            Whether to validate metadata.
         """
         self.filepath = Path(filepath)
         self.id_column = id_column
@@ -140,8 +147,9 @@ class MetadataReader:
         """
         Read metadata from CSV file.
 
-        Returns:
-            Dictionary mapping sequence IDs to metadata dictionaries
+        Returns
+        -------
+            Dictionary mapping sequence IDs to metadata dictionaries.
         """
         metadata = {}
 
@@ -171,8 +179,10 @@ class MetadataReader:
         """
         Apply metadata to sequences in alignment.
 
-        Args:
-            alignment: Alignment object to update
+        Parameters
+        ----------
+        alignment :
+            Alignment object to update.
         """
         metadata = self.read_metadata()
 
@@ -206,11 +216,16 @@ class MetadataWriter:
         """
         Initialize metadata writer.
 
-        Args:
-            filepath: Output file path
-            id_column: Name of column for sequence IDs
-            delimiter: CSV delimiter character
-            compress: Compression format ('gzip' or None)
+        Parameters
+        ----------
+        filepath :
+            Output file path.
+        id_column :
+            Name of column for sequence IDs.
+        delimiter :
+            CSV delimiter character.
+        compress :
+            Compression format ('gzip' or None).
         """
         self.filepath = Path(filepath)
         self.id_column = id_column
@@ -235,9 +250,12 @@ class MetadataWriter:
         """
         Write metadata to CSV file.
 
-        Args:
-            metadata: Dictionary mapping sequence IDs to metadata dictionaries
-            trait_order: Optional list specifying order of trait columns
+        Parameters
+        ----------
+        metadata :
+            Dictionary mapping sequence IDs to metadata dictionaries.
+        trait_order :
+            Optional list specifying order of trait columns.
         """
         if not metadata:
             raise ValueError('No metadata to write')
@@ -277,9 +295,12 @@ class MetadataWriter:
         """
         Extract and write metadata from alignment.
 
-        Args:
-            alignment: Alignment object
-            trait_order: Optional list specifying order of trait columns
+        Parameters
+        ----------
+        alignment :
+            Alignment object.
+        trait_order :
+            Optional list specifying order of trait columns.
         """
         metadata = {}
 

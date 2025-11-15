@@ -37,19 +37,22 @@ def hamming_distance(
 
     Parameters
     ----------
-    seq1 : Sequence
-        First sequence
-    seq2 : Sequence
-        Second sequence
-    ignore_gaps : bool, default=True
-        Whether to ignore gap characters ('-')
-    use_numba : bool, default=True
-        Use Numba-optimized version if available
+    seq1 :
+        Sequence.
+        First sequence.
+    seq2 :
+        Sequence.
+        Second sequence.
+    ignore_gaps :
+        bool, default=True.
+        Whether to ignore gap characters ('-').
+    use_numba :
+        bool, default=True.
+        Use Numba-optimized version if available.
 
     Returns
     -------
-    int
-        Number of differing positions
+        int        Number of differing positions.
 
     Raises
     ------
@@ -176,8 +179,9 @@ def tamura_nei_distance(
         seq2: Second sequence
         ignore_gaps: Whether to ignore gap positions
 
-    Returns:
-        Tamura-Nei corrected distance
+    Returns
+    -------
+        Tamura-Nei corrected distance.
 
     Raises:
         ValueError: If sequences have different lengths or are too divergent
@@ -384,18 +388,26 @@ class DistanceMatrix:
         """
         Visualize distance matrix as a heatmap.
 
-        Args:
-            title: Plot title
-            cmap: Matplotlib colormap name
-            figsize: Figure size (width, height), auto-calculated if None
-            show_values: Whether to show distance values in cells
-            save_path: Optional path to save figure
+        Parameters
+        ----------
+        title :
+            Plot title.
+        cmap :
+            Matplotlib colormap name.
+        figsize :
+            Figure size (width, height), auto-calculated if None.
+        show_values :
+            Whether to show distance values in cells.
+        save_path :
+            Optional path to save figure.
 
-        Returns:
-            Matplotlib figure object
+    Returns
+    -------
+        Matplotlib figure object.
 
-        Raises:
-            ImportError: If matplotlib is not installed
+        Raises :
+        ImportError :
+            If matplotlib is not installed.
         """
         try:
             import matplotlib
@@ -457,9 +469,12 @@ class DistanceMatrix:
         """
         Export distance matrix to CSV file.
 
-        Args:
-            filepath: Path to output CSV file
-            delimiter: Delimiter character (default: comma)
+        Parameters
+        ----------
+        filepath :
+            Path to output CSV file.
+        delimiter :
+            Delimiter character (default: comma).
         """
         with open(filepath, 'w') as f:
             # Write header
@@ -475,12 +490,16 @@ class DistanceMatrix:
         """
         Import distance matrix from CSV file.
 
-        Args:
-            filepath: Path to CSV file
-            delimiter: Delimiter character (default: comma)
+        Parameters
+        ----------
+        filepath :
+            Path to CSV file.
+        delimiter :
+            Delimiter character (default: comma).
 
-        Returns:
-            DistanceMatrix object
+    Returns
+    -------
+        DistanceMatrix object.
         """
         with open(filepath, 'r') as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -573,10 +592,12 @@ class DistanceCalculator:
 
         Parameters
         ----------
-        method : str
-            Distance method: 'hamming', 'jc', 'k2p', 'tamura_nei'
-        ignore_gaps : bool
-            Whether to ignore gaps in calculations
+        method :
+            str.
+            Distance method: 'hamming', 'jc', 'k2p', 'tamura_nei'.
+        ignore_gaps :
+            bool.
+            Whether to ignore gaps in calculations.
         """
         self.method = method.lower()
         self.ignore_gaps = ignore_gaps
@@ -601,15 +622,16 @@ class DistanceCalculator:
 
         Parameters
         ----------
-        seq1 : Sequence
-            First sequence
-        seq2 : Sequence
-            Second sequence
+        seq1 :
+            Sequence.
+            First sequence.
+        seq2 :
+            Sequence.
+            Second sequence.
 
         Returns
         -------
-        float
-            Distance value
+            float            Distance value.
         """
         return self.distance_func(seq1, seq2, ignore_gaps=self.ignore_gaps)
 
@@ -619,13 +641,13 @@ class DistanceCalculator:
 
         Parameters
         ----------
-        alignment : Alignment
-            Sequence alignment
+        alignment :
+            Alignment.
+            Sequence alignment.
 
         Returns
         -------
-        np.ndarray
-            Square distance matrix
+            np.ndarray            Square distance matrix.
         """
         dist_matrix = calculate_pairwise_distances(
             alignment, method=self.method, ignore_gaps=self.ignore_gaps

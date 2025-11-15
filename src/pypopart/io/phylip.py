@@ -23,10 +23,14 @@ class PhylipReader:
         """
         Initialize PHYLIP reader.
 
-        Args:
-            filepath: Path to PHYLIP file
-            strict: Whether to use strict format (10-char IDs)
-            validate: Whether to validate sequences and alignment
+        Parameters
+        ----------
+        filepath :
+            Path to PHYLIP file.
+        strict :
+            Whether to use strict format (10-char IDs).
+        validate :
+            Whether to validate sequences and alignment.
         """
         self.filepath = Path(filepath)
         self.strict = strict
@@ -46,11 +50,14 @@ class PhylipReader:
         """
         Read alignment from PHYLIP file.
 
-        Args:
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        progress_callback :
+            Optional callback function(current, total).
 
-        Returns:
-            Alignment object
+    Returns
+    -------
+        Alignment object.
         """
         with self._open_file() as handle:
             lines = [line.rstrip() for line in handle if line.strip()]
@@ -155,12 +162,18 @@ class PhylipWriter:
         """
         Initialize PHYLIP writer.
 
-        Args:
-            filepath: Output file path
-            strict: Whether to use strict format (10-char IDs)
-            interleaved: Whether to write in interleaved format
-            line_length: Line length for interleaved format
-            compress: Compression format ('gzip' or None)
+        Parameters
+        ----------
+        filepath :
+            Output file path.
+        strict :
+            Whether to use strict format (10-char IDs).
+        interleaved :
+            Whether to write in interleaved format.
+        line_length :
+            Line length for interleaved format.
+        compress :
+            Compression format ('gzip' or None).
         """
         self.filepath = Path(filepath)
         self.strict = strict
@@ -182,9 +195,12 @@ class PhylipWriter:
         """
         Write alignment to PHYLIP file.
 
-        Args:
-            alignment: Alignment object
-            progress_callback: Optional callback function(current, total)
+        Parameters
+        ----------
+        alignment :
+            Alignment object.
+        progress_callback :
+            Optional callback function(current, total).
         """
         with self._open_file() as handle:
             # Write header
