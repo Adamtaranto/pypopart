@@ -20,6 +20,8 @@ classifiers = [
 dependencies = [
     "biopython",
     "click",
+    "dash",
+    "dash-bootstrap-components",
     "matplotlib",
     "networkx",
     "numba",
