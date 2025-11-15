@@ -7,17 +7,12 @@ visualize results, and export outputs.
 """
 
 import base64
-import io
-import json
 import tempfile
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import dash
 import dash_bootstrap_components as dbc
 import networkx as nx
-import numpy as np
-import pandas as pd
 import plotly.graph_objects as go
 from dash import Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
@@ -676,11 +671,11 @@ class PyPopARTApp:
                     x=0.5,
                     y=0.5,
                     showarrow=False,
-                    font=dict(size=16, color='gray'),
+                    font={'size': 16, 'color': 'gray'},
                 )
                 fig.update_layout(
-                    xaxis=dict(visible=False),
-                    yaxis=dict(visible=False),
+                    xaxis={'visible': False},
+                    yaxis={'visible': False},
                     plot_bgcolor='white',
                 )
                 return fig
@@ -720,7 +715,7 @@ class PyPopARTApp:
                     x=0.5,
                     y=0.5,
                     showarrow=False,
-                    font=dict(size=14, color='red'),
+                    font={'size': 14, 'color': 'red'},
                 )
                 return fig
 
@@ -877,13 +872,13 @@ class PyPopARTApp:
                         exporter.export(network)
                         with open(tmp.name, 'r') as f:
                             content = f.read()
-                    return dict(
-                        content=content, filename='network.graphml', type='text/xml'
-                    )
+                    return {
+                        'content': content, 'filename': 'network.graphml', 'type': 'text/xml'
+                    }
 
                 elif export_format == 'gml':
                     content = '\n'.join(nx.generate_gml(G))
-                    return dict(content=content, filename='network.gml', type='text/plain')
+                    return {'content': content, 'filename': 'network.gml', 'type': 'text/plain'}
 
                 elif export_format == 'json':
                     with tempfile.NamedTemporaryFile(
@@ -893,25 +888,25 @@ class PyPopARTApp:
                         exporter.export(network)
                         with open(tmp.name, 'r') as f:
                             content = f.read()
-                    return dict(
-                        content=content,
-                        filename='network.json',
-                        type='application/json',
-                    )
+                    return {
+                        'content': content,
+                        'filename': 'network.json',
+                        'type': 'application/json',
+                    }
 
                 elif export_format in ['png', 'svg']:
                     # Export figure as image
                     fig = go.Figure(figure)
                     img_bytes = fig.to_image(format=export_format)
-                    return dict(
-                        content=base64.b64encode(img_bytes).decode(),
-                        filename=f'network.{export_format}',
-                        base64=True,
-                    )
+                    return {
+                        'content': base64.b64encode(img_bytes).decode(),
+                        'filename': f'network.{export_format}',
+                        'base64': True,
+                    }
 
             except Exception as e:
                 print(f'Error exporting: {e}')
-                raise PreventUpdate
+                raise PreventUpdate from None
 
     def _format_central_haplotypes(self, central: Dict) -> html.Div:
         """Format central haplotypes for display."""
