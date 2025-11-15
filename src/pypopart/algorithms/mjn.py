@@ -238,33 +238,32 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         -------
             MSN network.
         """
-        # Recalculate distances including any new median vectors
-        n = len(haplotypes)
-        labels = [h.id for h in haplotypes]
-
-        import numpy as np
-
-        matrix = np.zeros((n, n))
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                dist = hamming_distance(
-                    haplotypes[i].sequence, haplotypes[j].sequence, ignore_gaps=True
-                )
-                matrix[i, j] = matrix[j, i] = dist
-
-        new_dist_matrix = DistanceMatrix(labels, matrix)
-
-        # Build MSN using parent class method
-        # Create temporary alignment
-        sequences = [h.sequence for h in haplotypes]
-        from ..core.alignment import Alignment
-
-        temp_alignment = Alignment(sequences)
-
-        # Use parent MSN construction
-        network = super().construct_network(temp_alignment, new_dist_matrix)
-
+        # Handle empty or single haplotype case
+        if len(haplotypes) == 0:
+            return HaplotypeNetwork()
+        
+        if len(haplotypes) == 1:
+            network = HaplotypeNetwork()
+            network.add_haplotype(haplotypes[0])
+            return network
+        
+        # Calculate distances between current haplotypes (including new medians)
+        haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
+        
+        # Build initial MST
+        mst_edges = self._prim_mst(haplotypes, haplotype_dist_matrix)
+        
+        # Add alternative connections at same distance
+        msn_edges = self._add_alternative_connections(
+            haplotypes, mst_edges, haplotype_dist_matrix
+        )
+        
+        # Remove redundant edges
+        final_edges = self._remove_redundant_edges(haplotypes, msn_edges)
+        
+        # Construct network (preserves haplotype IDs)
+        network = self._build_network(haplotypes, final_edges)
+        
         return network
 
     def _find_all_triplets_in_msn(
@@ -423,8 +422,14 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
 
             for haplotype in haplotypes:
                 if haplotype.frequency == 0:  # Only check inferred medians
-                    degree = network.get_degree(haplotype.id)
-                    if degree < 2:
+                    # Check if haplotype exists in network before getting degree
+                    if network.has_node(haplotype.id):
+                        degree = network.get_degree(haplotype.id)
+                        if degree < 2:
+                            to_remove.append(haplotype)
+                            changed = True
+                    else:
+                        # Haplotype not in network, remove it
                         to_remove.append(haplotype)
                         changed = True
 
