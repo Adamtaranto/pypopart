@@ -241,29 +241,29 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         # Handle empty or single haplotype case
         if len(haplotypes) == 0:
             return HaplotypeNetwork()
-        
+
         if len(haplotypes) == 1:
             network = HaplotypeNetwork()
             network.add_haplotype(haplotypes[0])
             return network
-        
+
         # Calculate distances between current haplotypes (including new medians)
         haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
-        
+
         # Build initial MST
         mst_edges = self._prim_mst(haplotypes, haplotype_dist_matrix)
-        
+
         # Add alternative connections at same distance
         msn_edges = self._add_alternative_connections(
             haplotypes, mst_edges, haplotype_dist_matrix
         )
-        
+
         # Remove redundant edges
         final_edges = self._remove_redundant_edges(haplotypes, msn_edges)
-        
+
         # Construct network (preserves haplotype IDs)
         network = self._build_network(haplotypes, final_edges)
-        
+
         return network
 
     def _find_all_triplets_in_msn(
