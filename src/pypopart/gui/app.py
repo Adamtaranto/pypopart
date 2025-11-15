@@ -941,7 +941,7 @@ class PyPopARTApp:
 
     def run(self) -> None:
         """Run the Dash application."""
-        self.app.run_server(debug=self.debug, port=self.port)
+        self.app.run(debug=self.debug, port=self.port)
 
 
 def main(debug: bool = False, port: int = 8050) -> None:
