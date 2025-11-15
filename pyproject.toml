@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "pypopart"
@@ -8,25 +8,135 @@ dynamic = ["version"]
 description = "Pure Python implementation of PopART haplotype network analysis"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "GPL-3.0" }
-authors = [{ name = "Your Name", email = "your.email@example.com" }]
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Adam Taranto" }]
 
-[tool.black]
-line-length = 100
-target-version = ['py39', 'py310', 'py311']
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+dependencies = [
+    "biopython",
+    "numpy",
+    "scipy",
+    "pandas",
+    "networkx",
+    "plotly",
+    "dash",
+    "dash-bootstrap-components",
+    "numba",
+    "scikit-learn",
+]
+
+
+# Optional dependencies for testing
+[project.optional-dependencies]
+dev = [
+    "hatch",
+    "ipykernel",
+    "isort",
+    "numpydoc-validation",
+    "pre-commit",
+    "pytest-cov",
+    "pytest",
+    "ruff",
+]
+
+
+[project.urls]
+documentation = "https://github.com/adamtaranto/pypopart"
+homepage = "https://github.com/adamtaranto/pypopart"
+repository = "https://github.com/adamtaranto/pypopart"
+
+[project.scripts]
+pypopart = "pypopart.cli:main"
+
+[tool.hatch.build]
+source = "src"
+
+exclude = ["environment.yml", ".github", ".vscode"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.vcs]
+tag-pattern = "v*"         # Git tags starting with 'v' will be used for versioning
+fallback-version = "0.0.0"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/pypopart/_version.py"
+
+[tool.pytest.ini_options]
+addopts = "-v --cov=pypopart --cov-branch --cov-report=xml --cov-report=term"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
 
 [tool.ruff]
-line-length = 100
-target-version = "py39"
-select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT"]
+target-version = "py310"
+line-length = 88
+fix = true
+
+[tool.ruff.lint]
+select = [
+    "C", # mccabe rules
+    "F", # pyflakes rules
+    "E", # pycodestyle error rules
+    "W", # pycodestyle warning rules
+    "B", # flake8-bugbear rules
+    "I", # isort rules
+]
+ignore = [
+    "C901", # max-complexity-10
+    "E501", # line-too-long
+    "I001", # isort-imports
+    "B905", # `zip()` without an explicit `strict=` parameter
+]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "single"
+
+[tool.isort]
+profile = "black"
+known_third_party = [
+    "biopython",
+    "numpy",
+    "scipy",
+    "pandas",
+    "networkx",
+    "plotly",
+    "dash",
+    "dash_bootstrap_components",
+    "numba",
+    "sklearn",
+]
+known_first_party = ["pypopart"]
+default_section = "THIRDPARTY"
+force_sort_within_sections = true
+
+[tool.numpydoc_validation]
+checks = [
+    "all",  # report on all checks
+    "ES01", # but don't require an extended summary
+    "EX01", # or examples
+    "SA01", # or a see also section
+    "SS06", # and don't require the summary to fit on one line
+]
+exclude = [ # don't report on checks for these
+    '\.__init__$',
+    '\.__repr__$',
+    '\.__str__$',
+]
+override_SS05 = [ # allow docstrings to start with these words
+    '^Process ',
+    '^Assess ',
+    '^Access ',
+]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-addopts = "-v --cov=pypopart --cov-report=html --cov-report=term"
