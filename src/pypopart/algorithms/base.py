@@ -70,6 +70,28 @@ class NetworkAlgorithm(ABC):
             ignore_gaps=self.params.get('ignore_gaps', True),
         )
 
+    def build_network(
+        self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
+    ) -> HaplotypeNetwork:
+        """
+        Build haplotype network from sequence alignment.
+
+        This is an alias for construct_network() to maintain backward compatibility
+        with CLI and GUI code.
+
+        Parameters
+        ----------
+            alignment :
+                Multiple sequence alignment.
+            distance_matrix :
+                Optional pre-computed distance matrix.
+
+        Returns
+        -------
+            Constructed haplotype network.
+        """
+        return self.construct_network(alignment, distance_matrix)
+
     def get_parameters(self) -> Dict[str, Any]:
         """
         Get algorithm parameters.
