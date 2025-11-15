@@ -181,6 +181,26 @@ class PyPopARTApp:
                             multiple=False,
                         ),
                         html.Div(id='metadata-status', className='mt-2'),
+                        html.Div(
+                            id='metadata-template-section',
+                            children=[
+                                html.Hr(),
+                                dbc.Button(
+                                    'Download Metadata Template',
+                                    id='download-template-button',
+                                    color='info',
+                                    outline=True,
+                                    size='sm',
+                                    className='w-100',
+                                    disabled=True,
+                                ),
+                                dcc.Download(id='download-template'),
+                                html.Small(
+                                    'Download a template CSV file with your sequence IDs',
+                                    className='text-muted d-block mt-1',
+                                ),
+                            ],
+                        ),
                         html.Hr(),
                         html.Small(
                             'Sequence formats: FASTA, NEXUS, PHYLIP',
@@ -405,16 +425,17 @@ class PyPopARTApp:
                 Output('upload-status', 'children'),
                 Output('alignment-store', 'data'),
                 Output('compute-button', 'disabled'),
+                Output('download-template-button', 'disabled'),
             ],
             Input('upload-data', 'contents'),
             State('upload-data', 'filename'),
         )
         def handle_file_upload(
             contents: Optional[str], filename: Optional[str]
-        ) -> Tuple[html.Div, Optional[Dict], bool]:
+        ) -> Tuple[html.Div, Optional[Dict], bool, bool]:
             """Handle file upload and parse alignment."""
             if contents is None:
-                return html.Div(), None, True
+                return html.Div(), None, True, True
 
             try:
                 content_type, content_string = contents.split(',')
@@ -454,6 +475,7 @@ class PyPopARTApp:
                         ),
                         None,
                         True,
+                        True,
                     )
 
                 # Store alignment data
@@ -480,12 +502,14 @@ class PyPopARTApp:
                     color='success',
                 )
 
-                return status, alignment_data, False
+                # Enable both compute button and template download button
+                return status, alignment_data, False, False
 
             except Exception as e:
                 return (
                     dbc.Alert(f'Error parsing file: {str(e)}', color='danger'),
                     None,
+                    True,
                     True,
                 )
 
@@ -1040,6 +1064,42 @@ class PyPopARTApp:
 
             except Exception as e:
                 return f'Error displaying alignment: {str(e)}'
+
+        @self.app.callback(
+            Output('download-template', 'data'),
+            Input('download-template-button', 'n_clicks'),
+            State('alignment-store', 'data'),
+            prevent_initial_call=True,
+        )
+        def download_metadata_template(
+            n_clicks: int, alignment_data: Optional[Dict]
+        ) -> Dict:
+            """Generate and download metadata template CSV."""
+            if not alignment_data:
+                raise PreventUpdate
+
+            try:
+                # Generate CSV template with sequence IDs
+                sequence_ids = [seq['id'] for seq in alignment_data['sequences']]
+
+                # Create CSV content with headers
+                csv_lines = ['sequence_id,population,latitude,longitude,color,notes']
+
+                # Add a row for each sequence with empty fields
+                for seq_id in sequence_ids:
+                    csv_lines.append(f'{seq_id},,,,,')
+
+                csv_content = '\n'.join(csv_lines)
+
+                return {
+                    'content': csv_content,
+                    'filename': 'metadata_template.csv',
+                    'type': 'text/csv',
+                }
+
+            except Exception as e:
+                logging.error(f'Error generating template: {e}')
+                raise PreventUpdate from None
 
         @self.app.callback(
             Output('download-data', 'data'),
