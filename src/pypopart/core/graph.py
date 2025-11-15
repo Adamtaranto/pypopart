@@ -50,6 +50,11 @@ class HaplotypeNetwork:
         self._median_vectors: Set[str] = set()
         self.metadata: Dict[str, Any] = {}
     
+    @property
+    def graph(self) -> nx.Graph:
+        """Get the underlying NetworkX graph."""
+        return self._graph
+    
     def add_haplotype(
         self, 
         haplotype: Haplotype,

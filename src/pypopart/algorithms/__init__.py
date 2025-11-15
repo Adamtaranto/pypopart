@@ -11,10 +11,20 @@ from .msn import MinimumSpanningNetwork
 from .tcs import TCS
 from .mjn import MedianJoiningNetwork
 
+# Convenient aliases
+MSTAlgorithm = MinimumSpanningTree
+MSNAlgorithm = MinimumSpanningNetwork
+TCSAlgorithm = TCS
+MJNAlgorithm = MedianJoiningNetwork
+
 __all__ = [
     'NetworkAlgorithm',
     'MinimumSpanningTree',
     'MinimumSpanningNetwork',
     'TCS',
     'MedianJoiningNetwork',
+    'MSTAlgorithm',
+    'MSNAlgorithm',
+    'TCSAlgorithm',
+    'MJNAlgorithm',
 ]

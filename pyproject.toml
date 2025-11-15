@@ -19,15 +19,15 @@ classifiers = [
 
 dependencies = [
     "biopython",
-    "numpy",
-    "scipy",
-    "pandas",
+    "click",
+    "matplotlib",
     "networkx",
-    "plotly",
-    "dash",
-    "dash-bootstrap-components",
     "numba",
+    "numpy",
+    "pandas",
+    "plotly",
     "scikit-learn",
+    "scipy",
 ]
 
 
@@ -42,6 +42,14 @@ dev = [
     "pytest-cov",
     "pytest",
     "ruff",
+]
+
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-jupyter",
+    "pymdown-extensions",
 ]
 
 
