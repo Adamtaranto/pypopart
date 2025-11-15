@@ -483,7 +483,10 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
 
             # Calculate distances from median to the three haplotypes
             median_hap = Haplotype(
-                sequence=median_seq, sample_ids=[]
+                sequence=Sequence(
+                    id=f'Median_{self._median_counter}', data=median_seq
+                ),
+                sample_ids=[],
             )
             self._median_counter += 1
 

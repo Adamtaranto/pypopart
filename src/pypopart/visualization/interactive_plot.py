@@ -476,11 +476,8 @@ class InteractiveNetworkPlotter:
 
         if is_median:
             lines.append('Type: Median Vector')
-            if hap:
-                lines.append(f'Sequence: {hap.data}')
         elif hap:
             lines.append(f'Frequency: {hap.frequency}')
-            lines.append(f'Sequence: {hap.data}')
 
             # Add population information
             pop_counts = hap.get_frequency_by_population()
