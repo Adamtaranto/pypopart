@@ -184,7 +184,7 @@ class CSVExporter:
 
         # Collect all attribute keys
         all_keys = set()
-        for node, attrs in graph.nodes(data=True):
+        for _node, attrs in graph.nodes(data=True):
             all_keys.update(attrs.keys())
 
         fieldnames = ['node_id'] + sorted(all_keys)
@@ -211,7 +211,7 @@ class CSVExporter:
 
         # Collect all attribute keys
         all_keys = set()
-        for source, target, attrs in graph.edges(data=True):
+        for _source, _target, attrs in graph.edges(data=True):
             all_keys.update(attrs.keys())
 
         fieldnames = ['source', 'target'] + sorted(all_keys)

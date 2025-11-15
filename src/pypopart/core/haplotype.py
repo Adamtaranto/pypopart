@@ -7,9 +7,12 @@ and population information.
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from .sequence import Sequence
+
+if TYPE_CHECKING:
+    from .alignment import Alignment
 
 
 @dataclass
