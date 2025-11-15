@@ -7,7 +7,9 @@ visualize results, and export outputs.
 """
 
 import base64
+import logging
 import tempfile
+import traceback
 from typing import Dict, List, Optional, Tuple
 
 import dash
@@ -56,6 +58,15 @@ class PyPopARTApp:
         """
         self.debug = debug
         self.port = port
+
+        # Configure logging
+        log_level = logging.DEBUG if debug else logging.INFO
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        )
+        self.logger = logging.getLogger(__name__)
+
         self.app = dash.Dash(
             __name__,
             external_stylesheets=[dbc.themes.BOOTSTRAP],
@@ -428,7 +439,7 @@ class PyPopARTApp:
                     [
                         dbc.Label('Distance Metric'),
                         dcc.Dropdown(
-                            id='mst-distance',
+                            id={'type': 'algorithm-param', 'name': 'distance'},
                             options=[
                                 {'label': 'Hamming', 'value': 'hamming'},
                                 {'label': 'Jukes-Cantor', 'value': 'jc'},
@@ -443,7 +454,7 @@ class PyPopARTApp:
                     [
                         dbc.Label('Distance Metric'),
                         dcc.Dropdown(
-                            id='msn-distance',
+                            id={'type': 'algorithm-param', 'name': 'distance'},
                             options=[
                                 {'label': 'Hamming', 'value': 'hamming'},
                                 {'label': 'Jukes-Cantor', 'value': 'jc'},
@@ -458,7 +469,7 @@ class PyPopARTApp:
                     [
                         dbc.Label('Connection Limit'),
                         dcc.Slider(
-                            id='tcs-limit',
+                            id={'type': 'algorithm-param', 'name': 'connection_limit'},
                             min=1,
                             max=20,
                             step=1,
@@ -476,7 +487,7 @@ class PyPopARTApp:
                     [
                         dbc.Label('Epsilon'),
                         dcc.Input(
-                            id='mjn-epsilon',
+                            id={'type': 'algorithm-param', 'name': 'epsilon'},
                             type='number',
                             value=0,
                             min=0,
@@ -503,10 +514,7 @@ class PyPopARTApp:
             [
                 State('alignment-store', 'data'),
                 State('algorithm-select', 'value'),
-                State('mst-distance', 'value'),
-                State('msn-distance', 'value'),
-                State('tcs-limit', 'value'),
-                State('mjn-epsilon', 'value'),
+                State({'type': 'algorithm-param', 'name': dash.ALL}, 'value'),
             ],
             prevent_initial_call=True,
         )
@@ -514,10 +522,7 @@ class PyPopARTApp:
             n_clicks: int,
             alignment_data: Dict,
             algorithm: str,
-            mst_distance: Optional[str],
-            msn_distance: Optional[str],
-            tcs_limit: Optional[int],
-            mjn_epsilon: Optional[int],
+            param_values: List,
         ) -> Tuple[Optional[Dict], html.Div, bool, bool]:
             """Compute haplotype network using selected algorithm."""
             if not alignment_data:
@@ -538,19 +543,21 @@ class PyPopARTApp:
                 ]
                 alignment = Alignment(sequences)
 
+                # Extract parameter values - they come in as a list
+                # The pattern-matching callback returns values in order
+                param_value = param_values[0] if param_values else None
+
                 # Select and configure algorithm
                 if algorithm == 'mst':
-                    algo = MinimumSpanningTree(
-                        distance_metric=mst_distance or 'hamming'
-                    )
+                    algo = MinimumSpanningTree(distance_metric=param_value or 'hamming')
                 elif algorithm == 'msn':
                     algo = MinimumSpanningNetwork(
-                        distance_metric=msn_distance or 'hamming'
+                        distance_metric=param_value or 'hamming'
                     )
                 elif algorithm == 'tcs':
-                    algo = TCS(connection_limit=tcs_limit or 10)
+                    algo = TCS(connection_limit=param_value or 10)
                 elif algorithm == 'mjn':
-                    algo = MedianJoiningNetwork(epsilon=mjn_epsilon or 0)
+                    algo = MedianJoiningNetwork(epsilon=param_value or 0)
                 else:
                     raise ValueError(f'Unknown algorithm: {algorithm}')
 
@@ -593,6 +600,8 @@ class PyPopARTApp:
                 return network_data, feedback, False, False
 
             except Exception as e:
+                logging.error(f'Error computing network: {e}')
+                logging.error(traceback.format_exc())
                 return (
                     None,
                     dbc.Alert(f'Error computing network: {str(e)}', color='danger'),
@@ -661,7 +670,8 @@ class PyPopARTApp:
                 return layout_data
 
             except Exception as e:
-                print(f'Error applying layout: {e}')
+                logging.error(f'Error applying layout: {e}')
+                logging.error(traceback.format_exc())
                 return None
 
         @self.app.callback(
@@ -918,7 +928,8 @@ class PyPopARTApp:
                     }
 
             except Exception as e:
-                print(f'Error exporting: {e}')
+                logging.error(f'Error exporting: {e}')
+                logging.error(traceback.format_exc())
                 raise PreventUpdate from None
 
     def _format_central_haplotypes(self, central: Dict) -> html.Div:
@@ -941,6 +952,7 @@ class PyPopARTApp:
 
     def run(self) -> None:
         """Run the Dash application."""
+        # Use run() for Dash 2.0+, which replaced run_server()
         self.app.run(debug=self.debug, port=self.port)
 
 
