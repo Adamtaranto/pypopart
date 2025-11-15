@@ -87,23 +87,51 @@ class PyPopARTApp:
 
     def _setup_layout(self) -> None:
         """Set up the application layout with all components."""
-        self.app.layout = dbc.Container(
+        self.app.layout = html.Div(
             [
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            html.H1(
-                                'PyPopART: Haplotype Network Analysis',
-                                className='text-center mb-4',
-                            ),
-                            width=12,
-                        )
-                    ]
+                # Add custom CSS for resizable sidebar
+                html.Style(
+                    """
+                    .resizable-container {
+                        display: flex;
+                        height: 100vh;
+                        overflow: hidden;
+                    }
+                    .sidebar {
+                        min-width: 250px;
+                        width: 300px;
+                        max-width: 600px;
+                        height: 100vh;
+                        overflow-y: auto;
+                        padding: 20px;
+                        background-color: #f8f9fa;
+                        resize: horizontal;
+                        overflow: auto;
+                    }
+                    .main-content {
+                        flex: 1;
+                        padding: 20px;
+                        overflow: auto;
+                    }
+                    .header-section {
+                        padding: 20px;
+                        background-color: white;
+                    }
+                    """
                 ),
-                dbc.Row(
+                # Header
+                html.Div(
+                    html.H1(
+                        'PyPopART: Haplotype Network Analysis',
+                        className='text-center mb-4',
+                    ),
+                    className='header-section',
+                ),
+                # Main resizable container
+                html.Div(
                     [
-                        # Left panel - Controls
-                        dbc.Col(
+                        # Left panel - Controls (resizable sidebar)
+                        html.Div(
                             [
                                 self._create_upload_card(),
                                 html.Br(),
@@ -113,11 +141,10 @@ class PyPopARTApp:
                                 html.Br(),
                                 self._create_export_card(),
                             ],
-                            width=3,
-                            style={'height': '90vh', 'overflow-y': 'auto'},
+                            className='sidebar',
                         ),
                         # Right panel - Visualization
-                        dbc.Col(
+                        html.Div(
                             [
                                 dbc.Tabs(
                                     [
@@ -136,9 +163,10 @@ class PyPopARTApp:
                                     ]
                                 )
                             ],
-                            width=9,
+                            className='main-content',
                         ),
-                    ]
+                    ],
+                    className='resizable-container',
                 ),
                 # Hidden stores for data
                 dcc.Store(id='alignment-store'),
@@ -147,9 +175,7 @@ class PyPopARTApp:
                 dcc.Store(id='layout-store'),
                 dcc.Store(id='computation-status'),
                 dcc.Store(id='geographic-mode', data=False),
-            ],
-            fluid=True,
-            style={'padding': '20px'},
+            ]
         )
 
     def _create_upload_card(self) -> dbc.Card:
@@ -236,23 +262,24 @@ class PyPopARTApp:
                             id='algorithm-select',
                             options=[
                                 {
-                                    'label': '🌳 Minimum Spanning Tree (MST) - Simple tree',
+                                    'label': 'MST - Minimum Spanning Tree',
                                     'value': 'mst',
                                 },
                                 {
-                                    'label': '🔗 Minimum Spanning Network (MSN) - Tree with alternative connections',
+                                    'label': 'MSN - Minimum Spanning Network',
                                     'value': 'msn',
                                 },
                                 {
-                                    'label': '📊 TCS - Statistical parsimony with confidence limits',
+                                    'label': 'TCS - Statistical Parsimony',
                                     'value': 'tcs',
                                 },
                                 {
-                                    'label': '⭐ Median-Joining Network (MJN) - Full network with inferred nodes',
+                                    'label': 'MJN - Median-Joining Network',
                                     'value': 'mjn',
                                 },
                             ],
                             value='msn',
+                            style={'white-space': 'nowrap'},
                         ),
                         html.Br(),
                         html.Div(id='algorithm-parameters'),
@@ -288,25 +315,26 @@ class PyPopARTApp:
                             id='layout-select',
                             options=[
                                 {
-                                    'label': '🌀 Spring - Force-directed (natural clustering)',
+                                    'label': 'Spring (Force-directed)',
                                     'value': 'spring',
                                 },
-                                {'label': '⭕ Circular - Nodes in a circle', 'value': 'circular'},
-                                {'label': '☀️ Radial - Star pattern from center', 'value': 'radial'},
+                                {'label': 'Circular', 'value': 'circular'},
+                                {'label': 'Radial', 'value': 'radial'},
                                 {
-                                    'label': '🎄 Hierarchical - Tree-like structure',
+                                    'label': 'Hierarchical',
                                     'value': 'hierarchical',
                                 },
                                 {
-                                    'label': '⚖️ Kamada-Kawai - Balanced distances',
+                                    'label': 'Kamada-Kawai',
                                     'value': 'kamada_kawai',
                                 },
                                 {
-                                    'label': '🗺️ Geographic - Map overlay (needs coordinates)',
+                                    'label': 'Geographic (requires coordinates)',
                                     'value': 'geographic',
                                 },
                             ],
                             value='spring',
+                            style={'white-space': 'nowrap'},
                         ),
                         html.Br(),
                         html.Div(
@@ -378,13 +406,14 @@ class PyPopARTApp:
                         dcc.Dropdown(
                             id='export-format',
                             options=[
-                                {'label': '📄 GraphML - For Cytoscape/Gephi', 'value': 'graphml'},
-                                {'label': '📄 GML - Graph Modeling Language', 'value': 'gml'},
-                                {'label': '📋 JSON - Web-friendly format', 'value': 'json'},
-                                {'label': '🖼️ PNG Image - High quality raster', 'value': 'png'},
-                                {'label': '🎨 SVG Image - Scalable vector', 'value': 'svg'},
+                                {'label': 'GraphML (Cytoscape/Gephi)', 'value': 'graphml'},
+                                {'label': 'GML (Graph Format)', 'value': 'gml'},
+                                {'label': 'JSON', 'value': 'json'},
+                                {'label': 'PNG Image', 'value': 'png'},
+                                {'label': 'SVG Image', 'value': 'svg'},
                             ],
                             value='graphml',
+                            style={'white-space': 'nowrap'},
                         ),
                         html.Br(),
                         dbc.Button(
@@ -1052,9 +1081,11 @@ class PyPopARTApp:
                 return fig
 
             except Exception as e:
+                self.logger.error(f'Error creating visualization: {e}')
+                self.logger.error(traceback.format_exc())
                 fig = go.Figure()
                 fig.add_annotation(
-                    text=f'Error creating visualization: {str(e)}',
+                    text=f'Error creating visualization: {str(e)}<br><br>See console for full traceback',
                     xref='paper',
                     yref='paper',
                     x=0.5,
@@ -1089,7 +1120,7 @@ class PyPopARTApp:
                     G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
 
                 network = HaplotypeNetwork()
-                network.graph = G
+                network._graph = G
 
                 # Calculate statistics
                 network_metrics = calculate_network_metrics(network)
@@ -1139,8 +1170,28 @@ class PyPopARTApp:
                 )
 
             except Exception as e:
+                self.logger.error(f'Error calculating statistics: {e}')
+                self.logger.error(traceback.format_exc())
                 return html.Div(
-                    f'Error calculating statistics: {str(e)}', style={'color': 'red'}
+                    [
+                        html.H5('Error calculating statistics', style={'color': 'red'}),
+                        html.P(str(e)),
+                        html.Details(
+                            [
+                                html.Summary('Show traceback'),
+                                html.Pre(
+                                    traceback.format_exc(),
+                                    style={
+                                        'background': '#f5f5f5',
+                                        'padding': '10px',
+                                        'overflow': 'auto',
+                                        'font-size': '12px',
+                                    },
+                                ),
+                            ]
+                        ),
+                    ],
+                    style={'color': 'red', 'padding': '20px'},
                 )
 
         @self.app.callback(
@@ -1169,6 +1220,8 @@ class PyPopARTApp:
                 return '\n'.join(lines)
 
             except Exception as e:
+                self.logger.error(f'Error displaying alignment: {e}')
+                self.logger.error(traceback.format_exc())
                 return f'Error displaying alignment: {str(e)}'
 
         @self.app.callback(
@@ -1238,7 +1291,7 @@ class PyPopARTApp:
                     G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
 
                 network = HaplotypeNetwork()
-                network.graph = G
+                network._graph = G
 
                 # Export based on format
                 if export_format == 'graphml':
