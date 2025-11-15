@@ -175,7 +175,7 @@ def calculate_fu_fs(network: HaplotypeNetwork, alignment: Alignment) -> FuFsResu
     total_diff = 0
     comparisons = 0
     
-    haplotype_list = list(network.haplotypes.values())
+    haplotype_list = network.haplotypes
     for i, hap_i in enumerate(haplotype_list):
         for j, hap_j in enumerate(haplotype_list[i + 1:], start=i + 1):
             seq_i = hap_i.sequence.data
@@ -472,7 +472,7 @@ def calculate_mismatch_distribution(network: HaplotypeNetwork) -> Dict[int, int]
     """
     mismatch_counts: Dict[int, int] = defaultdict(int)
     
-    haplotype_list = list(network.haplotypes.values())
+    haplotype_list = network.haplotypes
     
     for i, hap_i in enumerate(haplotype_list):
         for hap_j in haplotype_list[i:]:  # Include self-comparison (0 differences)
