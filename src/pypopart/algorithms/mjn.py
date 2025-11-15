@@ -7,7 +7,7 @@ Molecular Biology and Evolution 16: 37-48
 """
 
 import itertools
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix, hamming_distance
