@@ -647,7 +647,7 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
             Simplified network.
         """
         changed = True
-        
+
         # Iterate until no more changes (matches C++ while loop)
         while changed:
             changed = False
