@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import networkx as nx
 
 from .haplotype import Haplotype
+from .sequence import Sequence
 
 
 @dataclass
@@ -51,6 +52,47 @@ class HaplotypeNetwork:
         self._haplotype_map: Dict[str, Haplotype] = {}
         self._median_vectors: Set[str] = set()
         self.metadata: Dict[str, Any] = {}
+
+    @classmethod
+    def from_serialized(cls, network_data: Dict) -> 'HaplotypeNetwork':
+        """
+        Reconstruct a HaplotypeNetwork from serialized data.
+
+        Parameters
+        ----------
+        network_data :
+            Dictionary containing serialized network data with 'nodes' and 'edges'.
+
+        Returns
+        -------
+            Reconstructed HaplotypeNetwork object.
+        """
+        network = cls()
+
+        # Reconstruct haplotypes from nodes
+        for node in network_data.get('nodes', []):
+            node_id = node['id']
+            sequence_data = node.get('sequence', '')
+            is_median = node.get('is_median', False)
+            sample_ids = node.get('sample_ids', node.get('samples', []))
+
+            # Create a Sequence object
+            seq = Sequence(id=node_id, data=sequence_data)
+
+            # Create a Haplotype object
+            haplotype = Haplotype(sequence=seq, sample_ids=sample_ids)
+
+            # Add to network
+            network.add_haplotype(haplotype, median_vector=is_median)
+
+        # Add edges
+        for edge in network_data.get('edges', []):
+            source = edge['source']
+            target = edge['target']
+            weight = edge.get('weight', 1)
+            network.add_edge(source, target, distance=weight)
+
+        return network
 
     @property
     def graph(self) -> nx.Graph:
