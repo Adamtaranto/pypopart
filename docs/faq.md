@@ -31,6 +31,7 @@ Yes! PyPopART works on Windows, macOS, and Linux.
 ### Installation fails with NumPy/SciPy errors
 
 Try installing NumPy and SciPy first:
+
 ```bash
 pip install numpy scipy
 pip install pypopart
@@ -61,12 +62,15 @@ For most cases, Hamming or K2P is sufficient.
 ### My network is too complex, how can I simplify it?
 
 For MJN networks:
+
 ```bash
 pypopart network sequences.fasta -a mjn -e 10 -o network.graphml
 ```
+
 Increase epsilon (e.g., 5, 10, 20) to reduce complexity.
 
 For TCS networks, increase the parsimony limit:
+
 ```bash
 pypopart network sequences.fasta -a tcs -p 0.99 -o network.graphml
 ```
@@ -89,6 +93,7 @@ Seq3,PopB,Site2
 ```
 
 Then:
+
 ```bash
 pypopart load sequences.fasta -m metadata.csv
 pypopart visualize network.graphml --color-by population -o network.png
@@ -97,6 +102,7 @@ pypopart visualize network.graphml --color-by population -o network.png
 ### Can I visualize networks from other software?
 
 If the network is in GraphML, GML, or JSON format, yes! Load it:
+
 ```bash
 pypopart visualize external_network.graphml -o plot.png
 ```
@@ -106,11 +112,13 @@ pypopart visualize external_network.graphml -o plot.png
 ### How do I make publication-quality figures?
 
 Use PDF output for vector graphics:
+
 ```bash
 pypopart visualize network.graphml -o network.pdf --width 1200 --height 1200
 ```
 
 For highest quality:
+
 - Use larger dimensions (1200+ pixels)
 - Use vector formats (PDF, SVG)
 - Show labels only if needed
@@ -123,6 +131,7 @@ Node sizes are based on haplotype frequency. Make sure frequency information is 
 ### How do I customize colors?
 
 Currently, colors are assigned automatically. For custom coloring:
+
 ```python
 from pypopart.visualization import StaticVisualizer
 
@@ -134,6 +143,7 @@ viz.plot(node_colors=custom_colors, output_file='network.png')
 ### Can I export interactive plots?
 
 Yes! Use HTML format:
+
 ```bash
 pypopart visualize network.graphml -o network.html --interactive
 ```
@@ -160,6 +170,7 @@ Currently, PyPopART runs single-threaded for most operations. Parallel processin
 ### What statistics should I report?
 
 Common statistics include:
+
 - Number of haplotypes
 - Haplotype diversity
 - Nucleotide diversity
@@ -167,6 +178,7 @@ Common statistics include:
 - Number of reticulations
 
 Use:
+
 ```bash
 pypopart analyze network.graphml --stats --topology
 ```
@@ -194,6 +206,7 @@ print(f"FST = {fst:.4f}")
 ### What does reticulation index mean?
 
 Reticulation index measures network complexity:
+
 - 0 = tree (no cycles)
 - Higher values = more reticulate (more cycles)
 
@@ -213,9 +226,10 @@ Sequence IDs must be unique. Check for duplicate sequence names in your input fi
 
 This usually indicates a bug. Please report it on GitHub with your data and command.
 
-### "Cannot import name '__version__'"
+### "Cannot import name '**version**'"
 
 The package wasn't installed correctly. Try:
+
 ```bash
 pip uninstall pypopart
 pip install pypopart
@@ -235,12 +249,14 @@ Compressed files (.gz, .zip) are automatically detected and decompressed.
 ### What output formats are available?
 
 Networks:
+
 - GraphML (.graphml) - Recommended
 - GML (.gml)
 - JSON (.json)
 - NEXUS (.nexus, .nex)
 
 Visualizations:
+
 - PNG (.png) - Raster
 - PDF (.pdf) - Vector, publication-ready
 - SVG (.svg) - Vector, web-friendly
@@ -249,6 +265,7 @@ Visualizations:
 ### Can I convert between formats?
 
 Yes:
+
 ```bash
 # Load in one format, save in another
 pypopart network sequences.fasta -o network.graphml
@@ -269,6 +286,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 ### Where should I report bugs?
 
 Open an issue on [GitHub](https://github.com/adamtaranto/pypopart/issues) with:
+
 - Python and PyPopART versions
 - Command or code that caused the error
 - Full error message
@@ -277,6 +295,7 @@ Open an issue on [GitHub](https://github.com/adamtaranto/pypopart/issues) with:
 ### Can I request features?
 
 Yes! Open an issue on GitHub describing:
+
 - The use case
 - Proposed functionality
 - Examples from other tools (if applicable)
@@ -285,12 +304,13 @@ Yes! Open an issue on GitHub describing:
 
 ### How do I cite PyPopART?
 
-```
+```text
 Taranto, A. (2024). PyPopART: Pure Python implementation of haplotype network analysis.
 GitHub repository: https://github.com/adamtaranto/pypopart
 ```
 
 BibTeX:
+
 ```bibtex
 @software{pypopart,
   author = {Taranto, Adam},

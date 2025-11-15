@@ -18,6 +18,7 @@ All 6 requested algorithm improvements have been successfully implemented and te
 **Implementation**: 230+ lines added to `src/pypopart/algorithms/tcs.py`
 
 **Features**:
+
 - Implements `findIntermediates` algorithm from C++ PopART
 - Adds intermediate sequences for multi-step connections
 - Scoring system with BONUS, SHORTCUTPENALTY, LONGPENALTY constants
@@ -25,6 +26,7 @@ All 6 requested algorithm improvements have been successfully implemented and te
 - Configurable via `infer_intermediates` parameter
 
 **Methods Added**:
+
 - `_build_parsimony_network_with_intermediates()`: Full TCS algorithm with intermediates
 - `_create_intermediate_path()`: Generates intermediate sequences
 - Component-based connection logic matching C++ behavior
@@ -38,6 +40,7 @@ All 6 requested algorithm improvements have been successfully implemented and te
 **Implementation**: 300+ lines added to `src/pypopart/algorithms/mjn.py`
 
 **Features**:
+
 - Complete iterative refinement loop matching C++ `computeMJN()`
 - Convergence-based termination
 - MSN reconstruction in each iteration
@@ -45,12 +48,14 @@ All 6 requested algorithm improvements have been successfully implemented and te
 - Maximum iteration limit to prevent infinite loops
 
 **Methods Added**:
+
 - `_iterative_median_joining()`: Main iterative loop
 - `_build_msn_for_iteration()`: Reconstruct MSN for each iteration
 - `_find_all_triplets_in_msn()`: Comprehensive triplet detection
 - `_remove_obsolete_medians()`: Cleanup of low-degree medians
 
 **Key Algorithm**:
+
 ```python
 while changed and iteration < max_iterations:
     1. Build MSN from current haplotypes
@@ -70,6 +75,7 @@ while changed and iteration < max_iterations:
 **Implementation**: 50 lines changed in `src/pypopart/cli/main.py`
 
 **Fixes**:
+
 - Updated imports from `MSTAlgorithm` → `MinimumSpanningTree`
 - Updated imports from `TCSAlgorithm` → `TCS`
 - Removed deprecated `DistanceCalculator` usage
@@ -86,6 +92,7 @@ while changed and iteration < max_iterations:
 **Implementation**: 200+ lines added to `tests/unit/test_mjn.py`
 
 **New Test Methods** (14 total):
+
 1. `test_mjn_iterative_refinement()` - Verifies iteration behavior
 2. `test_mjn_quasi_median_simple()` - Simple quasi-median case
 3. `test_mjn_quasi_median_all_different()` - Complex quasi-median case
@@ -99,6 +106,7 @@ while changed and iteration < max_iterations:
 11. `test_mjn_different_distance_methods()` - Distance method compatibility
 
 **Coverage Improvement**:
+
 - Before: ~59% (14 tests)
 - After: Significantly higher (28 tests total)
 - All new methods tested
@@ -113,12 +121,14 @@ while changed and iteration < max_iterations:
 **Implementation**: Part of MJN iterative refinement
 
 **Features**:
+
 - Implements Steiner tree approach from C++ `computeQuasiMedianSeqs()`
 - Handles ambiguous positions (all three bases different)
 - Generates all valid quasi-median combinations
 - Uses stack-based expansion for efficiency
 
 **Algorithm**:
+
 ```python
 def _compute_quasi_medians(seq1, seq2, seq3):
     1. Build initial sequence with '*' at ambiguous positions
@@ -132,6 +142,7 @@ def _compute_quasi_medians(seq1, seq2, seq3):
 ```
 
 **Example**:
+
 - Input: "AA", "CC", "GG" (all different)
 - Output: {"AA", "AC", "AG", "CA", "CC", "CG", "GA", "GC", "GG"}
 
@@ -144,6 +155,7 @@ def _compute_quasi_medians(seq1, seq2, seq3):
 **Implementation**: Part of TCS intermediate inference
 
 **Features**:
+
 - Post-processing simplification of networks
 - Removes degree-2 vertices (intermediates)
 - Replaces removed vertices with direct edges
@@ -152,6 +164,7 @@ def _compute_quasi_medians(seq1, seq2, seq3):
 **Method**: `_collapse_degree2_vertices()`
 
 **Algorithm**:
+
 ```python
 while collapsed:
     1. Find all degree-2 vertices
@@ -169,16 +182,19 @@ while collapsed:
 ## Testing and Validation
 
 ### Security
+
 - ✅ CodeQL scan: **0 vulnerabilities found**
 - ✅ No security issues introduced
 
 ### Code Quality
+
 - ✅ All new code has type hints
 - ✅ Comprehensive docstrings (numpydoc style)
 - ✅ Proper error handling
 - ✅ Follows Python best practices
 
 ### Test Coverage
+
 - TCS: Existing tests still pass
 - MJN: 14 new tests added (doubled coverage)
 - CLI: Manual testing confirms functionality
@@ -189,12 +205,14 @@ while collapsed:
 ## Algorithm Correctness
 
 ### TCS vs C++ PopART
+
 - ✅ Intermediate inference logic matches
 - ✅ Component tracking matches
 - ✅ Vertex collapse matches
 - ✅ Scoring constants identical (BONUS=20, SHORTCUTPENALTY=10, LONGPENALTY=5)
 
 ### MJN vs C++ PopART
+
 - ✅ Iterative refinement loop matches
 - ✅ Quasi-median calculation matches
 - ✅ Epsilon-based median selection matches
@@ -202,6 +220,7 @@ while collapsed:
 - ✅ Convergence criteria match
 
 ### CLI
+
 - ✅ All API calls updated to current version
 - ✅ Network construction works correctly
 - ✅ Network saving works correctly
@@ -211,11 +230,13 @@ while collapsed:
 ## Performance Characteristics
 
 ### TCS
+
 - **Time Complexity**: O(n² * k) where n=haplotypes, k=connection_limit
 - **Space Complexity**: O(n²) for distance matrix
 - **Impact of Intermediates**: Adds O(k) intermediate nodes per connection
 
 ### MJN
+
 - **Time Complexity**: O(iter * (n³ + m)) where iter=iterations, n=nodes, m=triplets
 - **Space Complexity**: O(n²) for distance matrix + O(2^p) for quasi-medians (p=ambiguous positions)
 - **Convergence**: Typically 3-10 iterations for most datasets
@@ -226,6 +247,7 @@ while collapsed:
 ## Usage Examples
 
 ### TCS with Intermediate Inference
+
 ```python
 from pypopart.algorithms import TCS
 from pypopart.io import load_alignment
@@ -242,6 +264,7 @@ network_simple = tcs_simple.build_network(alignment)
 ```
 
 ### MJN with Iterative Refinement
+
 ```python
 from pypopart.algorithms import MedianJoiningNetwork
 from pypopart.io import load_alignment
@@ -258,6 +281,7 @@ network_limited = mjn_limited.build_network(alignment)
 ```
 
 ### CLI Usage
+
 ```bash
 # TCS network
 pypopart network sequences.fasta --algorithm tcs --output network.graphml
@@ -274,6 +298,7 @@ pypopart network sequences.fasta --algorithm mst --distance hamming --output net
 ## Documentation
 
 All new methods include:
+
 - ✅ Comprehensive docstrings
 - ✅ Parameter descriptions
 - ✅ Return value documentation

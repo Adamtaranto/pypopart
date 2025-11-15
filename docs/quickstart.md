@@ -37,7 +37,8 @@ pypopart network mysequences.fasta -o mynetwork.graphml
 ```
 
 Output:
-```
+
+```text
 Loading sequences from mysequences.fasta...
 ✓ Loaded 5 sequences (20 bp)
 Calculating hamming distances...
@@ -116,7 +117,8 @@ pypopart analyze mynetwork.graphml --stats
 ```
 
 Output:
-```
+
+```text
 Loading network from mynetwork.graphml...
 ✓ Loaded network with 3 nodes
 
@@ -252,20 +254,22 @@ Now that you've created your first network, learn more:
 
 !!! tip "Performance"
     For large datasets (>1000 sequences), consider:
-    
-    - Using MST or MSN instead of MJN for speed
-    - Using Hamming distance instead of more complex models
-    - Increasing epsilon parameter for MJN to reduce complexity
+
+- Using MST or MSN instead of MJN for speed
+- Using Hamming distance instead of more complex models
+- Increasing epsilon parameter for MJN to reduce complexity
 
 !!! tip "Visualization"
-    - PNG for presentations and documents
-    - PDF for publications (vector format, scalable)
-    - SVG for web use
-    - HTML for interactive exploration
+
+- PNG for presentations and documents
+- PDF for publications (vector format, scalable)
+- SVG for web use
+- HTML for interactive exploration
 
 !!! tip "File Formats"
-    - GraphML preserves all network attributes (recommended)
-    - JSON for web applications
-    - NEXUS for PopART compatibility
+
+- GraphML preserves all network attributes (recommended)
+- JSON for web applications
+- NEXUS for PopART compatibility
 
 Happy network building! 🌳

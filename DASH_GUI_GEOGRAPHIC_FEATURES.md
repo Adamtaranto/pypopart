@@ -22,6 +22,7 @@ The upload card now has two file upload controls:
    - Coordinates are automatically extracted and validated
 
 **Example metadata CSV:**
+
 ```csv
 id,population,location,latitude,longitude
 Hap1,PopA,New York,40.7128,-74.0060
@@ -30,6 +31,7 @@ Hap3,PopC,Tokyo,35.6762,139.6503
 ```
 
 **Upload Status:**
+
 - Success message shows number of sequences with metadata
 - Shows number of sequences with valid coordinates
 - Error alerts for invalid file formats or parsing errors
@@ -39,6 +41,7 @@ Hap3,PopC,Tokyo,35.6762,139.6503
 **Location**: Layout Options card (Section 3)
 
 The layout dropdown now includes:
+
 - Spring (Force-Directed)
 - Circular
 - Radial
@@ -49,13 +52,17 @@ The layout dropdown now includes:
 When "Geographic" is selected, additional controls appear:
 
 #### Map Projection
+
 Choose how geographic coordinates are projected:
+
 - **Mercator**: Standard web mapping, preserves angles (default)
 - **PlateCarree**: Simple lat/lon mapping, good for global views
 - **Orthographic**: 3D globe perspective
 
 #### Zoom Level
+
 Slider from 1-10:
+
 - Lower values (1-3): Global view
 - Medium values (4-7): Continental/regional view
 - Higher values (8-10): Local/detailed view
@@ -65,6 +72,7 @@ Slider from 1-10:
 When using geographic layout, the network visualization shows:
 
 **Visual Indicators:**
+
 - "Geographic Mode" badge in top-left corner (blue)
 - X-axis labeled "Longitude"
 - Y-axis labeled "Latitude"
@@ -72,6 +80,7 @@ When using geographic layout, the network visualization shows:
 - Edges connect nodes showing genetic relationships
 
 **Behavior:**
+
 - If no metadata with coordinates is uploaded, falls back to spring layout
 - Network overlay maintains all interactive features (zoom, pan, hover)
 - Node sizes still reflect haplotype frequency
@@ -112,17 +121,20 @@ When using geographic layout, the network visualization shows:
 ### 5. Technical Details
 
 **Coordinate Requirements:**
+
 - Latitude: -90 to 90 (degrees)
 - Longitude: -180 to 180 (degrees)
 - Must be in decimal degrees format
 - Column names must be "latitude" and "longitude" (case-insensitive)
 
 **Fallback Behavior:**
+
 - If geographic layout selected without coordinates → spring layout
 - If some nodes lack coordinates → placed using spring layout for missing nodes
 - If coordinates are invalid → error message in metadata upload status
 
 **Data Storage:**
+
 - Metadata stored in `metadata-store` (Dash Store component)
 - Coordinates extracted and stored separately
 - Geographic mode flag stored in `geographic-mode` store
@@ -131,6 +143,7 @@ When using geographic layout, the network visualization shows:
 ### 6. Integration with Existing Features
 
 Geographic visualization works seamlessly with:
+
 - All network construction algorithms (MST, MSN, TCS, MJN)
 - Statistics calculations
 - Network export functionality
@@ -140,24 +153,28 @@ Geographic visualization works seamlessly with:
 ### 7. Limitations and Notes
 
 **Current Limitations:**
+
 - GUI uses plotly for visualization (not cartopy/folium)
 - No actual map background tiles in Dash GUI
 - Map projections affect node positioning only
 - For full map backgrounds, use CLI `geo-visualize` command
 
 **Why This Design:**
+
 - Dash GUI focuses on interactive network analysis
 - Plotly provides excellent interactivity for networks
 - CLI tool provides full cartographic features
 - Both approaches complement each other
 
 **When to Use Each:**
+
 - **Dash GUI**: Interactive exploration, trying different layouts, network analysis
 - **CLI geo-visualize**: Publication-quality maps, presentations, map tiles
 
 ### 8. Future Enhancements
 
 Potential future improvements:
+
 - Map tile background in Dash (using plotly's mapbox)
 - Multiple coordinate systems per node (for haplotypes in multiple locations)
 - Color coding by region
@@ -176,6 +193,7 @@ Potential future improvements:
 6. Export results for publication
 
 **Benefits:**
+
 - Visual pattern recognition
 - Geographic vs. genetic distance comparison
 - Identifying dispersal routes
@@ -184,16 +202,19 @@ Potential future improvements:
 ## Troubleshooting
 
 **Issue**: "Geographic layout shows spring layout instead"
+
 - **Solution**: Ensure metadata CSV has "latitude" and "longitude" columns
 - Check metadata upload status for coordinate count
 - Verify coordinates are in valid range
 
 **Issue**: "Metadata upload fails"
+
 - **Solution**: Ensure file is CSV format
 - Check that first column is "id" matching sequence IDs
 - Verify no special characters in coordinate values
 
 **Issue**: "Geographic mode indicator doesn't show"
+
 - **Solution**: Ensure you clicked "Apply Layout" after selecting geographic
 - Refresh the page and try again
 - Check browser console for JavaScript errors
@@ -203,18 +224,21 @@ Potential future improvements:
 ### Dash Callbacks
 
 **Metadata Upload**
+
 ```python
 Input: 'upload-metadata' contents
 Output: 'metadata-status' (status message), 'metadata-store' (data)
 ```
 
 **Geographic Options Toggle**
+
 ```python
 Input: 'layout-select' value
 Output: 'geographic-options' style, 'geographic-mode' data
 ```
 
 **Layout Computation with Geographic**
+
 ```python
 Input: 'apply-layout-button' clicks, 'network-store' data
 State: 'layout-select', 'metadata-store', 'map-projection'
@@ -222,6 +246,7 @@ Output: 'layout-store' data
 ```
 
 **Visualization with Geographic Mode**
+
 ```python
 Input: 'layout-store', 'network-store', 'geographic-mode'
 State: 'metadata-store'

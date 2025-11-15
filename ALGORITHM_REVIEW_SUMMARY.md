@@ -17,6 +17,7 @@ This document summarizes the comprehensive review of PopART legacy C++ algorithm
 **Verdict**: Python implementation is **correct** and matches C++ logic.
 
 **Python Implementation Details**:
+
 - Implements both Prim's and Kruskal's algorithms
 - Prim's: O(E log V) with binary heap priority queue
 - Kruskal's: O(E log E) with union-find and path compression
@@ -24,12 +25,14 @@ This document summarizes the comprehensive review of PopART legacy C++ algorithm
 - Epsilon parameter properly implements network relaxation
 
 **C++ Comparison**:
+
 - C++ uses Kruskal-like approach with component tracking
 - Python's Prim's implementation is more memory-efficient
 - Both produce equivalent networks
 - Python version has better code organization
 
 **Optimization Status**: ✅ Complete
+
 - Efficient data structures (heapq, union-find)
 - NumPy integration for distance matrices
 - No further optimization needed
@@ -41,6 +44,7 @@ This document summarizes the comprehensive review of PopART legacy C++ algorithm
 **Verdict**: Basic algorithm **correct**, but missing key features from C++ implementation.
 
 **Python Implementation Details**:
+
 - Correctly implements parsimony-based connection limit
 - Connects haplotypes in order of increasing distance
 - Frequency-based prioritization works correctly
@@ -65,6 +69,7 @@ This document summarizes the comprehensive review of PopART legacy C++ algorithm
    - **Impact**: Connection limit may differ slightly from original PopART
 
 **Recommendation**:
+
 - Implement intermediate sequence inference algorithm
 - Add post-processing to collapse degree-2 vertices
 - Verify connection limit formula against Templeton et al. (1992)
@@ -76,6 +81,7 @@ This document summarizes the comprehensive review of PopART legacy C++ algorithm
 **Verdict**: Basic median inference **works**, but algorithm is simplified compared to C++.
 
 **Python Implementation Details**:
+
 - Identifies triangles in MSN
 - Calculates median vectors for triplets
 - Adds medians that reduce total edge weight
@@ -104,6 +110,7 @@ This document summarizes the comprehensive review of PopART legacy C++ algorithm
    - **Impact**: Final network may not be fully simplified
 
 **Recommendation**:
+
 - Implement iterative median inference loop
 - Add quasi-median calculation (Steiner tree approach)
 - Implement epsilon-based cost function
@@ -116,6 +123,7 @@ This document summarizes the comprehensive review of PopART legacy C++ algorithm
 **Verdict**: All distance methods **correctly implemented** with significant performance improvements.
 
 **Implemented Distance Metrics**:
+
 - ✅ Hamming distance
 - ✅ p-distance (proportion of differences)
 - ✅ Jukes-Cantor correction
@@ -141,7 +149,8 @@ This document summarizes the comprehensive review of PopART legacy C++ algorithm
    - No breaking changes to API
 
 **Performance Benchmarks**:
-```
+
+```text
 Single sequence comparison (1000bp):
   Pure Python: ~100 μs
   Numba JIT:   ~10 μs
@@ -171,6 +180,7 @@ Pairwise matrix (100 sequences, 500bp):
 ### Python Best Practices
 
 ✅ **Followed**:
+
 - PEP 8 style guidelines
 - Type hints throughout
 - Comprehensive docstrings
@@ -180,6 +190,7 @@ Pairwise matrix (100 sequences, 500bp):
 - Unit testing
 
 ✅ **Modern Python Features**:
+
 - Type annotations
 - Context managers
 - Generators where appropriate
@@ -211,16 +222,19 @@ Pairwise matrix (100 sequences, 500bp):
 ### Future Opportunities
 
 **High Priority**:
+
 - Vectorize alignment operations with NumPy broadcasting
 - Implement iterative MJN refinement
 - Add TCS intermediate inference
 
 **Medium Priority**:
+
 - Use scipy.sparse for very large distance matrices
 - Multiprocessing for independent network constructions
 - Memory-mapped files for gigabyte-scale alignments
 
 **Low Priority**:
+
 - SIMD vectorization for sequence comparisons
 - GPU acceleration via CuPy/CUDA for massive datasets
 - Cython compilation for critical paths
@@ -243,12 +257,14 @@ Pairwise matrix (100 sequences, 500bp):
 ### Test Quality
 
 ✅ **Strengths**:
+
 - Comprehensive edge case testing
 - Integration tests for workflows
 - Performance benchmarks included
 - Mock data generation
 
 ⚠️ **Areas for Improvement**:
+
 - Add more MJN tests (currently 59% coverage)
 - Add comparison tests with C++ PopART outputs
 - Add performance regression tests
@@ -263,12 +279,14 @@ Pairwise matrix (100 sequences, 500bp):
 **Status**: ⚠️ **API Compatibility Issues Identified**
 
 **Issues Found**:
+
 1. CLI uses outdated class names (`MSTAlgorithm` vs `MinimumSpanningTree`)
 2. Import paths don't match current package structure
 3. GraphML export fails with Haplotype objects
 4. JSON export needs serialization handling
 
 **Recommendation**:
+
 - Update CLI imports to match current API
 - Fix network export serialization
 - Add CLI integration tests
@@ -279,12 +297,14 @@ Pairwise matrix (100 sequences, 500bp):
 **Status**: ✅ **Working**
 
 **Test Results**:
+
 - ✅ Imports successfully
 - ✅ Uses modern Dash API (`app.run()` not `app.run_server()`)
 - ✅ Pattern matching callbacks work correctly
 - ✅ No immediate errors on startup
 
 **Minor Issues**:
+
 - Network export serialization (same as CLI)
 - Consider adding loading indicators for large datasets
 
@@ -306,34 +326,34 @@ Pairwise matrix (100 sequences, 500bp):
 
 ### Near-Term (Important for Completeness)
 
-3. **Implement MJN Iterative Refinement** ⚠️
+1. **Implement MJN Iterative Refinement** ⚠️
    - Impact: Network optimality
    - Effort: High (5-7 days)
    - Complexity: Complex algorithmic work
 
-4. **Add TCS Vertex Collapse** ⚠️
+2. **Add TCS Vertex Collapse** ⚠️
    - Impact: Network simplification
    - Effort: Low (1-2 days)
    - Complexity: Simple graph manipulation
 
-5. **Improve MJN Test Coverage** ⚠️
+3. **Improve MJN Test Coverage** ⚠️
    - Impact: Code quality confidence
    - Effort: Medium (2-3 days)
    - Complexity: Test design
 
 ### Future (Enhancements)
 
-6. **Add Quasi-Median Calculation**
+1. **Add Quasi-Median Calculation**
    - Impact: MJN theoretical correctness
    - Effort: Medium (3-4 days)
    - Complexity: Graph algorithm implementation
 
-7. **Performance Benchmarking Suite**
+2. **Performance Benchmarking Suite**
    - Impact: Performance monitoring
    - Effort: Medium (2-3 days)
    - Complexity: Benchmark design
 
-8. **Documentation Website**
+3. **Documentation Website**
    - Impact: User experience
    - Effort: High (1-2 weeks)
    - Complexity: Documentation writing + site setup
@@ -345,6 +365,7 @@ Pairwise matrix (100 sequences, 500bp):
 ### Overall Assessment
 
 The PyPopART pure Python implementation is **high quality** with:
+
 - ✅ Correct core algorithms (MST, MSN)
 - ✅ Significant performance optimizations (Numba JIT)
 - ✅ Good test coverage (73%, 424 tests)
@@ -372,12 +393,14 @@ The PyPopART pure Python implementation is **high quality** with:
 ### Final Recommendation
 
 The package is **suitable for production use** with the following caveats:
+
 1. Use MST/MSN for guaranteed correct results
 2. TCS works well for most use cases, be aware of missing intermediate inference
 3. MJN works for exploratory analysis, but may not match C++ PopART exactly
 4. CLI needs updates before wider distribution
 
 **Priority Actions**:
+
 1. Fix TCS and MJN algorithms to match C++ behavior
 2. Update CLI to current API
 3. Add comprehensive integration tests
@@ -401,8 +424,8 @@ The package is **suitable for production use** with the following caveats:
 
 - **C++ Source Code**: `archive_popart_src/networks/`
 - **Python Implementation**: `src/pypopart/algorithms/`
-- **Numba Documentation**: https://numba.pydata.org/
-- **NetworkX Documentation**: https://networkx.org/
+- **Numba Documentation**: <https://numba.pydata.org/>
+- **NetworkX Documentation**: <https://networkx.org/>
 
 ---
 

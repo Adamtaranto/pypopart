@@ -48,6 +48,7 @@ pip install pypopart
 PyPopART automatically installs the following dependencies:
 
 ### Core Dependencies
+
 - **biopython**: Sequence I/O and manipulation
 - **click**: Command-line interface
 - **matplotlib**: Static visualization
@@ -68,6 +69,7 @@ pip install pypopart[dev]
 ```
 
 This includes:
+
 - **pytest**: Testing framework
 - **pytest-cov**: Coverage reporting
 - **ruff**: Fast linting and formatting
@@ -90,7 +92,8 @@ pypopart info --list-algorithms
 ```
 
 Expected output:
-```
+
+```text
 Available Network Construction Algorithms:
   mst - Minimum Spanning Tree
   msn - Minimum Spanning Network
@@ -144,6 +147,7 @@ PyPopART works on:
 ### ImportError: No module named 'pypopart'
 
 The package is not installed. Try:
+
 ```bash
 pip install pypopart
 ```
@@ -151,6 +155,7 @@ pip install pypopart
 ### Command not found: pypopart
 
 The pip install directory is not in your PATH. Try:
+
 ```bash
 python -m pypopart --help
 ```

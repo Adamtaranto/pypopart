@@ -122,7 +122,8 @@ PyPopART is developed and maintained by Adam Taranto. It is inspired by the orig
 **License**: GNU General Public License v3.0 or later
 
 **Citation**: If you use PyPopART in your research, please cite:
-```
+
+```text
 Taranto, A. (2024). PyPopART: Pure Python implementation of haplotype network analysis.
 GitHub repository: https://github.com/adamtaranto/pypopart
 ```

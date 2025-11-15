@@ -86,6 +86,7 @@ These are included in the main PyPopART dependencies and will be installed autom
 ## Examples
 
 See the `examples/geo_data/` directory for:
+
 - Sample sequences with geographic distribution
 - Sample metadata with coordinates
 - Complete working example script (`examples/geo_example.py`)
@@ -94,18 +95,21 @@ See the `examples/geo_data/` directory for:
 ## Map Projections
 
 ### Mercator
+
 - Preserves angles (conformal)
 - Distorts area, especially near poles
 - Good for equatorial and mid-latitude regions
 - Standard web mapping projection
 
 ### PlateCarree (Equirectangular)
+
 - Simple lat/lon mapping (no transformation)
 - Equal spacing of parallels and meridians
 - Good for global views and polar regions
 - Simple but not conformal or equal-area
 
 ### Orthographic
+
 - 3D globe perspective
 - One hemisphere visible at a time
 - Good for presentations and publications
@@ -187,7 +191,7 @@ Suggestions for improvements to geographic visualization features are welcome! P
 
 If you use the geographic visualization features in your research, please cite:
 
-```
+```text
 Taranto, A. (2024). PyPopART: Pure Python implementation of haplotype network analysis.
 GitHub repository: https://github.com/adamtaranto/pypopart
 ```

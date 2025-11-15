@@ -65,6 +65,7 @@ mst = MinimumSpanningTree(
 ```
 
 **When to use:**
+
 - Need simplest representation
 - Want guaranteed tree structure (no cycles)
 - Have well-separated haplotypes
@@ -80,6 +81,7 @@ msn = MinimumSpanningNetwork(
 ```
 
 **When to use:**
+
 - Want to show alternative relationships
 - Sequences have equal distances to multiple neighbors
 - Need more realistic network than simple tree
@@ -95,6 +97,7 @@ tcs = TCS(
 ```
 
 **When to use:**
+
 - Intraspecific/population-level data
 - Want statistically justified connections
 - Need to identify separate lineages
@@ -112,6 +115,7 @@ mjn = MedianJoiningNetwork(
 ```
 
 **When to use:**
+
 - Have missing intermediate haplotypes
 - Complex reticulation patterns
 - Want to infer ancestral sequences
@@ -139,6 +143,7 @@ algorithm = Algorithm(distance_method="tn")
 ```
 
 **Recommendations:**
+
 - **Hamming**: Best for closely related sequences, discrete mutation counts
 - **p-distance**: Simple proportion, good for quick analysis
 - **Jukes-Cantor**: Corrects for multiple substitutions, assumes equal rates
@@ -162,7 +167,7 @@ print(f"Connected: {stats['is_connected']}")
 # Get haplotype information
 for hap in network.haplotypes:
     print(f"{hap.id}: frequency={hap.frequency}, samples={len(hap.sample_ids)}")
-    
+
 # Get edge information
 for u, v in network.edges:
     dist = network.get_edge_distance(u, v)

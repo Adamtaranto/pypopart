@@ -10,11 +10,13 @@ This directory contains sample data for demonstrating PyPopART's geographic visu
 ## Sample Metadata Format
 
 The metadata CSV file must contain the following columns:
+
 - `id`: Sequence identifier (must match FASTA headers)
 - `latitude`: Latitude in decimal degrees (-90 to 90)
 - `longitude`: Longitude in decimal degrees (-180 to 180)
 
 Optional columns:
+
 - `population`: Population or group name
 - `location`: Human-readable location name
 - Any other metadata fields
@@ -124,6 +126,7 @@ Configure this in the Python API using the `handle_multiple_locations` parameter
 ## Example Output
 
 Running the example script creates:
+
 - Static maps showing the haplotype network overlaid on a world map
 - Interactive HTML map with clickable nodes showing haplotype details
 - Network edges showing genetic relationships between geographically distributed haplotypes

@@ -47,7 +47,8 @@ pypopart load sequences.fasta
 ```
 
 Output:
-```
+
+```text
 Loading sequences from sequences.fasta...
 ✓ Loaded 50 sequences
   Alignment length: 500 bp
@@ -80,7 +81,8 @@ pypopart analyze network.graphml --stats
 ```
 
 Output:
-```
+
+```text
 Loading network from network.graphml...
 ✓ Loaded network with 12 nodes
 
@@ -233,6 +235,7 @@ pypopart visualize network.graphml -o network.png --color-by population
 ```
 
 Metadata CSV format:
+
 ```csv
 id,population,location
 Hap1,PopA,Site1
@@ -254,6 +257,7 @@ pypopart analyze network.graphml --topology
 ```
 
 Identifies:
+
 - Connected components
 - Star-like patterns
 - Central/hub nodes
@@ -297,6 +301,7 @@ pypopart geo-visualize network.graphml \
 ```
 
 Geographic metadata CSV format:
+
 ```csv
 id,population,location,latitude,longitude
 Hap1,PopA,New York,40.7128,-74.0060
@@ -305,16 +310,19 @@ Hap3,PopC,Tokyo,35.6762,139.6503
 ```
 
 **Supported projections:**
+
 - `mercator` - Web Mercator (preserves angles)
 - `platecarree` - Equirectangular (simple lat/lon)
 - `orthographic` - 3D globe view
 
 **Interactive map base layers:**
+
 - `OpenStreetMap` - Standard map tiles
 - `Stamen Terrain` - Terrain with hill shading
 - `CartoDB positron` - Clean, minimal style
 
 **Python API:**
+
 ```python
 from pypopart.visualization import GeoVisualizer, InteractiveGeoVisualizer
 
@@ -355,6 +363,7 @@ Example data and Jupyter notebooks can be found in the `examples/` directory:
 Full documentation is available at [https://pypopart.readthedocs.io](https://pypopart.readthedocs.io) (coming soon)
 
 Topics covered:
+
 - Installation and setup
 - Detailed API reference
 - Algorithm descriptions and parameters
@@ -368,7 +377,7 @@ Topics covered:
 
 If you use PyPopART in your research, please cite:
 
-```
+```text
 Taranto, A. (2024). PyPopART: Pure Python implementation of haplotype network analysis.
 GitHub repository: https://github.com/adamtaranto/pypopart
 ```
