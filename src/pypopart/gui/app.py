@@ -842,7 +842,7 @@ class PyPopARTApp:
 
                 # Count median/inferred nodes
                 n_medians = sum(
-                    1 for node in network.graph.nodes() 
+                    1 for node in network.graph.nodes()
                     if network.graph.nodes[node].get('is_median', False)
                 )
 
@@ -1329,8 +1329,57 @@ def main(debug: bool = False, port: int = 8050) -> None:
         int, default=8050.
         Port number for web server.
     """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='PyPopART - Haplotype Network Analysis GUI',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  pypopart-gui                    # Start GUI on default port 8050
+  pypopart-gui --port 8080        # Start GUI on custom port
+  pypopart-gui --debug            # Start GUI in debug mode
+
+Once started, open your browser to http://localhost:8050
+Press Ctrl+C to stop the server.
+        """,
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode for development',
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=8050,
+        help='Port number for web server (default: 8050)',
+    )
+
+    # Parse args only if running from command line
+    import sys
+
+    if len(sys.argv) > 1:
+        args = parser.parse_args()
+        debug = args.debug
+        port = args.port
+
+    print('=' * 60)
+    print('PyPopART GUI - Haplotype Network Analysis')
+    print('=' * 60)
+    print(f'\n🚀 Starting web server on http://localhost:{port}')
+    if debug:
+        print('⚠️  Debug mode enabled')
+    print('\n📖 Quick Start:')
+    print('   1. Upload your sequence alignment (FASTA, NEXUS, or PHYLIP)')
+    print('   2. Optionally upload metadata (CSV with population/location data)')
+    print('   3. Choose a network algorithm and click "Compute Network"')
+    print('   4. Customize the layout and export your results')
+    print('\n⚠️  To stop the server, press Ctrl+C')
+    print('=' * 60)
+    print()
+
     app = PyPopARTApp(debug=debug, port=port)
-    print(f'Starting PyPopART GUI on http://localhost:{port}')
     app.run()
 
 
