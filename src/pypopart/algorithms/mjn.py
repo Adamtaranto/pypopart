@@ -631,9 +631,11 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         """
             Simplify network by removing unnecessary median vectors.
 
-            A median vector is unnecessary if:
-            - It has degree 2 (only connects two nodes)
-            - It can be replaced by a direct edge without increasing total weight
+            Iteratively removes median vectors that:
+            - Have degree < 2 (disconnected or terminal nodes)
+            - Have degree 2 and can be replaced by a direct edge
+
+            Matches the C++ implementation's removeObsoleteVerts behavior.
 
         Parameters
         ----------
@@ -644,38 +646,45 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         -------
             Simplified network.
         """
-        # Find median vectors with degree 2
-        to_remove = []
+        changed = True
+        
+        # Iterate until no more changes (matches C++ while loop)
+        while changed:
+            changed = False
+            to_remove = []
 
-        for hap_id in list({h.id for h in network.haplotypes}):
-            if not hap_id.startswith('Median_'):
-                continue
+            for hap_id in list({h.id for h in network.haplotypes}):
+                if not hap_id.startswith('Median_'):
+                    continue
 
-            degree = network.get_degree(hap_id)
+                degree = network.get_degree(hap_id)
 
-            if degree == 2:
-                # Get the two neighbors
-                neighbors = network.get_neighbors(hap_id)
-                if len(neighbors) == 2:
-                    n1, n2 = neighbors
-
-                    # Get distances
-                    d1 = network.get_edge_distance(hap_id, n1) or 0
-                    d2 = network.get_edge_distance(hap_id, n2) or 0
-
-                    # Check if direct connection exists
-                    direct_dist = network.get_edge_distance(n1, n2)
-
-                    if direct_dist is None:
-                        # No direct connection - add it with combined distance
-                        network.add_edge(n1, n2, distance=d1 + d2)
-
-                    # Remove the median vector
+                # Remove obsolete median vectors (degree < 2) - matches C++ behavior
+                if degree < 2:
                     to_remove.append(hap_id)
+                    changed = True
+                elif degree == 2:
+                    # Get the two neighbors
+                    neighbors = network.get_neighbors(hap_id)
+                    if len(neighbors) == 2:
+                        n1, n2 = neighbors
 
-        # Remove marked median vectors
-        for hap_id in to_remove:
-            network.remove_haplotype(hap_id)
+                        # Get distances
+                        d1 = network.get_edge_distance(hap_id, n1) or 0
+                        d2 = network.get_edge_distance(hap_id, n2) or 0
+
+                        # Check if direct connection exists between the two neighbors
+                        if not network.has_edge(n1, n2):
+                            # No direct connection - add it with combined distance
+                            network.add_edge(n1, n2, distance=d1 + d2)
+
+                        # Remove the median vector
+                        to_remove.append(hap_id)
+                        changed = True
+
+            # Remove marked median vectors
+            for hap_id in to_remove:
+                network.remove_haplotype(hap_id)
 
         return network
 
