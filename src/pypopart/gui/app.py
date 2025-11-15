@@ -841,9 +841,9 @@ class PyPopARTApp:
                             'sequence': network.graph.nodes[node].get('sequence', ''),
                             'frequency': network.graph.nodes[node].get('frequency', 1),
                             'is_median': network.graph.nodes[node].get(
-                                'is_median', False
+                                'median_vector', False
                             ),
-                            'samples': network.graph.nodes[node].get('samples', []),
+                            'sample_ids': network.graph.nodes[node].get('sample_ids', []),
                         }
                         for node in network.graph.nodes()
                     ],
@@ -920,47 +920,25 @@ class PyPopARTApp:
                 return None
 
             try:
-                # Reconstruct network graph
-                G = nx.Graph()
-                for node in network_data['nodes']:
-                    G.add_node(
-                        node['id'],
-                        sequence=node['sequence'],
-                        frequency=node['frequency'],
-                        is_median=node['is_median'],
-                    )
-                for edge in network_data['edges']:
-                    G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
+                # Reconstruct network
+                network = HaplotypeNetwork.from_serialized(network_data)
 
                 # Apply layout
                 if layout_method == 'geographic':
                     # Geographic layout requires metadata with coordinates
                     if not metadata_data or not metadata_data.get('coordinates'):
                         # Fall back to spring layout if no coordinates
-                        layout_manager = LayoutManager()
-                        positions = layout_manager.spring_layout(G)
+                        layout_manager = LayoutManager(network)
+                        positions = layout_manager.compute_layout('spring')
                     else:
-                        network = HaplotypeNetwork()
-                        network._graph = G
                         geo_layout = GeographicLayout(network)
                         positions = geo_layout.compute(
                             coordinates=metadata_data['coordinates'],
                             projection=projection or 'mercator',
                         )
                 else:
-                    layout_manager = LayoutManager()
-                    if layout_method == 'spring':
-                        positions = layout_manager.spring_layout(G)
-                    elif layout_method == 'circular':
-                        positions = layout_manager.circular_layout(G)
-                    elif layout_method == 'radial':
-                        positions = layout_manager.radial_layout(G)
-                    elif layout_method == 'hierarchical':
-                        positions = layout_manager.hierarchical_layout(G)
-                    elif layout_method == 'kamada_kawai':
-                        positions = layout_manager.kamada_kawai_layout(G)
-                    else:
-                        positions = layout_manager.spring_layout(G)
+                    layout_manager = LayoutManager(network)
+                    positions = layout_manager.compute_layout(layout_method)
 
                 # Snap to grid if requested
                 if 'snap' in snap_to_grid:
@@ -1020,20 +998,7 @@ class PyPopARTApp:
 
             try:
                 # Reconstruct network
-                G = nx.Graph()
-                for node in network_data['nodes']:
-                    G.add_node(
-                        node['id'],
-                        sequence=node['sequence'],
-                        frequency=node['frequency'],
-                        is_median=node['is_median'],
-                        samples=node.get('samples', []),
-                    )
-                for edge in network_data['edges']:
-                    G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
-
-                network = HaplotypeNetwork()
-                network._graph = G
+                network = HaplotypeNetwork.from_serialized(network_data)
 
                 # Convert layout data
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}
@@ -1096,19 +1061,7 @@ class PyPopARTApp:
 
             try:
                 # Reconstruct network
-                G = nx.Graph()
-                for node in network_data['nodes']:
-                    G.add_node(
-                        node['id'],
-                        sequence=node['sequence'],
-                        frequency=node['frequency'],
-                        is_median=node['is_median'],
-                    )
-                for edge in network_data['edges']:
-                    G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
-
-                network = HaplotypeNetwork()
-                network._graph = G
+                network = HaplotypeNetwork.from_serialized(network_data)
 
                 # Calculate statistics
                 network_metrics = calculate_network_metrics(network)
@@ -1267,19 +1220,8 @@ class PyPopARTApp:
 
             try:
                 # Reconstruct network
-                G = nx.Graph()
-                for node in network_data['nodes']:
-                    G.add_node(
-                        node['id'],
-                        sequence=node['sequence'],
-                        frequency=node['frequency'],
-                        is_median=node['is_median'],
-                    )
-                for edge in network_data['edges']:
-                    G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
-
-                network = HaplotypeNetwork()
-                network._graph = G
+                network = HaplotypeNetwork.from_serialized(network_data)
+                G = network._graph
 
                 # Export based on format
                 if export_format == 'graphml':

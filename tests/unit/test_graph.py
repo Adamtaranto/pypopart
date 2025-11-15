@@ -545,3 +545,82 @@ class TestHaplotypeNetwork:
         repr_str = repr(network)
         assert 'HaplotypeNetwork' in repr_str
         assert 'nodes=2' in repr_str
+
+    def test_from_serialized(self):
+        """Test reconstructing network from serialized data."""
+        # Create original network
+        network = HaplotypeNetwork()
+        seq1 = Sequence('H1', 'ATCG')
+        seq2 = Sequence('H2', 'GTCA')
+        hap1 = Haplotype(seq1, sample_ids=['s1', 's2'])
+        hap2 = Haplotype(seq2, sample_ids=['s3'])
+
+        network.add_haplotype(hap1)
+        network.add_haplotype(hap2, median_vector=False)
+        network.add_edge('H1', 'H2', distance=2)
+
+        # Serialize to dict (mimicking GUI storage format)
+        network_data = {
+            'nodes': [
+                {
+                    'id': 'H1',
+                    'sequence': 'ATCG',
+                    'frequency': 2,
+                    'is_median': False,
+                    'sample_ids': ['s1', 's2'],
+                },
+                {
+                    'id': 'H2',
+                    'sequence': 'GTCA',
+                    'frequency': 1,
+                    'is_median': False,
+                    'sample_ids': ['s3'],
+                },
+            ],
+            'edges': [
+                {'source': 'H1', 'target': 'H2', 'weight': 2}
+            ],
+        }
+
+        # Reconstruct network
+        reconstructed = HaplotypeNetwork.from_serialized(network_data)
+
+        # Verify structure
+        assert reconstructed.num_nodes == 2
+        assert reconstructed.num_edges == 1
+        assert reconstructed.has_node('H1')
+        assert reconstructed.has_node('H2')
+
+        # Verify haplotypes are accessible
+        hap1_reconstructed = reconstructed.get_haplotype('H1')
+        hap2_reconstructed = reconstructed.get_haplotype('H2')
+        assert hap1_reconstructed.id == 'H1'
+        assert hap1_reconstructed.data == 'ATCG'
+        assert hap2_reconstructed.id == 'H2'
+        assert hap2_reconstructed.data == 'GTCA'
+
+        # Verify edge
+        assert reconstructed.has_edge('H1', 'H2')
+        assert reconstructed.get_edge_distance('H1', 'H2') == 2
+
+    def test_from_serialized_with_samples_key(self):
+        """Test reconstructing network using legacy 'samples' key."""
+        # Some older code might use 'samples' instead of 'sample_ids'
+        network_data = {
+            'nodes': [
+                {
+                    'id': 'H1',
+                    'sequence': 'ATCG',
+                    'frequency': 2,
+                    'is_median': False,
+                    'samples': ['s1', 's2'],
+                }
+            ],
+            'edges': [],
+        }
+
+        # Should still work with 'samples' key
+        reconstructed = HaplotypeNetwork.from_serialized(network_data)
+        assert reconstructed.num_nodes == 1
+        hap = reconstructed.get_haplotype('H1')
+        assert hap.frequency == 2
