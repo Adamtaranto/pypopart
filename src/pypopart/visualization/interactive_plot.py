@@ -44,6 +44,7 @@ class InteractiveNetworkPlotter:
         population_colors: Optional[Dict[str, str]] = None,
         edge_width_scale: float = 2.0,
         show_labels: bool = True,
+        show_edge_labels: bool = True,
         median_vector_color: str = 'lightgray',
         title: Optional[str] = None,
         width: int = 1000,
@@ -69,6 +70,8 @@ class InteractiveNetworkPlotter:
                 Scaling factor for edge widths.
             show_labels :
                 Whether to show node labels.
+            show_edge_labels :
+                Whether to show edge labels with mutation counts.
             median_vector_color :
                 Color for median vector nodes.
             title :
@@ -93,7 +96,7 @@ class InteractiveNetworkPlotter:
         self.figure = go.Figure()
 
         # Add edges first (so they appear below nodes)
-        self._add_edges(graph, layout, edge_width_scale)
+        self._add_edges(graph, layout, edge_width_scale, show_edge_labels)
 
         # Add nodes
         self._add_nodes(
@@ -213,6 +216,7 @@ class InteractiveNetworkPlotter:
         graph: nx.Graph,
         layout: Dict[str, Tuple[float, float]],
         width_scale: float,
+        show_edge_labels: bool = True,
     ) -> None:
         """
         Add edges to the plot.
@@ -225,8 +229,11 @@ class InteractiveNetworkPlotter:
             Node positions.
         width_scale :
             Edge width scaling factor.
+        show_edge_labels :
+            Whether to show edge labels with mutation counts.
         """
         edge_traces = []
+        edge_annotations = []
 
         for u, v in graph.edges():
             x0, y0 = layout[u]
@@ -254,9 +261,31 @@ class InteractiveNetworkPlotter:
 
             edge_traces.append(edge_trace)
 
+            # Add edge label annotation if requested
+            if show_edge_labels and weight > 0:
+                # Position label at midpoint of edge
+                x_mid = (x0 + x1) / 2
+                y_mid = (y0 + y1) / 2
+
+                edge_annotations.append(
+                    {
+                        'x': x_mid,
+                        'y': y_mid,
+                        'text': str(int(weight)),
+                        'showarrow': False,
+                        'font': {'size': 10, 'color': 'rgba(100, 100, 100, 0.8)'},
+                        'bgcolor': 'rgba(255, 255, 255, 0.7)',
+                        'borderpad': 2,
+                    }
+                )
+
         # Add all edge traces
         for trace in edge_traces:
             self.figure.add_trace(trace)
+
+        # Add edge label annotations
+        if edge_annotations:
+            self.figure.update_layout(annotations=edge_annotations)
 
     def _add_nodes(
         self,
