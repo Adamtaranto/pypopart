@@ -322,10 +322,13 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Build parameter controls
 - [ ] Add compute button and progress indicator
 - [ ] Implement statistics panel
+- [ ] Interactive graph viewer
+- [ ] layout method selection interface
+- [ ] Manual graph layout adjustment
+- [ ] Option to snap nodes to grid in graph layout
 - [ ] Add alignment viewer
 - [ ] Create export options
 - [ ] Error handling and validation
-- [ ] User testing and refinement
 
 ## Phase 10: Performance & Optimization
 
