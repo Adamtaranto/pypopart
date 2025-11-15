@@ -494,8 +494,7 @@ class TCS(NetworkAlgorithm):
 
             intermediate_hap = Haplotype(
                 sequence=intermediate_seq,
-                id=intermediate_id,
-                frequency=0,  # Inferred, not observed
+                sample_ids=[],  # Inferred, not observed
             )
 
             intermediates.append(intermediate_hap)
