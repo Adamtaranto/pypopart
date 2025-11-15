@@ -1,6 +1,8 @@
 # dev
 .ideas/
-archive_popart_src/
+
+# Dynamically created files
+src/pypopart/_version.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
