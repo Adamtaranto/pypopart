@@ -182,7 +182,23 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [x] Identify bottleneck nodes (articulation points)
 - [x] Create topology summary reports (21 tests, 93% coverage)
 
-## Phase 6: Visualization
+## Phase 6: GUI and Visualization
+
+### Core GUI
+
+- [ ] Create Dash application structure
+- [ ] Implement file upload component
+- [ ] Create algorithm selection interface
+- [ ] Build parameter controls
+- [ ] Add compute button and progress indicator
+
+### GUI Features
+
+- [ ] Implement statistics panel
+- [ ] Add alignment viewer
+- [ ] Create export options
+- [ ] Error handling and validation
+- [ ] User testing and refinement
 
 ### 6.1 Static Network Plots
 - [ ] Implement matplotlib-based network plotting
@@ -204,13 +220,6 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Export interactive HTML files
 - [ ] Add filtering and search functionality
 - [ ] Create interactive examples
-
-### 6.3 Geographic Integration
-- [ ] Add support for geographic coordinates
-- [ ] Implement map-based visualization
-- [ ] Overlay network on geographic map
-- [ ] Support different map projections
-- [ ] Create geographic visualization examples
 
 ### 6.4 Layout Algorithms
 - [ ] Implement force-directed layout
