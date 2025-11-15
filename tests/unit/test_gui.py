@@ -114,3 +114,22 @@ class TestPyPopARTApp:
 
         assert PyPopARTApp is not None
         assert callable(main)
+
+    def test_logger_initialization(self):
+        """Test that logger is properly initialized."""
+        from pypopart.gui.app import PyPopARTApp
+
+        app = PyPopARTApp(debug=True, port=8050)
+        assert hasattr(app, 'logger')
+        assert app.logger is not None
+
+    def test_callbacks_registered(self):
+        """Test that callbacks are properly registered without errors."""
+        from pypopart.gui.app import PyPopARTApp
+
+        app = PyPopARTApp(debug=False)
+        # If callbacks are registered with pattern-matching IDs correctly,
+        # the app should initialize without errors
+        assert app.app._callback_list is not None
+        # Check that we have the expected number of callbacks
+        assert len(app.app._callback_list) > 0
