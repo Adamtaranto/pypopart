@@ -4,6 +4,12 @@ Dash-based GUI for PyPopART haplotype network analysis.
 This module provides a web-based graphical user interface for PyPopART,
 allowing users to upload sequence data, configure network algorithms,
 visualize results, and export outputs.
+
+Features:
+- Interactive network visualization with manual node adjustment
+- Haplotype summary tab showing H number to sequence mapping
+- Geographic layout mode with base map display
+- Support for multiple network algorithms (MST, MSN, TCS, MJN)
 """
 
 import base64
