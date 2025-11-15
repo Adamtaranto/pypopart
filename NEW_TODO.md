@@ -27,7 +27,7 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Configure release automation
 
 ### 1.4 Documentation Framework
-- [ ] Set up Sphinx for documentation generation
+- [ ] Set up Mkdocs for documentation generation
 - [x] Create basic README.md with project description
 - [ ] Set up documentation structure (installation, usage, API reference)
 - [ ] Configure Read the Docs integration
@@ -182,50 +182,67 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [x] Identify bottleneck nodes (articulation points)
 - [x] Create topology summary reports (21 tests, 93% coverage)
 
-## Phase 6: Visualization
+## Phase 6: Visualization ✅ COMPLETED
 
-### 6.1 Static Network Plots
-- [ ] Implement matplotlib-based network plotting
-  - [ ] Node size proportional to frequency
-  - [ ] Color nodes by population/group
-  - [ ] Edge thickness by distance
-  - [ ] Show median vectors distinctly
-- [ ] Add customization options (colors, sizes, labels)
-- [ ] Implement different layout algorithms
-- [ ] Export high-resolution images (PNG, PDF, SVG)
-- [ ] Create gallery of example plots
+### 6.1 Static Network Plots ✅ COMPLETED
+- [x] Implement matplotlib-based network plotting
+  - [x] Node size proportional to frequency
+  - [x] Color nodes by population/group
+  - [x] Edge thickness by distance
+  - [x] Show median vectors distinctly
+- [x] Add customization options (colors, sizes, labels)
+- [x] Implement different layout algorithms
+- [x] Export high-resolution images (PNG, PDF, SVG)
+- [x] Create comprehensive unit tests (37 tests, 94% coverage)
+- [ ] Create gallery of example plots (deferred)
 
-### 6.2 Interactive Visualization
-- [ ] Implement Plotly-based interactive networks
-  - [ ] Hover information for nodes and edges
-  - [ ] Zoom and pan capabilities
-  - [ ] Click to show sequence details
-  - [ ] Toggle population visibility
-- [ ] Export interactive HTML files
-- [ ] Add filtering and search functionality
-- [ ] Create interactive examples
+### 6.2 Interactive Visualization ✅ COMPLETED
+- [x] Implement Plotly-based interactive networks
+  - [x] Hover information for nodes and edges
+  - [x] Zoom and pan capabilities
+  - [x] Click to show sequence details (via hover)
+  - [x] Toggle population visibility (via legend)
+- [x] Export interactive HTML files
+- [x] Create comprehensive unit tests (35 tests, 97% coverage)
+- [ ] Add filtering and search functionality (deferred)
+- [ ] Create interactive examples (deferred)
 
-### 6.3 Geographic Integration
-- [ ] Add support for geographic coordinates
-- [ ] Implement map-based visualization
-- [ ] Overlay network on geographic map
-- [ ] Support different map projections
-- [ ] Create geographic visualization examples
+### 6.3 Layout Algorithms ✅ COMPLETED
+- [x] Implement force-directed layout (spring algorithm)
+- [x] Add circular layout
+- [x] Add radial layout (concentric rings)
+- [x] Create hierarchical layout
+- [x] Implement Kamada-Kawai layout
+- [x] Allow manual node positioning
+- [x] Save and load layout configurations (JSON format)
+- [x] LayoutManager for unified interface
+- [x] Create comprehensive unit tests (43 tests, 96% coverage)
 
-### 6.4 Layout Algorithms
-- [ ] Implement force-directed layout
-- [ ] Add radial/circular layout option
-- [ ] Create hierarchical layout
-- [ ] Implement custom layout algorithms
-- [ ] Allow manual node positioning
-- [ ] Save and load layout configurations
+### 6.4 Legend and Annotations ✅ MOSTLY COMPLETED
+- [x] Create informative legends
+- [x] Add scale bars for mutations
+- [x] Include summary statistics in plots
+- [x] Create publication-ready figure templates
+- [ ] Support additional custom annotations (deferred)
 
-### 6.5 Legend and Annotations
-- [ ] Create informative legends
-- [ ] Add scale bars for mutations
-- [ ] Include summary statistics in plots
-- [ ] Support custom annotations
-- [ ] Create publication-ready figure templates
+### 6.5 Core GUI (Dash) - DEFERRED TO FUTURE PHASES
+
+- [ ] Create Dash application structure
+- [ ] Implement file upload component
+- [ ] Create algorithm selection interface
+- [ ] Build parameter controls
+- [ ] Add compute button and progress indicator
+- [ ] Implement statistics panel
+- [ ] Add alignment viewer
+- [ ] Create export options
+- [ ] Error handling and validation
+- [ ] User testing and refinement
+
+**Phase 6 Summary:**
+- Total tests: 115 (37 static + 35 interactive + 43 layout)
+- Coverage: Static 94%, Interactive 97%, Layout 96%
+- All core visualization features implemented and tested
+- GUI components deferred to allow focus on core functionality
 
 ## Phase 7: File I/O & Data Import/Export
 
@@ -293,20 +310,15 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Create tutorial notebooks
 - [ ] Set up notebook testing
 
-### 8.4 Optional GUI (Future)
-- [ ] Design GUI mockups
-- [ ] Choose framework (PyQt6, Tkinter, or web-based)
-- [ ] Implement file loading interface
-- [ ] Create network visualization panel
-- [ ] Add analysis parameter controls
-- [ ] Implement result export functionality
 
 ### 8.5 Documentation
 - [ ] Write comprehensive README
+- [ ] Create documentation pages Mkdocs 
 - [ ] Create installation guide
-- [ ] Write user guide with examples
+- [ ] Write user guide with examples with Mkdocs
+- [ ] Use mkdocs to render tutorial jupyter notebooks
 - [ ] Create algorithm comparison guide
-- [ ] Document all API functions
+- [ ] Document all API functions with mkdocs
 - [ ] Create troubleshooting guide
 - [ ] Write contribution guidelines
 - [ ] Create FAQ section
@@ -356,33 +368,10 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Test error handling
 - [ ] Create end-to-end test suite
 
-### 10.3 User Testing
-- [ ] Conduct beta testing with researchers
-- [ ] Gather feedback on usability
-- [ ] Test on different platforms
-- [ ] Create bug report template
-- [ ] Implement feedback improvements
 
-## Phase 11: Deployment & Distribution
 
-### 11.1 Package Distribution
-- [ ] Publish to PyPI
-- [ ] Create conda package
-- [ ] Set up automatic releases
-- [ ] Create versioning strategy
-- [ ] Write release notes template
 
-### 11.2 Platform Support
-- [ ] Test on Windows, macOS, Linux
-- [ ] Create platform-specific installation guides
-- [ ] Handle platform-specific issues
-- [ ] Document platform requirements
 
-### 11.3 Docker Support
-- [ ] Create Dockerfile
-- [ ] Publish to Docker Hub
-- [ ] Create Docker usage documentation
-- [ ] Add Docker Compose examples
 
 ## Dependencies to Consider
 
@@ -405,10 +394,9 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 
 ### Development Tools
 - **pytest**: Testing framework
-- **black**: Code formatting
-- **ruff**: Fast Python linter
+- **ruff**: Fast Python linter and formatting
 - **mypy**: Type checking
-- **sphinx**: Documentation generation
+- **mkdocs**: Documentation generation
 
 ## Success Metrics
 
@@ -417,8 +405,6 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Code coverage above 80%
 - [ ] Comprehensive documentation with examples
 - [ ] Successful validation against PopART outputs
-- [ ] Positive user feedback from beta testers
-- [ ] Published on PyPI with active downloads
 
 ## Notes
 
