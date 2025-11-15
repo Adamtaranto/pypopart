@@ -266,8 +266,9 @@ class TestInteractiveNetworkPlotter:
 
         assert 'hap1' in hover_text
         assert 'Frequency' in hover_text
-        assert 'Sequence' in hover_text
-        assert 'ATCG' in hover_text
+        # Sequence should NOT be in hover text (removed per requirements)
+        assert 'Sequence' not in hover_text
+        assert 'ATCG' not in hover_text
 
     def test_create_hover_text_median(self, network_with_median):
         """Test hover text creation for median vector."""
