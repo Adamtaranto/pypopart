@@ -27,7 +27,7 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Configure release automation
 
 ### 1.4 Documentation Framework
-- [ ] Set up Sphinx for documentation generation
+- [ ] Set up Mkdocs for documentation generation
 - [x] Create basic README.md with project description
 - [ ] Set up documentation structure (installation, usage, API reference)
 - [ ] Configure Read the Docs integration
@@ -302,20 +302,15 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Create tutorial notebooks
 - [ ] Set up notebook testing
 
-### 8.4 Optional GUI (Future)
-- [ ] Design GUI mockups
-- [ ] Choose framework (PyQt6, Tkinter, or web-based)
-- [ ] Implement file loading interface
-- [ ] Create network visualization panel
-- [ ] Add analysis parameter controls
-- [ ] Implement result export functionality
 
 ### 8.5 Documentation
 - [ ] Write comprehensive README
+- [ ] Create documentation pages Mkdocs 
 - [ ] Create installation guide
-- [ ] Write user guide with examples
+- [ ] Write user guide with examples with Mkdocs
+- [ ] Use mkdocs to render tutorial jupyter notebooks
 - [ ] Create algorithm comparison guide
-- [ ] Document all API functions
+- [ ] Document all API functions with mkdocs
 - [ ] Create troubleshooting guide
 - [ ] Write contribution guidelines
 - [ ] Create FAQ section
@@ -365,33 +360,10 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Test error handling
 - [ ] Create end-to-end test suite
 
-### 10.3 User Testing
-- [ ] Conduct beta testing with researchers
-- [ ] Gather feedback on usability
-- [ ] Test on different platforms
-- [ ] Create bug report template
-- [ ] Implement feedback improvements
 
-## Phase 11: Deployment & Distribution
 
-### 11.1 Package Distribution
-- [ ] Publish to PyPI
-- [ ] Create conda package
-- [ ] Set up automatic releases
-- [ ] Create versioning strategy
-- [ ] Write release notes template
 
-### 11.2 Platform Support
-- [ ] Test on Windows, macOS, Linux
-- [ ] Create platform-specific installation guides
-- [ ] Handle platform-specific issues
-- [ ] Document platform requirements
 
-### 11.3 Docker Support
-- [ ] Create Dockerfile
-- [ ] Publish to Docker Hub
-- [ ] Create Docker usage documentation
-- [ ] Add Docker Compose examples
 
 ## Dependencies to Consider
 
@@ -414,10 +386,9 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 
 ### Development Tools
 - **pytest**: Testing framework
-- **black**: Code formatting
-- **ruff**: Fast Python linter
+- **ruff**: Fast Python linter and formatting
 - **mypy**: Type checking
-- **sphinx**: Documentation generation
+- **mkdocs**: Documentation generation
 
 ## Success Metrics
 
@@ -426,8 +397,6 @@ Pure Python implementation of PopART (Population Analysis with Reticulate Trees)
 - [ ] Code coverage above 80%
 - [ ] Comprehensive documentation with examples
 - [ ] Successful validation against PopART outputs
-- [ ] Positive user feedback from beta testers
-- [ ] Published on PyPI with active downloads
 
 ## Notes
 
