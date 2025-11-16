@@ -15,7 +15,7 @@ References
 """
 
 import logging
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 

@@ -1,7 +1,6 @@
 """Unit tests for Tight Span Walker (TSW) algorithm."""
 
 import numpy as np
-import pytest
 
 from pypopart.algorithms.tsw import TightSpanWalker
 from pypopart.core.alignment import Alignment
