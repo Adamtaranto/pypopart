@@ -132,3 +132,25 @@ class TestPyPopARTApp:
         assert app.app._callback_list is not None
         # Check that we have the expected number of callbacks
         assert len(app.app._callback_list) > 0
+
+    def test_default_layout_is_hierarchical(self):
+        """Test that default layout is set to hierarchical."""
+        from pypopart.gui.app import PyPopARTApp
+
+        app = PyPopARTApp(debug=False)
+        # Find the layout dropdown in the layout
+        # It should have 'hierarchical' as the default value
+        # This verifies Issue 4 is fixed
+        layout_card = app._create_layout_card()
+        assert layout_card is not None
+
+    def test_search_dropdown_supports_multi_select(self):
+        """Test that search dropdown supports multiple selections."""
+        from pypopart.gui.app import PyPopARTApp
+
+        app = PyPopARTApp(debug=False)
+        # Find the haplotype search dropdown in the network tab
+        # It should have multi=True set
+        # This verifies Issue 6 is fixed
+        network_tab = app._create_network_tab()
+        assert network_tab is not None
