@@ -1792,7 +1792,7 @@ class PyPopARTApp:
 
                     # Remove any existing highlight styles
                     new_stylesheet = [s for s in new_stylesheet if not any(
-                        s.get('selector', '').startswith(f'node[id = "{h}"]') 
+                        s.get('selector', '').startswith(f'node[id = "{h}"]')
                         for h in selected_h_list
                     )]
 
