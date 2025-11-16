@@ -536,6 +536,48 @@ class TestLayoutManager:
 
             assert loaded == layout
 
+    def test_caching_enabled(self, simple_network):
+        """Test that caching works when enabled."""
+        manager = LayoutManager(simple_network, enable_cache=True)
+
+        # First computation
+        layout1 = manager.compute_layout('spring', iterations=50, seed=42)
+
+        # Second computation with same parameters should use cache
+        layout2 = manager.compute_layout('spring', iterations=50, seed=42)
+
+        # Results should be identical (same object from cache)
+        assert layout1 == layout2
+
+        # Different parameters should compute new layout
+        layout3 = manager.compute_layout('spring', iterations=100, seed=42)
+        assert layout3 != layout1  # Different iterations
+
+    def test_caching_disabled(self, simple_network):
+        """Test that caching can be disabled."""
+        manager = LayoutManager(simple_network, enable_cache=False)
+
+        # Compute layouts
+        layout1 = manager.compute_layout('spring', iterations=50, seed=42)
+        layout2 = manager.compute_layout('spring', iterations=50, seed=42)
+
+        # Should be equal but potentially recomputed
+        assert layout1 == layout2
+
+    def test_clear_cache(self, simple_network):
+        """Test clearing the layout cache."""
+        manager = LayoutManager(simple_network, enable_cache=True)
+
+        # Compute and cache
+        layout1 = manager.compute_layout('circular')
+
+        # Clear cache
+        manager.clear_cache()
+
+        # Should recompute (but result should be identical for deterministic algorithms)
+        layout2 = manager.compute_layout('circular')
+        assert layout1 == layout2
+
 
 class TestEmptyNetwork:
     """Test layout algorithms with empty network."""

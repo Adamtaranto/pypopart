@@ -561,10 +561,25 @@ class LayoutManager:
     Manager for network layout computation and persistence.
 
     Provides high-level interface for computing, saving, and loading
-    network layouts.
+    network layouts with optional caching.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        The haplotype network to compute layouts for.
+    enable_cache : bool, optional
+        If True, cache layout results for repeated calls with same parameters.
+        Default is True. Disable if network structure changes between calls.
+
+    Examples
+    --------
+    >>> manager = LayoutManager(network)
+    >>> layout = manager.compute_layout('spring', iterations=50, seed=42)
+    >>> # Second call with same parameters uses cached result
+    >>> layout2 = manager.compute_layout('spring', iterations=50, seed=42)
     """
 
-    def __init__(self, network: HaplotypeNetwork):
+    def __init__(self, network: HaplotypeNetwork, enable_cache: bool = True):
         """
         Initialize layout manager.
 
@@ -572,8 +587,12 @@ class LayoutManager:
         ----------
         network :
             HaplotypeNetwork object.
+        enable_cache :
+            Enable caching of layout computations. Default True.
         """
         self.network = network
+        self._enable_cache = enable_cache
+        self._cache: Dict[str, Dict[str, Tuple[float, float]]] = {}
         self._algorithms = {
             'force_directed': ForceDirectedLayout,
             'spring': ForceDirectedLayout,  # Alias
@@ -586,34 +605,87 @@ class LayoutManager:
         }
 
     def compute_layout(
-        self, algorithm: str = 'force_directed', **kwargs
+        self, algorithm: str = 'force_directed', use_cache: bool = True, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute network layout using specified algorithm.
+        Compute network layout using specified algorithm.
 
         Parameters
         ----------
-            algorithm :
-                Layout algorithm name.
-            **kwargs :
-                Algorithm-specific parameters.
+        algorithm :
+            Layout algorithm name.
+        use_cache :
+            If True and caching is enabled, return cached result if available.
+            Default True.
+        **kwargs :
+            Algorithm-specific parameters.
 
         Returns
         -------
-            Node positions dictionary.
+        Node positions dictionary.
 
-            Raises :
-            ValueError :
-                If algorithm not recognized.
+        Raises
+        ------
+        ValueError :
+            If algorithm not recognized.
+
+        Notes
+        -----
+        Results are cached based on algorithm name and parameters. To force
+        recomputation, set use_cache=False or clear_cache().
         """
         if algorithm not in self._algorithms:
             available = ', '.join(self._algorithms.keys())
             raise ValueError(f"Unknown algorithm '{algorithm}'. Available: {available}")
 
+        # Check cache if enabled
+        if self._enable_cache and use_cache:
+            cache_key = self._make_cache_key(algorithm, kwargs)
+            if cache_key in self._cache:
+                return self._cache[cache_key]
+
+        # Compute layout
         layout_class = self._algorithms[algorithm]
         layout_algo = layout_class(self.network)
+        result = layout_algo.compute(**kwargs)
 
-        return layout_algo.compute(**kwargs)
+        # Store in cache if enabled
+        if self._enable_cache:
+            cache_key = self._make_cache_key(algorithm, kwargs)
+            self._cache[cache_key] = result
+
+        return result
+
+    def _make_cache_key(self, algorithm: str, kwargs: Dict) -> str:
+        """
+        Create a cache key from algorithm name and parameters.
+
+        Parameters
+        ----------
+        algorithm : str
+            Algorithm name.
+        kwargs : dict
+            Algorithm parameters.
+
+        Returns
+        -------
+        str
+            Cache key string.
+        """
+        import json
+
+        # Sort kwargs for consistent keys
+        sorted_kwargs = json.dumps(kwargs, sort_keys=True, default=str)
+        return f'{algorithm}:{sorted_kwargs}'
+
+    def clear_cache(self) -> None:
+        """
+        Clear the layout cache.
+
+        Use this after the network structure has changed to ensure
+        fresh layout computations.
+        """
+        self._cache.clear()
 
     def save_layout(
         self, layout: Dict[str, Tuple[float, float]], filename: str
