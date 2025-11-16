@@ -7,7 +7,7 @@
 
 ## Features
 
-- **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), Median-Joining (MJN), Parsimony Network (PN), and Tight Span Walker (TSW)
+- **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), Median-Joining (MJN), and Parsimony Network (PN)
 - **Distance Metrics**: Hamming, Jukes-Cantor, Kimura 2-parameter, Tamura-Nei
 - **Comprehensive Analysis**: Network statistics, topology analysis, population genetics measures
 - **Rich Visualization**: Static (matplotlib) and interactive (Plotly) network plots
@@ -203,24 +203,6 @@ pypopart network sequences.fasta -a pn -o network.graphml
 - Can represent reticulation events where multiple edges have similar frequencies
 - Automatically infers median vertices for multi-mutation edges
 - Handles sequences with gaps by treating length differences as mutations
-
-### Tight Span Walker (TSW)
-
-Computes the tight span of a distance matrix, creating a network that exactly represents metric properties.
-
-```bash
-pypopart network sequences.fasta -a tsw -d hamming -o network.graphml
-```
-
-**Use when**: You want an exact geometric representation of the distance relationships. This is the most computationally intensive method and works best for smaller datasets (< 100 sequences).
-
-**Features**:
-- Computes dT (tree metric) distances for all sequence pairs
-- Creates reticulate networks preserving exact distance relationships
-- Suitable for detecting complex evolutionary patterns including recombination
-- Best for small to medium datasets due to O(n³) complexity
-
-**Note**: The current implementation uses a simplified geodesic computation for practical performance. The full tight span algorithm with complete bipartite coloring is extremely complex and is deferred for future optimization.
 
 ## Distance Metrics
 

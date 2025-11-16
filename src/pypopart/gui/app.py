@@ -9,7 +9,7 @@ Features:
 - Interactive network visualization with manual node adjustment
 - Haplotype summary tab showing H number to sequence mapping
 - Geographic layout mode with base map display
-- Support for multiple network algorithms (MST, MSN, TCS, MJN, PN, TSW)
+- Support for multiple network algorithms (MST, MSN, TCS, MJN, PN)
 """
 
 import base64
@@ -30,7 +30,6 @@ from pypopart.algorithms import (
     MinimumSpanningNetwork,
     MinimumSpanningTree,
     ParsimonyNetwork,
-    TightSpanWalker,
 )
 from pypopart.core.alignment import Alignment
 from pypopart.core.graph import HaplotypeNetwork
@@ -287,10 +286,6 @@ class PyPopARTApp:
                                 {
                                     'label': 'PN - Parsimony Network',
                                     'value': 'pn',
-                                },
-                                {
-                                    'label': 'TSW - Tight Span Walker',
-                                    'value': 'tsw',
                                 },
                             ],
                             value='msn',
@@ -1045,26 +1040,6 @@ class PyPopARTApp:
                         ),
                     ]
                 )
-            elif algorithm == 'tsw':
-                return html.Div(
-                    [
-                        dbc.Label('Distance Metric'),
-                        dcc.Dropdown(
-                            id={'type': 'algorithm-param', 'name': 'distance'},
-                            options=[
-                                {'label': 'Hamming', 'value': 'hamming'},
-                                {'label': 'Jukes-Cantor', 'value': 'jc'},
-                                {'label': 'Kimura 2-parameter', 'value': 'k2p'},
-                            ],
-                            value='hamming',
-                        ),
-                        html.Br(),
-                        html.Small(
-                            'Computes tight span of distance matrix',
-                            className='text-muted',
-                        ),
-                    ]
-                )
             return html.Div()
 
         @self.app.callback(
@@ -1127,8 +1102,6 @@ class PyPopARTApp:
                         n_trees=param_value or 100,
                         min_edge_frequency=0.05
                     )
-                elif algorithm == 'tsw':
-                    algo = TightSpanWalker(distance_method=param_value or 'hamming')
                 else:
                     raise ValueError(f'Unknown algorithm: {algorithm}')
 

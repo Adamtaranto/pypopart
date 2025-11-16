@@ -11,7 +11,6 @@ from .msn import MinimumSpanningNetwork
 from .mst import MinimumSpanningTree
 from .parsimony_net import ParsimonyNetwork
 from .tcs import TCS
-from .tight_span_walker import TightSpanWalker
 
 # Convenient aliases
 MSTAlgorithm = MinimumSpanningTree
@@ -19,7 +18,6 @@ MSNAlgorithm = MinimumSpanningNetwork
 TCSAlgorithm = TCS
 MJNAlgorithm = MedianJoiningNetwork
 PNAlgorithm = ParsimonyNetwork
-TSWAlgorithm = TightSpanWalker
 
 __all__ = [
     'NetworkAlgorithm',
@@ -28,11 +26,9 @@ __all__ = [
     'TCS',
     'MedianJoiningNetwork',
     'ParsimonyNetwork',
-    'TightSpanWalker',
     'MSTAlgorithm',
     'MSNAlgorithm',
     'TCSAlgorithm',
     'MJNAlgorithm',
     'PNAlgorithm',
-    'TSWAlgorithm',
 ]
