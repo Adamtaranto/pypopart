@@ -15,17 +15,20 @@ from pypopart.core.graph import HaplotypeNetwork
 from pypopart.core.haplotype import Haplotype
 
 
-def _sanitize_graph_for_export(graph: nx.Graph) -> nx.Graph:
+def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') -> nx.Graph:
     """
     Create a copy of the graph with serializable attributes.
     
     Converts Haplotype objects and other non-serializable types to 
-    basic Python types (strings, lists, dicts) for export.
+    basic Python types for export.
     
     Parameters
     ----------
     graph :
         NetworkX graph with potentially non-serializable attributes.
+    format_type :
+        Export format type. 'graphml' uses stricter serialization (only primitives),
+        'generic' allows lists and dicts for formats like JSON and GML.
         
     Returns
     -------
@@ -33,6 +36,9 @@ def _sanitize_graph_for_export(graph: nx.Graph) -> nx.Graph:
     """
     # Create a deep copy to avoid modifying original
     sanitized = nx.Graph()
+    
+    # GraphML only supports str, int, float, bool (no lists or dicts)
+    strict_mode = (format_type == 'graphml')
     
     # Copy nodes with sanitized attributes
     for node, attrs in graph.nodes(data=True):
@@ -42,14 +48,23 @@ def _sanitize_graph_for_export(graph: nx.Graph) -> nx.Graph:
                 # Skip the Haplotype object - we have the data in other attributes
                 continue
             elif isinstance(value, Haplotype):
-                # Convert Haplotype to dict if found elsewhere
+                # Convert Haplotype to string
                 clean_attrs[key] = str(value)
             elif isinstance(value, (list, tuple, set)):
-                # Convert to list and ensure all elements are serializable
-                clean_attrs[key] = [str(item) if not isinstance(item, (str, int, float, bool, type(None))) else item for item in value]
+                if strict_mode:
+                    # Convert to comma-separated string for GraphML
+                    clean_attrs[key] = ','.join(str(item) for item in value)
+                else:
+                    # Convert to list for formats that support it
+                    clean_attrs[key] = [str(item) if not isinstance(item, (str, int, float, bool, type(None))) else item for item in value]
             elif isinstance(value, dict):
-                # Recursively clean dict values
-                clean_attrs[key] = {k: str(v) if not isinstance(v, (str, int, float, bool, type(None), list, dict)) else v for k, v in value.items()}
+                if strict_mode:
+                    # Convert to JSON string for GraphML
+                    import json
+                    clean_attrs[key] = json.dumps(value)
+                else:
+                    # Keep as dict for formats that support it
+                    clean_attrs[key] = {k: str(v) if not isinstance(v, (str, int, float, bool, type(None))) else v for k, v in value.items()}
             elif isinstance(value, (str, int, float, bool, type(None))):
                 # Already serializable
                 clean_attrs[key] = value
@@ -66,9 +81,16 @@ def _sanitize_graph_for_export(graph: nx.Graph) -> nx.Graph:
             if isinstance(value, (str, int, float, bool, type(None))):
                 clean_attrs[key] = value
             elif isinstance(value, (list, tuple)):
-                clean_attrs[key] = list(value)
+                if strict_mode:
+                    clean_attrs[key] = ','.join(str(item) for item in value)
+                else:
+                    clean_attrs[key] = list(value)
             elif isinstance(value, dict):
-                clean_attrs[key] = dict(value)
+                if strict_mode:
+                    import json
+                    clean_attrs[key] = json.dumps(value)
+                else:
+                    clean_attrs[key] = dict(value)
             else:
                 clean_attrs[key] = str(value)
         
@@ -107,8 +129,8 @@ class GraphMLExporter:
         # Convert network to NetworkX graph if needed
         graph = network.graph if hasattr(network, 'graph') else network
 
-        # Sanitize graph data for export
-        sanitized_graph = _sanitize_graph_for_export(graph)
+        # Sanitize graph data for export (strict mode for GraphML)
+        sanitized_graph = _sanitize_graph_for_export(graph, format_type='graphml')
 
         # Write to GraphML
         nx.write_graphml(sanitized_graph, self.filepath)
