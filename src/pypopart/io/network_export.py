@@ -161,8 +161,8 @@ class GMLExporter:
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
-        # Sanitize graph data for export
-        sanitized_graph = _sanitize_graph_for_export(graph)
+        # Sanitize graph data for export (GML requires strings like GraphML)
+        sanitized_graph = _sanitize_graph_for_export(graph, format_type='graphml')
 
         # Write to GML
         nx.write_gml(sanitized_graph, self.filepath)
