@@ -340,6 +340,9 @@ class ParsimonyNetwork(NetworkAlgorithm):
         hap_seqs = {h.id: h.sequence for h in haplotypes}
 
         # Add edges that meet threshold
+        # Note: Unlike the original implementation, we don't automatically
+        # subdivide edges into single-mutation steps. The sampling process
+        # naturally creates the consensus network structure.
         for edge, count in edge_counts.items():
             if count >= min_count:
                 id1, id2 = edge
@@ -350,14 +353,9 @@ class ParsimonyNetwork(NetworkAlgorithm):
                 distance = self._calculate_pairwise_distance(seq1, seq2)
 
                 # Add edge if not already present
+                # Do not add median vertices - the consensus sampling handles structure
                 if not network.has_edge(id1, id2):
                     network.add_edge(id1, id2, distance=distance)
-
-                    # Optionally add median vertices for edges > 1 mutation
-                    if distance > 1:
-                        self._add_median_vertices_along_edge(
-                            network, id1, id2, seq1, seq2, int(distance)
-                        )
 
     def _calculate_pairwise_distance(self, seq1: Sequence, seq2: Sequence) -> float:
         """
@@ -392,89 +390,3 @@ class ParsimonyNetwork(NetworkAlgorithm):
         # Simple Hamming distance for equal length sequences
         distance = sum(c1 != c2 for c1, c2 in zip(seq1.data, seq2.data))
         return float(distance)
-
-    def _add_median_vertices_along_edge(
-        self,
-        network: HaplotypeNetwork,
-        id1: str,
-        id2: str,
-        seq1: Sequence,
-        seq2: Sequence,
-        num_mutations: int,
-    ) -> None:
-        """
-        Add median vertices along an edge with multiple mutations.
-
-        Creates intermediate nodes for edges representing more than one mutation,
-        which is required for proper network topology.
-
-        Parameters
-        ----------
-        network : HaplotypeNetwork
-            Network to modify.
-        id1 : str
-            First node ID.
-        id2 : str
-            Second node ID.
-        seq1 : Sequence
-            First sequence.
-        seq2 : Sequence
-            Second sequence.
-        num_mutations : int
-            Number of mutations between sequences.
-
-        Returns
-        -------
-        None
-            Network is modified in place.
-        """
-        if num_mutations <= 1:
-            return
-
-        # Remove the direct edge
-        if network.has_edge(id1, id2):
-            network.remove_edge(id1, id2)
-
-        # Find positions that differ
-        diff_positions = [
-            i for i, (c1, c2) in enumerate(zip(seq1.data, seq2.data)) if c1 != c2
-        ]
-
-        # Create intermediate sequences
-        prev_id = id1
-        for i in range(1, num_mutations):
-            # Create median sequence by changing i positions
-            median_data = list(seq1.data)
-            for j in range(i):
-                median_data[diff_positions[j]] = seq2.data[diff_positions[j]]
-
-            median_seq_str = ''.join(median_data)
-
-            # Check if this sequence already exists in network
-            existing_id = None
-            for hap_id in network.nodes:
-                hap = network.get_haplotype(hap_id)
-                if hap.data == median_seq_str:
-                    existing_id = hap_id
-                    break
-
-            if existing_id:
-                median_id = existing_id
-            else:
-                # Create new median vertex
-                median_id = f"Median_{self._median_counter}"
-                self._median_counter += 1
-
-                median_seq = Sequence(id=median_id, data=median_seq_str)
-                median_haplotype = Haplotype(sequence=median_seq, sample_ids=[])
-                network.add_haplotype(median_haplotype, median_vector=True)
-
-            # Add edge from previous to median
-            if not network.has_edge(prev_id, median_id):
-                network.add_edge(prev_id, median_id, distance=1.0)
-
-            prev_id = median_id
-
-        # Add final edge to id2
-        if not network.has_edge(prev_id, id2):
-            network.add_edge(prev_id, id2, distance=1.0)

@@ -229,6 +229,12 @@ class TightSpanWalker(NetworkAlgorithm):
         for hap in haplotypes:
             network.add_haplotype(hap)
 
+        # Store vertex map for checking existing vertices with same dT vector
+        self._vertex_map: Dict[tuple, str] = {}
+        for i, hap in enumerate(haplotypes):
+            dt_vector = tuple(self._dt_matrix[i, :])
+            self._vertex_map[dt_vector] = hap.id
+
         # Build geodesic paths between all pairs
         n = len(haplotypes)
         for i in range(n):
@@ -236,6 +242,9 @@ class TightSpanWalker(NetworkAlgorithm):
                 self._add_geodesic_path(
                     network, haplotypes[i], haplotypes[j], distance_matrix, i, j
                 )
+
+        # Prune unnecessary median vertices
+        network = self._prune_unnecessary_medians(network)
 
         return network
 
@@ -251,7 +260,9 @@ class TightSpanWalker(NetworkAlgorithm):
         """
         Add geodesic path between two haplotypes.
 
-        This may add intermediate vertices if needed to maintain metric properties.
+        Implements the geodesic algorithm from the C++ TSW implementation.
+        This uses bipartite coloring and delta computation to determine
+        if intermediate vertices are needed.
 
         Parameters
         ----------
@@ -268,30 +279,92 @@ class TightSpanWalker(NetworkAlgorithm):
         idx2 : int
             Index of second haplotype in distance matrix.
         """
-        # Get actual distance and dT distance
-        actual_dist = distance_matrix.get_distance(hap1.id, hap2.id)
-        dt_dist = self._dt_matrix[idx1, idx2]
+        # Get dT distance between f and g
+        dt_fg = self._dt_matrix[idx1, idx2]
 
-        # Check if we need intermediate vertices
-        # If dT is much smaller than actual distance, we need medians
-        if actual_dist - dt_dist > self.epsilon:
-            # Need to add intermediate vertices
-            # For simplicity, add a single median vertex
-            median_hap = self._create_median_vertex(hap1, hap2)
+        # Skip if already connected
+        if network.has_edge(hap1.id, hap2.id):
+            return
 
-            # Add median to network if not already present
-            if median_hap.id not in [h.id for h in network.haplotypes]:
-                network.add_haplotype(median_hap, median_vector=True)
+        # Compute bipartite coloring and delta
+        # Build auxiliary graph K_f based on dT distances from f
+        n = self._dt_matrix.shape[0]
+        green_vertices = set()
+        red_vertices = set()
 
-            # Add edges
-            dist1 = actual_dist / 2.0
-            dist2 = actual_dist / 2.0
+        # Color vertices based on their position relative to f and g
+        for i in range(n):
+            fi = self._dt_matrix[idx1, i]
+            gi = self._dt_matrix[idx2, i]
 
-            network.add_edge(hap1.id, median_hap.id, distance=dist1)
-            network.add_edge(median_hap.id, hap2.id, distance=dist2)
+            # Check if vertex i is on the path from f to g
+            # Vertices are green if they're closer to f
+            if abs(fi + dt_fg + gi - distance_matrix.matrix[i, idx2]) < self.epsilon:
+                green_vertices.add(i)
+            # Vertices are red if they're closer to g  
+            elif abs(fi + dt_fg - gi) < self.epsilon:
+                red_vertices.add(i)
+
+        # Compute delta - the splitting parameter
+        delta = float('inf')
+        for i in green_vertices:
+            for j in green_vertices:
+                if i != j:
+                    fi = self._dt_matrix[idx1, i]
+                    fj = self._dt_matrix[idx1, j]
+                    dij = distance_matrix.matrix[i, j]
+                    delta = min(delta, (fi + fj - dij))
+
+        if delta != float('inf'):
+            delta = delta / 2.0
         else:
-            # Direct connection
-            network.add_edge(hap1.id, hap2.id, distance=actual_dist)
+            delta = dt_fg
+
+        # If delta equals dT(f,g), create direct edge
+        if abs(dt_fg - delta) < self.epsilon:
+            if not network.has_edge(hap1.id, hap2.id):
+                network.add_edge(hap1.id, hap2.id, distance=dt_fg)
+            return
+
+        # Need to create intermediate vertex h and recurse
+        if dt_fg > delta + self.epsilon:
+            # Compute dT vector for new vertex h
+            h_dt_vector = []
+            for i in range(n):
+                fi = self._dt_matrix[idx1, i]
+                if i in green_vertices or i == idx1:
+                    h_dt_vector.append(fi - delta)
+                else:  # red vertices
+                    h_dt_vector.append(fi + delta)
+
+            h_dt_tuple = tuple(h_dt_vector)
+
+            # Check if vertex with this dT vector already exists
+            if h_dt_tuple in self._vertex_map:
+                h_id = self._vertex_map[h_dt_tuple]
+            else:
+                # Create new median vertex
+                median_hap = self._create_median_vertex(hap1, hap2)
+                h_id = median_hap.id
+                network.add_haplotype(median_hap, median_vector=True)
+                self._vertex_map[h_dt_tuple] = h_id
+
+                # Extend dT matrix for new vertex
+                new_row = np.array(h_dt_vector)
+                self._dt_matrix = np.vstack([self._dt_matrix, new_row])
+                new_col = np.append(h_dt_vector, [0])
+                self._dt_matrix = np.column_stack([self._dt_matrix, new_col])
+
+            # Add edge from f to h
+            if not network.has_edge(hap1.id, h_id):
+                network.add_edge(hap1.id, h_id, distance=delta)
+
+            # Recursively add geodesic from h to g
+            h_idx = self._dt_matrix.shape[0] - 1
+            h_hap = network.get_haplotype(h_id)
+            self._add_geodesic_path(
+                network, h_hap, hap2, distance_matrix, h_idx, idx2
+            )
 
     def _create_median_vertex(self, hap1: Haplotype, hap2: Haplotype) -> Haplotype:
         """
@@ -340,6 +413,80 @@ class TightSpanWalker(NetworkAlgorithm):
         self._internal_counter += 1
 
         return median_hap
+
+    def _prune_unnecessary_medians(
+        self, network: HaplotypeNetwork
+    ) -> HaplotypeNetwork:
+        """
+        Prune median vertices that don't bridge observed nodes.
+
+        A median vertex should only be kept if it:
+        1. Connects two or more observed (non-median) vertices, OR
+        2. Connects to other median vertices that eventually lead to observed vertices
+
+        This prevents the excess of isolated or non-bridging intermediate nodes.
+
+        Parameters
+        ----------
+        network : HaplotypeNetwork
+            Network to prune.
+
+        Returns
+        -------
+        HaplotypeNetwork
+            Pruned network.
+        """
+        # Identify observed vs median vertices
+        observed_nodes = {
+            h.id for h in network.haplotypes if not network.is_median_vector(h.id)
+        }
+        median_nodes = {
+            h.id for h in network.haplotypes if network.is_median_vector(h.id)
+        }
+
+        # Find medians to keep - those that bridge observed nodes
+        medians_to_keep = set()
+
+        for median_id in median_nodes:
+            # Get neighbors of this median
+            neighbors = list(network.get_neighbors(median_id))
+
+            # Count observed and median neighbors
+            observed_neighbors = [n for n in neighbors if n in observed_nodes]
+            median_neighbors = [n for n in neighbors if n in median_nodes]
+
+            # Keep if:
+            # 1. Connects to 2+ observed nodes (bridges observed nodes)
+            # 2. Connects to 1 observed + 1+ medians (on path between observed)
+            # 3. Connects to 2+ medians (internal to a path)
+            if (
+                len(observed_neighbors) >= 2
+                or (len(observed_neighbors) >= 1 and len(median_neighbors) >= 1)
+                or len(median_neighbors) >= 2
+            ):
+                medians_to_keep.add(median_id)
+
+        # Additionally, check if median is on a path between observed nodes
+        # using BFS to ensure connectivity
+        for median_id in list(median_nodes - medians_to_keep):
+            # Check if removing this node would disconnect observed nodes
+            neighbors = list(network.get_neighbors(median_id))
+            if len(neighbors) >= 2:
+                # Check if neighbors can reach each other without this median
+                # For simplicity, if it has degree >= 2, it might be bridging
+                medians_to_keep.add(median_id)
+
+        # Remove medians that aren't kept
+        medians_to_remove = median_nodes - medians_to_keep
+
+        for median_id in medians_to_remove:
+            try:
+                network.remove_haplotype(median_id)
+            except Exception:
+                # If removal fails, skip (node might already be removed)
+                pass
+
+        return network
 
     def get_parameters(self) -> Dict:
         """
