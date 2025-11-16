@@ -182,6 +182,8 @@ class PyPopARTApp:
                 dcc.Store(id='computation-status'),
                 dcc.Store(id='geographic-mode', data=False),
                 dcc.Store(id='manual-edit-flag', data=False),
+                # Store to trigger window resize handling
+                dcc.Store(id='window-size-store'),
             ]
         )
 
@@ -399,7 +401,7 @@ class PyPopARTApp:
                             min=0.5,
                             max=3.0,
                             step=0.1,
-                            value=1.0,
+                            value=2.0,
                             marks={0.5: '0.5x', 1.0: '1.0x', 2.0: '2.0x', 3.0: '3.0x'},
                             tooltip={'placement': 'bottom', 'always_visible': False},
                         ),
@@ -432,6 +434,18 @@ class PyPopARTApp:
                             value=3,
                             marks={1: '1', 3: '3', 6: '6', 10: '10'},
                             tooltip={'placement': 'bottom', 'always_visible': False},
+                        ),
+                        html.Br(),
+                        dbc.Checklist(
+                            options=[
+                                {
+                                    'label': 'Edge length proportional to mutations',
+                                    'value': 'proportional_edges',
+                                }
+                            ],
+                            value=[],
+                            id='edge-length-proportional',
+                            switch=True,
                         ),
                         html.Br(),
                         dbc.Button(
@@ -2423,6 +2437,7 @@ class PyPopARTApp:
             [
                 Input('node-size-slider', 'value'),
                 Input('edge-width-slider', 'value'),
+                Input('edge-length-proportional', 'value'),
             ],
             State('network-graph', 'stylesheet'),
             prevent_initial_call=True,
@@ -2430,32 +2445,59 @@ class PyPopARTApp:
         def update_node_edge_sizes(
             node_size: int,
             edge_width: float,
+            proportional_edges: List[str],
             current_stylesheet: List[Dict],
         ) -> List[Dict]:
             """Update node size and edge width in stylesheet."""
             if not current_stylesheet:
                 raise PreventUpdate
 
+            # Determine if edges should be proportional to mutations
+            use_proportional_edges = 'proportional_edges' in (proportional_edges or [])
+
             # Create a copy of the stylesheet
             new_stylesheet = []
             for style in current_stylesheet:
                 new_style = style.copy()
 
-                # Update node size
+                # Update node size - scale proportionally based on data(size)
                 if style.get('selector') == 'node':
                     if 'style' not in new_style:
                         new_style['style'] = {}
                     new_style['style'] = {**new_style['style']}
-                    # Override the size to be a fixed value instead of data-dependent
-                    new_style['style']['width'] = node_size
-                    new_style['style']['height'] = node_size
+                    # Scale nodes proportionally: multiply data(size) by scale factor
+                    # Default node size is 40, so scale factor is node_size/40
+                    scale_factor = node_size / 40.0
+                    # Use mapData to scale the size attribute proportionally
+                    # This preserves the relative size differences between nodes
+                    new_style['style']['width'] = (
+                        f'mapData(size, 0, 100, 0, {100 * scale_factor})'
+                    )
+                    new_style['style']['height'] = (
+                        f'mapData(size, 0, 100, 0, {100 * scale_factor})'
+                    )
 
-                # Update edge width
+                # Update edge width and optionally edge length
                 elif style.get('selector') == 'edge':
                     if 'style' not in new_style:
                         new_style['style'] = {}
                     new_style['style'] = {**new_style['style']}
                     new_style['style']['width'] = edge_width
+
+                    # If proportional edges enabled, map edge length to weight (mutations)
+                    if use_proportional_edges:
+                        # Use unbundled-bezier to allow variable edge lengths
+                        new_style['style']['curve-style'] = 'unbundled-bezier'
+                        # Edge distance is proportional to weight
+                        # Map weight 1-10 to distance multiplier 50-500
+                        new_style['style']['edge-distances'] = 'node-position'
+                        new_style['style']['control-point-distances'] = (
+                            'mapData(weight, 1, 10, 50, 500)'
+                        )
+                        new_style['style']['control-point-weights'] = '0.5'
+                    else:
+                        # Use regular bezier curve
+                        new_style['style']['curve-style'] = 'bezier'
 
                 new_stylesheet.append(new_style)
 
@@ -2703,6 +2745,58 @@ class PyPopARTApp:
             """,
             Output('network-graph', 'zoom'),
             [Input('network-graph', 'elements'), Input('manual-edit-flag', 'data')],
+        )
+
+        # Clientside callback to hide tooltip when clicking on background
+        self.app.clientside_callback(
+            """
+            function(tapData) {
+                // If tap is not on a node (tapData is null or undefined), hide tooltip
+                if (!tapData) {
+                    return {display: 'none'};
+                }
+                // Otherwise, don't update (let hover handler manage tooltip)
+                return window.dash_clientside.no_update;
+            }
+            """,
+            Output('node-tooltip', 'style', allow_duplicate=True),
+            Input('network-graph', 'tapData'),
+            prevent_initial_call=True,
+        )
+
+        # Clientside callback to handle window resize and adjust network layout
+        self.app.clientside_callback(
+            """
+            function(elements) {
+                // Set up window resize listener once
+                if (!window.cytoscapeResizeSetup) {
+                    window.cytoscapeResizeSetup = true;
+
+                    let resizeTimeout;
+                    window.addEventListener('resize', function() {
+                        // Debounce the resize event
+                        clearTimeout(resizeTimeout);
+                        resizeTimeout = setTimeout(function() {
+                            try {
+                                const cy = document.getElementById('network-graph')._cyreg.cy;
+                                if (cy) {
+                                    // Resize the cytoscape instance to fit new container size
+                                    cy.resize();
+                                    // Re-fit to maintain visibility
+                                    cy.fit(null, 50);
+                                }
+                            } catch (e) {
+                                console.log('Could not resize network:', e);
+                            }
+                        }, 250); // Wait 250ms after resize stops
+                    });
+                }
+                return window.dash_clientside.no_update;
+            }
+            """,
+            Output('window-size-store', 'data'),
+            Input('network-graph', 'elements'),
+            prevent_initial_call=True,
         )
 
     def _format_central_haplotypes(self, central: Dict) -> html.Div:
