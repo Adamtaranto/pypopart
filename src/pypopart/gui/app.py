@@ -2032,6 +2032,28 @@ class PyPopARTApp:
                 self.logger.error(f'Error showing tooltip: {e}')
                 return html.Div(), {'display': 'none'}
 
+        @self.app.callback(
+            Output('h-number-feedback', 'children'),
+            Input('edit-h-numbers-button', 'n_clicks'),
+            prevent_initial_call=True,
+        )
+        def show_edit_message(n_clicks: Optional[int]) -> html.Div:
+            """Show message about H number editing feature."""
+            if n_clicks:
+                return dbc.Alert(
+                    [
+                        html.Strong('ℹ️ Feature Note: '),
+                        'Custom H number editing requires a more complex implementation. ',
+                        'This feature allows manual renaming of haplotype identifiers but needs ',
+                        'an editable DataTable component with validation. Consider exporting to CSV, ',
+                        'editing externally, and using the custom labels for publication.',
+                    ],
+                    color='info',
+                    dismissable=True,
+                    style={'marginTop': '10px'},
+                )
+            raise PreventUpdate
+
     def _format_central_haplotypes(self, central: Dict) -> html.Div:
         """Format central haplotypes for display."""
         try:
