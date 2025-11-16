@@ -100,7 +100,7 @@ def load(
 @click.option(
     '-a',
     '--algorithm',
-    type=click.Choice(['mst', 'msn', 'tcs', 'mjn'], case_sensitive=False),
+    type=click.Choice(['mst', 'msn', 'tcs', 'mjn', 'pn', 'tsw'], case_sensitive=False),
     default='mjn',
     show_default=True,
     help='Network construction algorithm',
@@ -159,6 +159,8 @@ def network(
         MedianJoiningNetwork,
         MinimumSpanningNetwork,
         MinimumSpanningTree,
+        ParsimonyNetwork,
+        TightSpanWalker,
     )
     from pypopart.io import load_alignment, save_network
 
@@ -192,6 +194,10 @@ def network(
             )
         elif algorithm == 'mjn':
             algo = MedianJoiningNetwork(distance_method=distance, epsilon=epsilon)
+        elif algorithm == 'pn':
+            algo = ParsimonyNetwork(distance_method=distance, n_trees=100)
+        elif algorithm == 'tsw':
+            algo = TightSpanWalker(distance_method=distance)
         else:
             raise ValueError(f'Unknown algorithm: {algorithm}')
 
