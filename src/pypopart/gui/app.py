@@ -1045,6 +1045,10 @@ class PyPopARTApp:
                         ),
                         html.Small(
                             'Number of random parsimony trees to sample',
+                            className='text-muted',
+                        ),
+                    ]
+                )
             elif algorithm == 'tsw':
                 return html.Div(
                     [
@@ -1124,8 +1128,7 @@ class PyPopARTApp:
                     algo = MedianJoiningNetwork(epsilon=param_value or 0)
                 elif algorithm == 'pn':
                     algo = ParsimonyNetwork(
-                        n_trees=param_value or 100,
-                        min_edge_frequency=0.05
+                        n_trees=param_value or 100, min_edge_frequency=0.05
                     )
                 elif algorithm == 'tsw':
                     algo = TightSpanWalker(distance_method=param_value or 'hamming')
