@@ -2470,8 +2470,12 @@ class PyPopARTApp:
                     scale_factor = node_size / 40.0
                     # Use mapData to scale the size attribute proportionally
                     # This preserves the relative size differences between nodes
-                    new_style['style']['width'] = f'mapData(size, 0, 100, 0, {100 * scale_factor})'
-                    new_style['style']['height'] = f'mapData(size, 0, 100, 0, {100 * scale_factor})'
+                    new_style['style']['width'] = (
+                        f'mapData(size, 0, 100, 0, {100 * scale_factor})'
+                    )
+                    new_style['style']['height'] = (
+                        f'mapData(size, 0, 100, 0, {100 * scale_factor})'
+                    )
 
                 # Update edge width and optionally edge length
                 elif style.get('selector') == 'edge':
@@ -2479,7 +2483,7 @@ class PyPopARTApp:
                         new_style['style'] = {}
                     new_style['style'] = {**new_style['style']}
                     new_style['style']['width'] = edge_width
-                    
+
                     # If proportional edges enabled, map edge length to weight (mutations)
                     if use_proportional_edges:
                         # Use unbundled-bezier to allow variable edge lengths
@@ -2487,7 +2491,9 @@ class PyPopARTApp:
                         # Edge distance is proportional to weight
                         # Map weight 1-10 to distance multiplier 50-500
                         new_style['style']['edge-distances'] = 'node-position'
-                        new_style['style']['control-point-distances'] = 'mapData(weight, 1, 10, 50, 500)'
+                        new_style['style']['control-point-distances'] = (
+                            'mapData(weight, 1, 10, 50, 500)'
+                        )
                         new_style['style']['control-point-weights'] = '0.5'
                     else:
                         # Use regular bezier curve
@@ -2765,7 +2771,7 @@ class PyPopARTApp:
                 // Set up window resize listener once
                 if (!window.cytoscapeResizeSetup) {
                     window.cytoscapeResizeSetup = true;
-                    
+
                     let resizeTimeout;
                     window.addEventListener('resize', function() {
                         // Debounce the resize event
