@@ -181,6 +181,7 @@ class PyPopARTApp:
                 dcc.Store(id='layout-store'),
                 dcc.Store(id='computation-status'),
                 dcc.Store(id='geographic-mode', data=False),
+                dcc.Store(id='manual-edit-flag', data=False),
             ]
         )
 
@@ -462,8 +463,8 @@ class PyPopARTApp:
                     ],
                     style={
                         'position': 'absolute',
-                        'top': '10px',
-                        'left': '10px',
+                        'bottom': '10px',
+                        'right': '10px',
                         'background': 'white',
                         'padding': '10px',
                         'border': '1px solid #ccc',
@@ -809,6 +810,23 @@ class PyPopARTApp:
                             pop = meta['population']
                             if pop not in population_colors:
                                 population_colors[pop] = meta['color']
+
+                # If population labels provided but no colors, generate colors automatically
+                if populations and not population_colors:
+                    import colorsys
+                    unique_pops = sorted(set(populations.values()))
+                    n = len(unique_pops)
+                    for i, pop in enumerate(unique_pops):
+                        # Generate evenly spaced hues for distinct colors
+                        hue = i / n
+                        saturation = 0.7
+                        value = 0.9
+                        r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
+                        hex_color = '#{:02x}{:02x}{:02x}'.format(
+                            int(r * 255), int(g * 255), int(b * 255)
+                        )
+                        population_colors[pop] = hex_color
+                    self.logger.info(f'Auto-generated colors for {len(unique_pops)} populations')
 
                 metadata_data = {
                     'raw': metadata_dict,
@@ -1287,7 +1305,10 @@ class PyPopARTApp:
                 return [], [], error_msg
 
         @self.app.callback(
-            Output('layout-store', 'data', allow_duplicate=True),
+            [
+                Output('layout-store', 'data', allow_duplicate=True),
+                Output('manual-edit-flag', 'data', allow_duplicate=True),
+            ],
             Input('network-graph', 'elements'),
             State('layout-store', 'data'),
             prevent_initial_call=True,
@@ -1295,13 +1316,14 @@ class PyPopARTApp:
         def update_node_positions(
             elements: Optional[List[Dict]],
             current_layout: Optional[Dict],
-        ) -> Optional[Dict]:
+        ) -> Tuple[Optional[Dict], bool]:
             """Update node positions when user drags nodes in Cytoscape."""
             if not elements or not current_layout:
                 raise PreventUpdate
 
             try:
                 updated_layout = current_layout.copy()
+                position_changed = False
 
                 # Extract positions from Cytoscape elements
                 for element in elements:
@@ -1311,9 +1333,15 @@ class PyPopARTApp:
                             # Cytoscape positions are scaled by 100
                             x = element['position']['x'] / 100
                             y = element['position']['y'] / 100
+                            # Check if position actually changed
+                            if node_id in current_layout:
+                                old_pos = current_layout[node_id]
+                                if abs(old_pos[0] - x) > 0.01 or abs(old_pos[1] - y) > 0.01:
+                                    position_changed = True
                             updated_layout[node_id] = [x, y]
 
-                return updated_layout
+                # Set manual edit flag to True if positions changed
+                return updated_layout, position_changed
 
             except Exception as e:
                 self.logger.error(f'Error updating node positions: {e}')
@@ -1974,6 +2002,9 @@ class PyPopARTApp:
                         color='info',
                     ))
 
+                # Get population colors if available
+                population_colors = metadata_data.get('population_colors', {}) if metadata_data else {}
+
                 # Build table
                 table_header = [
                     html.Thead(
@@ -1982,6 +2013,7 @@ class PyPopARTApp:
                             html.Th('In Alignment'),
                             html.Th('In Metadata'),
                             html.Th('Population'),
+                            html.Th('Color'),
                             html.Th('Latitude'),
                             html.Th('Longitude'),
                         ])
@@ -1994,13 +2026,24 @@ class PyPopARTApp:
                     in_metadata = '✓' if sid in metadata_ids else '✗'
 
                     meta = metadata_records.get(sid, {})
+                    pop = meta.get('population', '')
+                    
+                    # Get color for this population
+                    color_display = ''
+                    if pop and population_colors and pop in population_colors:
+                        color_hex = population_colors[pop]
+                        color_display = html.Div([
+                            html.Span('●', style={'color': color_hex, 'fontSize': '16px', 'marginRight': '5px'}),
+                            html.Span(color_hex, style={'fontSize': '12px'})
+                        ])
 
                     table_rows.append(
                         html.Tr([
                             html.Td(sid),
                             html.Td(in_alignment, style={'textAlign': 'center'}),
                             html.Td(in_metadata, style={'textAlign': 'center'}),
-                            html.Td(meta.get('population', '')),
+                            html.Td(pop),
+                            html.Td(color_display),
                             html.Td(meta.get('latitude', '')),
                             html.Td(meta.get('longitude', '')),
                         ])
@@ -2320,30 +2363,33 @@ class PyPopARTApp:
                 ), dash.no_update
 
         # Clientside callback to auto-fit network when elements are updated
+        # Only fit when not in manual edit mode
         self.app.clientside_callback(
             """
-            function(elements) {
+            function(elements, manualEditFlag) {
                 if (!elements || elements.length === 0) {
                     return window.dash_clientside.no_update;
                 }
-                // Trigger a fit after elements are loaded
-                // This must return a value for the output
-                setTimeout(function() {
-                    try {
-                        const cy = document.getElementById('network-graph')._cyreg.cy;
-                        if (cy) {
-                            cy.fit(null, 50);  // Fit with 50px padding
-                            cy.center();
+                // Only auto-fit if not manually editing
+                if (!manualEditFlag) {
+                    // Trigger a fit after elements are loaded
+                    setTimeout(function() {
+                        try {
+                            const cy = document.getElementById('network-graph')._cyreg.cy;
+                            if (cy) {
+                                cy.fit(null, 50);  // Fit with 50px padding
+                                cy.center();
+                            }
+                        } catch (e) {
+                            console.log('Could not auto-fit network:', e);
                         }
-                    } catch (e) {
-                        console.log('Could not auto-fit network:', e);
-                    }
-                }, 100);
+                    }, 100);
+                }
                 return elements.length;
             }
             """,
             Output('network-graph', 'zoom'),
-            Input('network-graph', 'elements'),
+            [Input('network-graph', 'elements'), Input('manual-edit-flag', 'data')],
         )
 
     def _format_central_haplotypes(self, central: Dict) -> html.Div:
