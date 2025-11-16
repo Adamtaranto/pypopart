@@ -1,6 +1,4 @@
-"""
-Unit tests for PyPopART GUI application.
-"""
+"""Unit tests for PyPopART GUI application."""
 
 
 class TestPyPopARTApp:
@@ -154,3 +152,38 @@ class TestPyPopARTApp:
         # This verifies Issue 6 is fixed
         network_tab = app._create_network_tab()
         assert network_tab is not None
+
+    def test_haplotype_summary_tab_has_mapping_components(self):
+        """Test that haplotype summary tab has label mapping components."""
+        from pypopart.gui.app import PyPopARTApp
+
+        app = PyPopARTApp(debug=False)
+        tab = app._create_haplotype_summary_tab()
+
+        assert tab is not None
+        # Tab should have children including buttons and stores
+        assert hasattr(tab, 'children')
+        assert len(tab.children) > 0
+
+        # Find components by traversing children
+        # Should have: download-h-number-template-button, upload-h-number-mapping, h-number-mapping-store
+        component_ids = []
+
+        def extract_ids(component):
+            """Recursively extract all component IDs."""
+            if hasattr(component, 'id'):
+                component_ids.append(component.id)
+            if hasattr(component, 'children'):
+                if isinstance(component.children, list):
+                    for child in component.children:
+                        extract_ids(child)
+                else:
+                    extract_ids(component.children)
+
+        extract_ids(tab)
+
+        # Check that key components exist
+        assert 'download-h-number-template-button' in component_ids
+        assert 'upload-h-number-mapping' in component_ids
+        assert 'h-number-mapping-store' in component_ids
+        assert 'h-number-feedback' in component_ids

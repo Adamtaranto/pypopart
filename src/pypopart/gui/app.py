@@ -561,7 +561,7 @@ class PyPopARTApp:
                 html.Div(
                     [
                         dbc.Button(
-                            '⬇️ Download as CSV',
+                            '⬇️ Download Summary CSV',
                             id='download-haplotype-csv-button',
                             color='primary',
                             size='sm',
@@ -569,19 +569,23 @@ class PyPopARTApp:
                         ),
                         dcc.Download(id='download-haplotype-csv'),
                         dbc.Button(
-                            '✏️ Edit H Numbers',
-                            id='edit-h-numbers-button',
-                            color='secondary',
+                            '⬇️ Download Label Template',
+                            id='download-h-number-template-button',
+                            color='info',
                             outline=True,
                             size='sm',
                             style={'marginRight': '10px'},
                         ),
-                        dbc.Button(
-                            '💾 Save H Numbers',
-                            id='save-h-numbers-button',
-                            color='success',
-                            size='sm',
-                            disabled=True,
+                        dcc.Download(id='download-h-number-template'),
+                        dcc.Upload(
+                            id='upload-h-number-mapping',
+                            children=dbc.Button(
+                                '⬆️ Upload Label Mapping',
+                                color='warning',
+                                outline=True,
+                                size='sm',
+                            ),
+                            style={'display': 'inline-block', 'marginRight': '10px'},
                         ),
                         html.Div(id='h-number-feedback', style={'display': 'inline-block', 'marginLeft': '10px'}),
                     ],
@@ -591,8 +595,7 @@ class PyPopARTApp:
                     id='haplotype-summary-display',
                     style={'padding': '0 20px 20px 20px', 'height': '75vh', 'overflow-y': 'auto'},
                 ),
-                dcc.Store(id='h-numbers-store'),
-                dcc.Store(id='edit-mode-store', data=False),
+                dcc.Store(id='h-number-mapping-store'),
             ]
         )
 
@@ -1110,7 +1113,7 @@ class PyPopARTApp:
 
                 # Apply spacing factor to expand/contract the layout
                 if spacing_factor and spacing_factor != 1.0:
-                    positions = {node: (pos[0] * spacing_factor, pos[1] * spacing_factor) 
+                    positions = {node: (pos[0] * spacing_factor, pos[1] * spacing_factor)
                                 for node, pos in positions.items()}
 
                 # Convert to serializable format
@@ -1134,13 +1137,14 @@ class PyPopARTApp:
                 Input('network-store', 'data'),
                 Input('geographic-mode', 'data'),
             ],
-            State('metadata-store', 'data'),
+            [State('metadata-store', 'data'), State('h-number-mapping-store', 'data')],
         )
         def update_network_graph(
             layout_data: Optional[Dict],
             network_data: Optional[Dict],
             geographic_mode: bool,
             metadata_data: Optional[Dict],
+            h_number_mapping: Optional[Dict],
         ) -> Tuple[List[Dict], List[Dict], html.Div]:
             """Update network visualization with Cytoscape."""
             if not network_data or not layout_data:
@@ -1155,9 +1159,13 @@ class PyPopARTApp:
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}
 
                 # Generate H number labels for nodes
+                # Use custom mapping if available, otherwise generate default H numbers
                 node_labels = {}
-                for i, node_id in enumerate(sorted(network.graph.nodes()), start=1):
-                    node_labels[node_id] = f'H{i}'
+                if h_number_mapping:
+                    node_labels = h_number_mapping
+                else:
+                    for i, node_id in enumerate(sorted(network.graph.nodes()), start=1):
+                        node_labels[node_id] = f'H{i}'
 
                 # Extract population colors from metadata if available
                 population_colors = None
@@ -1496,10 +1504,18 @@ class PyPopARTApp:
 
         @self.app.callback(
             Output('haplotype-summary-display', 'children'),
-            [Input('network-store', 'data'), Input('alignment-store', 'data'), Input('metadata-store', 'data')],
+            [
+                Input('network-store', 'data'),
+                Input('alignment-store', 'data'),
+                Input('metadata-store', 'data'),
+                Input('h-number-mapping-store', 'data'),
+            ],
         )
         def update_haplotype_summary(
-            network_data: Optional[Dict], alignment_data: Optional[Dict], metadata_data: Optional[Dict]
+            network_data: Optional[Dict],
+            alignment_data: Optional[Dict],
+            metadata_data: Optional[Dict],
+            h_number_mapping: Optional[Dict],
         ) -> html.Div:
             """Update haplotype summary showing H number to sequence name mapping."""
             if not network_data or not alignment_data:
@@ -1520,7 +1536,11 @@ class PyPopARTApp:
                     is_median = node_data.get('median_vector', False)
                     frequency = node_data.get('frequency', len(sample_ids))
 
-                    h_label = f'H{i}'
+                    # Use custom label if available, otherwise default H number
+                    if h_number_mapping and node_id in h_number_mapping:
+                        h_label = h_number_mapping[node_id]
+                    else:
+                        h_label = f'H{i}'
 
                     # Determine if this is an inferred haplotype
                     if is_median or len(sample_ids) == 0:
@@ -1746,13 +1766,14 @@ class PyPopARTApp:
                 Output('network-graph', 'stylesheet', allow_duplicate=True),
             ],
             [Input('network-store', 'data'), Input('haplotype-search', 'value')],
-            State('network-graph', 'stylesheet'),
+            [State('network-graph', 'stylesheet'), State('h-number-mapping-store', 'data')],
             prevent_initial_call=True,
         )
         def update_search_and_highlight(
             network_data: Optional[Dict],
             selected_h_list: Optional[List[str]],
             current_stylesheet: List[Dict],
+            h_number_mapping: Optional[Dict],
         ) -> Tuple[List[Dict], List[Dict]]:
             """Update search dropdown options and highlight selected nodes."""
             if not network_data:
@@ -1766,17 +1787,21 @@ class PyPopARTApp:
                 h_numbers = []
                 h_to_node = {}
                 for i, node_id in enumerate(sorted(network.graph.nodes()), start=1):
-                    h_label = f'H{i}'
+                    # Use custom label if available, otherwise default H number
+                    if h_number_mapping and node_id in h_number_mapping:
+                        h_label = h_number_mapping[node_id]
+                    else:
+                        h_label = f'H{i}'
                     h_numbers.append({'label': h_label, 'value': h_label})
                     h_to_node[h_label] = node_id
 
                 # Create a clean stylesheet without any highlight styles
                 if not current_stylesheet:
                     current_stylesheet = []
-                
+
                 # Remove ALL existing highlight styles (for any node)
-                base_stylesheet = [s for s in current_stylesheet 
-                                  if not (s.get('selector', '').startswith('node[id = "') 
+                base_stylesheet = [s for s in current_stylesheet
+                                  if not (s.get('selector', '').startswith('node[id = "')
                                          and 'border-color' in s.get('style', {})
                                          and s.get('style', {}).get('border-color') == '#FF0000')]
 
@@ -1812,7 +1837,12 @@ class PyPopARTApp:
         @self.app.callback(
             Output('download-haplotype-csv', 'data'),
             Input('download-haplotype-csv-button', 'n_clicks'),
-            [State('network-store', 'data'), State('alignment-store', 'data'), State('metadata-store', 'data')],
+            [
+                State('network-store', 'data'),
+                State('alignment-store', 'data'),
+                State('metadata-store', 'data'),
+                State('h-number-mapping-store', 'data'),
+            ],
             prevent_initial_call=True,
         )
         def download_haplotype_csv(
@@ -1820,6 +1850,7 @@ class PyPopARTApp:
             network_data: Optional[Dict],
             alignment_data: Optional[Dict],
             metadata_data: Optional[Dict],
+            h_number_mapping: Optional[Dict],
         ) -> Optional[Dict]:
             """Download haplotype summary as CSV."""
             if not network_data or not alignment_data:
@@ -1849,7 +1880,11 @@ class PyPopARTApp:
                     is_median = node_data.get('median_vector', False)
                     frequency = node_data.get('frequency', len(sample_ids))
 
-                    h_label = f'H{i}'
+                    # Use custom label if available, otherwise default H number
+                    if h_number_mapping and node_id in h_number_mapping:
+                        h_label = h_number_mapping[node_id]
+                    else:
+                        h_label = f'H{i}'
 
                     if is_median or len(sample_ids) == 0:
                         haplotype_type = 'Inferred'
@@ -1998,18 +2033,19 @@ class PyPopARTApp:
                 Input('network-graph', 'mouseoverNodeData'),
                 Input('network-graph', 'mouseoverEdgeData'),
             ],
-            State('network-store', 'data'),
+            [State('network-store', 'data'), State('h-number-mapping-store', 'data')],
         )
         def show_node_tooltip(
             hover_data: Optional[Dict],
             edge_hover_data: Optional[Dict],
             network_data: Optional[Dict],
+            h_number_mapping: Optional[Dict],
         ) -> Tuple[html.Div, Dict]:
             """Show tooltip with sequence IDs when hovering over a node."""
             # Hide tooltip if hovering over edge instead of node
             if edge_hover_data and not hover_data:
                 return html.Div(), {'display': 'none'}
-            
+
             if not hover_data or not network_data:
                 return html.Div(), {'display': 'none'}
 
@@ -2027,11 +2063,14 @@ class PyPopARTApp:
                 is_median = node_data.get('median_vector', False)
 
                 # Find H number for this node
-                h_label = None
-                for i, nid in enumerate(sorted(network.graph.nodes()), start=1):
-                    if nid == node_id:
-                        h_label = f'H{i}'
-                        break
+                if h_number_mapping and node_id in h_number_mapping:
+                    h_label = h_number_mapping[node_id]
+                else:
+                    h_label = None
+                    for i, nid in enumerate(sorted(network.graph.nodes()), start=1):
+                        if nid == node_id:
+                            h_label = f'H{i}'
+                            break
 
                 # Build tooltip content
                 if is_median or len(sample_ids) == 0:
@@ -2088,26 +2127,197 @@ class PyPopARTApp:
                 return html.Div(), {'display': 'none'}
 
         @self.app.callback(
-            Output('h-number-feedback', 'children'),
-            Input('edit-h-numbers-button', 'n_clicks'),
+            Output('download-h-number-template', 'data'),
+            Input('download-h-number-template-button', 'n_clicks'),
+            [State('network-store', 'data'), State('h-number-mapping-store', 'data')],
             prevent_initial_call=True,
         )
-        def show_edit_message(n_clicks: Optional[int]) -> html.Div:
-            """Show message about H number editing feature."""
-            if n_clicks:
-                return dbc.Alert(
-                    [
-                        html.Strong('ℹ️ Feature Note: '),
-                        'Custom H number editing requires a more complex implementation. ',
-                        'This feature allows manual renaming of haplotype identifiers but needs ',
-                        'an editable DataTable component with validation. Consider exporting to CSV, ',
-                        'editing externally, and using the custom labels for publication.',
-                    ],
-                    color='info',
-                    dismissable=True,
-                    style={'marginTop': '10px'},
+        def download_h_number_template(
+            n_clicks: Optional[int],
+            network_data: Optional[Dict],
+            mapping_data: Optional[Dict],
+        ) -> Optional[Dict]:
+            """Download H number label mapping template as CSV."""
+            if not network_data:
+                raise PreventUpdate
+
+            try:
+                import csv
+                import io
+
+                # Reconstruct network
+                network = HaplotypeNetwork.from_serialized(network_data)
+
+                # Build CSV content
+                output = io.StringIO()
+                writer = csv.writer(output)
+
+                # Write header
+                writer.writerow(['current_h_number', 'new_label'])
+
+                # Write data rows with current H numbers
+                for i, node_id in enumerate(sorted(network.graph.nodes()), start=1):
+                    current_label = f'H{i}'
+                    # If there's already a custom mapping, use it
+                    if mapping_data and node_id in mapping_data:
+                        new_label = mapping_data[node_id]
+                    else:
+                        new_label = current_label
+                    writer.writerow([current_label, new_label])
+
+                return {
+                    'content': output.getvalue(),
+                    'filename': 'h_number_mapping_template.csv',
+                }
+
+            except Exception as e:
+                self.logger.error(f'Error generating H number template: {e}')
+                raise PreventUpdate from e
+
+        @self.app.callback(
+            [
+                Output('h-number-mapping-store', 'data'),
+                Output('h-number-feedback', 'children'),
+                Output('network-graph', 'elements', allow_duplicate=True),
+            ],
+            Input('upload-h-number-mapping', 'contents'),
+            [
+                State('upload-h-number-mapping', 'filename'),
+                State('network-store', 'data'),
+                State('layout-store', 'data'),
+                State('metadata-store', 'data'),
+            ],
+            prevent_initial_call=True,
+        )
+        def upload_h_number_mapping(
+            contents: Optional[str],
+            filename: Optional[str],
+            network_data: Optional[Dict],
+            layout_data: Optional[Dict],
+            metadata_data: Optional[Dict],
+        ) -> Tuple[Optional[Dict], html.Div, List[Dict]]:
+            """Process uploaded H number mapping CSV and update graph."""
+            if not contents or not network_data:
+                raise PreventUpdate
+
+            try:
+                import csv
+                import io
+
+                # Decode uploaded file
+                content_type, content_string = contents.split(',')
+                decoded = base64.b64decode(content_string).decode('utf-8')
+
+                # Parse CSV
+                csv_reader = csv.DictReader(io.StringIO(decoded))
+
+                # Validate required columns
+                if csv_reader.fieldnames is None or set(csv_reader.fieldnames) != {'current_h_number', 'new_label'}:
+                    return None, dbc.Alert(
+                        [
+                            html.Strong('❌ Invalid CSV Format'),
+                            html.Br(),
+                            'CSV must have exactly two columns: "current_h_number" and "new_label"',
+                        ],
+                        color='danger',
+                        dismissable=True,
+                    ), dash.no_update
+
+                # Reconstruct network to get node IDs
+                network = HaplotypeNetwork.from_serialized(network_data)
+                node_ids = sorted(network.graph.nodes())
+
+                # Build mapping from current H numbers to node IDs
+                h_to_node = {}
+                for i, node_id in enumerate(node_ids, start=1):
+                    h_to_node[f'H{i}'] = node_id
+
+                # Parse the uploaded mapping
+                new_mapping = {}
+                new_labels_list = []
+                errors = []
+
+                for row_num, row in enumerate(csv_reader, start=2):
+                    current_h = row.get('current_h_number', '').strip()
+                    new_label = row.get('new_label', '').strip()
+
+                    if not current_h:
+                        errors.append(f'Row {row_num}: Missing current_h_number')
+                        continue
+
+                    if not new_label:
+                        errors.append(f'Row {row_num}: Missing new_label for {current_h}')
+                        continue
+
+                    if current_h not in h_to_node:
+                        errors.append(f'Row {row_num}: Unknown H number "{current_h}"')
+                        continue
+
+                    node_id = h_to_node[current_h]
+                    new_mapping[node_id] = new_label
+                    new_labels_list.append(new_label)
+
+                # Check for duplicate new labels
+                seen_labels = {}
+                for node_id, label in new_mapping.items():
+                    if label in seen_labels:
+                        errors.append(
+                            f'Duplicate label "{label}" for {seen_labels[label]} and node {node_id}'
+                        )
+                    else:
+                        seen_labels[label] = node_id
+
+                if errors:
+                    error_msg = html.Div([
+                        html.Strong('❌ Validation Errors:'),
+                        html.Ul([html.Li(err) for err in errors[:10]]),
+                        html.P(f'({len(errors)} total errors)') if len(errors) > 10 else None,
+                    ])
+                    return None, dbc.Alert(error_msg, color='danger', dismissable=True), dash.no_update
+
+                # If validation passed, update the graph with new labels
+                positions = {node: tuple(pos) for node, pos in layout_data.items()}
+
+                # Extract population colors from metadata if available
+                population_colors = None
+                if metadata_data and metadata_data.get('populations'):
+                    population_colors = metadata_data.get('population_colors', {})
+
+                # Create Cytoscape elements with custom labels
+                elements, _ = create_cytoscape_network(
+                    network,
+                    layout=positions,
+                    population_colors=population_colors,
+                    show_labels=True,
+                    show_edge_labels=True,
+                    node_labels=new_mapping,
                 )
-            raise PreventUpdate
+
+                success_msg = dbc.Alert(
+                    [
+                        html.Strong('✅ Success!'),
+                        html.Br(),
+                        f'Updated {len(new_mapping)} H number labels from "{filename}"',
+                    ],
+                    color='success',
+                    dismissable=True,
+                    duration=4000,
+                )
+
+                return new_mapping, success_msg, elements
+
+            except Exception as e:
+                self.logger.error(f'Error processing H number mapping: {e}')
+                self.logger.error(traceback.format_exc())
+                return None, dbc.Alert(
+                    [
+                        html.Strong('❌ Error processing mapping'),
+                        html.Br(),
+                        str(e),
+                    ],
+                    color='danger',
+                    dismissable=True,
+                ), dash.no_update
 
         # Clientside callback to auto-fit network when elements are updated
         self.app.clientside_callback(
