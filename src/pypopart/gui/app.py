@@ -19,6 +19,7 @@ import traceback
 from typing import Dict, List, Optional, Tuple
 
 import dash
+import dash_cytoscape as cyto
 from dash import Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
@@ -42,7 +43,10 @@ from pypopart.stats import (
     calculate_network_metrics,
     identify_central_haplotypes,
 )
-from pypopart.visualization.interactive_plot import InteractiveNetworkPlotter
+from pypopart.visualization.cytoscape_plot import (
+    InteractiveCytoscapePlotter,
+    create_cytoscape_network,
+)
 
 
 class PyPopARTApp:
@@ -431,23 +435,39 @@ class PyPopARTApp:
         """Create network visualization tab."""
         return html.Div(
             [
+                # Legend display
+                html.Div(
+                    id='network-legend',
+                    style={
+                        'position': 'absolute',
+                        'top': '10px',
+                        'right': '10px',
+                        'background': 'white',
+                        'padding': '10px',
+                        'border': '1px solid #ccc',
+                        'borderRadius': '5px',
+                        'zIndex': 1000,
+                        'maxWidth': '200px',
+                    },
+                ),
                 dcc.Loading(
                     id='loading-network',
                     type='default',
                     children=[
-                        dcc.Graph(
+                        cyto.Cytoscape(
                             id='network-graph',
-                            style={'height': '85vh'},
-                            config={
-                                'displayModeBar': True,
-                                'displaylogo': False,
-                                'editable': True,
-                                'edits': {'shapePosition': True},
-                            },
+                            layout={'name': 'preset'},
+                            style={'width': '100%', 'height': '85vh'},
+                            elements=[],
+                            stylesheet=[],
+                            minZoom=0.1,
+                            maxZoom=5,
+                            wheelSensitivity=0.2,
                         )
                     ],
                 )
-            ]
+            ],
+            style={'position': 'relative'}
         )
 
     def _create_statistics_tab(self) -> html.Div:
@@ -988,7 +1008,11 @@ class PyPopARTApp:
                 return None
 
         @self.app.callback(
-            Output('network-graph', 'figure'),
+            [
+                Output('network-graph', 'elements'),
+                Output('network-graph', 'stylesheet'),
+                Output('network-legend', 'children'),
+            ],
             [
                 Input('layout-store', 'data'),
                 Input('network-store', 'data'),
@@ -1001,26 +1025,11 @@ class PyPopARTApp:
             network_data: Optional[Dict],
             geographic_mode: bool,
             metadata_data: Optional[Dict],
-        ) -> go.Figure:
-            """Update network visualization."""
+        ) -> Tuple[List[Dict], List[Dict], html.Div]:
+            """Update network visualization with Cytoscape."""
             if not network_data or not layout_data:
-                # Return empty figure with instructions
-                fig = go.Figure()
-                fig.add_annotation(
-                    text='Upload data and compute network to visualize',
-                    xref='paper',
-                    yref='paper',
-                    x=0.5,
-                    y=0.5,
-                    showarrow=False,
-                    font={'size': 16, 'color': 'gray'},
-                )
-                fig.update_layout(
-                    xaxis={'visible': False},
-                    yaxis={'visible': False},
-                    plot_bgcolor='white',
-                )
-                return fig
+                # Return empty elements
+                return [], [], html.Div('Upload data and compute network to visualize')
 
             try:
                 # Reconstruct network
@@ -1029,92 +1038,164 @@ class PyPopARTApp:
                 # Convert layout data
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}
 
-                # Create interactive plot
-                plotter = InteractiveNetworkPlotter(network)
-                fig = plotter.plot(layout=positions)
+                # Extract population colors from metadata if available
+                population_colors = None
+                if metadata_data and metadata_data.get('populations'):
+                    population_colors = metadata_data.get('population_colors', {})
 
-                # Add geographic context if in geographic mode
+                # If no colors provided, generate them
+                if population_colors is None or not population_colors:
+                    plotter = InteractiveCytoscapePlotter(network)
+                    populations = set()
+                    for node in network._graph.nodes():
+                        if not network.is_median_vector(node):
+                            hap = network.get_haplotype(node)
+                            if hap:
+                                pop_counts = hap.get_frequency_by_population()
+                                if pop_counts:
+                                    populations.update(pop_counts.keys())
+                    if populations:
+                        population_colors = plotter.generate_population_colors(
+                            list(populations)
+                        )
+
+                # Create Cytoscape elements and stylesheet
+                elements, stylesheet = create_cytoscape_network(
+                    network,
+                    layout=positions,
+                    population_colors=population_colors,
+                    show_labels=True,
+                    show_edge_labels=True,
+                )
+
+                # Add geographic styling if in geographic mode
                 if (
                     geographic_mode
                     and metadata_data
                     and metadata_data.get('coordinates')
                 ):
-                    # Add annotation to indicate geographic mode
-                    fig.add_annotation(
-                        text='Geographic Mode',
-                        xref='paper',
-                        yref='paper',
-                        x=0.02,
-                        y=0.98,
-                        showarrow=False,
-                        font={'size': 12, 'color': 'blue'},
-                        bgcolor='rgba(255,255,255,0.8)',
-                        bordercolor='blue',
-                        borderwidth=1,
-                        borderpad=4,
-                    )
-                    # Update axis labels for geographic coordinates
-                    fig.update_xaxes(title_text='Longitude')
-                    fig.update_yaxes(title_text='Latitude')
+                    # Update stylesheet for geographic mode (add ocean background effect)
+                    pass
 
-                    # Add base map layer (simple grid with light background)
-                    # This creates a simple map-like appearance
-                    fig.update_layout(
-                        plot_bgcolor='#e6f2ff',  # Light blue for ocean
-                        xaxis={
-                            'showgrid': True,
-                            'gridcolor': 'lightgray',
-                            'title': 'Longitude',
-                            'zeroline': False,
-                        },
-                        yaxis={
-                            'showgrid': True,
-                            'gridcolor': 'lightgray',
-                            'title': 'Latitude',
-                            'zeroline': False,
-                        },
+                # Create legend
+                legend_items = []
+                if population_colors:
+                    legend_items.append(
+                        html.H6('Populations', style={'marginBottom': '5px'})
+                    )
+                    for pop, color in sorted(population_colors.items()):
+                        legend_items.append(
+                            html.Div(
+                                [
+                                    html.Span(
+                                        '●',
+                                        style={
+                                            'color': color,
+                                            'fontSize': '20px',
+                                            'marginRight': '5px',
+                                        },
+                                    ),
+                                    html.Span(pop),
+                                ],
+                                style={'marginBottom': '3px'},
+                            )
+                        )
+
+                    # Add additional legend items
+                    legend_items.append(html.Hr(style={'margin': '5px 0'}))
+
+                    # Mixed population indicator (pie chart)
+                    legend_items.append(
+                        html.Div(
+                            [
+                                html.Span(
+                                    '◕',
+                                    style={
+                                        'color': '#000000',
+                                        'fontSize': '20px',
+                                        'marginRight': '5px',
+                                    },
+                                ),
+                                html.Span('Mixed Populations (Pie Chart)'),
+                            ],
+                            style={'marginBottom': '3px'},
+                        )
                     )
 
-                return fig
+                    # Median vector
+                    legend_items.append(
+                        html.Div(
+                            [
+                                html.Span(
+                                    '■',
+                                    style={
+                                        'color': '#D3D3D3',
+                                        'fontSize': '20px',
+                                        'marginRight': '5px',
+                                    },
+                                ),
+                                html.Span('Median Vector'),
+                            ]
+                        )
+                    )
+
+                legend = html.Div(legend_items) if legend_items else html.Div()
+
+                return elements, stylesheet, legend
 
             except Exception as e:
                 self.logger.error(f'Error creating visualization: {e}')
                 self.logger.error(traceback.format_exc())
-                fig = go.Figure()
-                fig.add_annotation(
-                    text=f'Error creating visualization: {str(e)}<br><br>See console for full traceback',
-                    xref='paper',
-                    yref='paper',
-                    x=0.5,
-                    y=0.5,
-                    showarrow=False,
-                    font={'size': 14, 'color': 'red'},
+                error_msg = html.Div(
+                    [
+                        html.Strong('Error creating visualization'),
+                        html.Br(),
+                        str(e),
+                    ],
+                    style={'color': 'red'},
                 )
-                return fig
+                return [], [], error_msg
 
         @self.app.callback(
             Output('layout-store', 'data', allow_duplicate=True),
-            Input('network-graph', 'relayoutData'),
-            State('layout-store', 'data'),
+            Input('network-graph', 'elements'),
+            [State('layout-store', 'data'), State('snap-to-grid', 'value')],
             prevent_initial_call=True,
         )
-        def update_node_positions(relayout_data: Optional[Dict], current_layout: Optional[Dict]) -> Optional[Dict]:
-            """Update node positions when user drags nodes."""
-            if not relayout_data or not current_layout:
+        def update_node_positions(
+            elements: Optional[List[Dict]],
+            current_layout: Optional[Dict],
+            snap_to_grid: List[str],
+        ) -> Optional[Dict]:
+            """Update node positions when user drags nodes in Cytoscape."""
+            if not elements or not current_layout:
                 raise PreventUpdate
 
-            # Check if this is a node drag event (contains x and y coordinates for specific traces)
-            updated_layout = current_layout.copy()
             try:
-                # Plotly relayout data contains keys like 'xaxis.range[0]', etc for zoom/pan
-                # For node dragging, we would need custom implementation
-                # For now, this maintains the current layout
-                pass
+                updated_layout = current_layout.copy()
+
+                # Extract positions from Cytoscape elements
+                for element in elements:
+                    if 'position' in element and 'data' in element:
+                        node_id = element['data'].get('id')
+                        if node_id:
+                            # Cytoscape positions are scaled by 100
+                            x = element['position']['x'] / 100
+                            y = element['position']['y'] / 100
+
+                            # Apply snap to grid if enabled
+                            if 'snap' in snap_to_grid:
+                                grid_size = 0.1
+                                x = round(x / grid_size) * grid_size
+                                y = round(y / grid_size) * grid_size
+
+                            updated_layout[node_id] = [x, y]
+
+                return updated_layout
+
             except Exception as e:
                 self.logger.error(f'Error updating node positions: {e}')
                 raise PreventUpdate from e
-
-            return updated_layout
 
         @self.app.callback(
             Output('statistics-display', 'children'), Input('network-store', 'data')

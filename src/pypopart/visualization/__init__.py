@@ -5,6 +5,10 @@ Provides functions for creating static and interactive visualizations
 of haplotype networks, including geographic visualizations.
 """
 
+from .cytoscape_plot import (
+    InteractiveCytoscapePlotter,
+    create_cytoscape_network,
+)
 from .geo_visualization import GeoVisualizer, InteractiveGeoVisualizer
 from .interactive_plot import (
     InteractiveNetworkPlotter,
@@ -22,6 +26,9 @@ __all__ = [
     'InteractiveNetworkPlotter',
     'plot_interactive_network',
     'create_interactive_figure',
+    # Cytoscape plotting
+    'InteractiveCytoscapePlotter',
+    'create_cytoscape_network',
     # Geographic plotting
     'GeoVisualizer',
     'InteractiveGeoVisualizer',
