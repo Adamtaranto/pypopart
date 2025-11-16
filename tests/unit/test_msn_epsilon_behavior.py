@@ -124,8 +124,12 @@ class TestMSNEpsilonBehavior:
         assert network1.is_connected()
 
         # Get edge distances
-        edges0 = {(e[0], e[1]): network0.get_edge_distance(e[0], e[1]) for e in network0.edges}
-        edges1 = {(e[0], e[1]): network1.get_edge_distance(e[0], e[1]) for e in network1.edges}
+        edges0 = {
+            (e[0], e[1]): network0.get_edge_distance(e[0], e[1]) for e in network0.edges
+        }
+        edges1 = {
+            (e[0], e[1]): network1.get_edge_distance(e[0], e[1]) for e in network1.edges
+        }
 
         # All edges in network0 should be distance 1
         assert all(d == 1.0 for d in edges0.values())

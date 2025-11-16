@@ -356,7 +356,9 @@ class TightSpanWalker(NetworkAlgorithm):
 
     def __str__(self) -> str:
         """Return string representation."""
-        return f'TightSpanWalker(distance={self.distance_method}, epsilon={self.epsilon})'
+        return (
+            f'TightSpanWalker(distance={self.distance_method}, epsilon={self.epsilon})'
+        )
 
 
 # Convenient alias

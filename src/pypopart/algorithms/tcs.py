@@ -27,14 +27,14 @@ from .base import NetworkAlgorithm
 class TCS(NetworkAlgorithm):
     """
     Construct haplotype network using Statistical Parsimony (TCS algorithm).
-    
+
     This implementation accurately reproduces the C++ PopART TCS algorithm:
     1. Groups haplotypes by pairwise distances
     2. Iteratively connects components at increasing distance levels
     3. Infers intermediate sequences when distance > 1
     4. Uses scoring system to find optimal intermediates
     5. Post-processes to collapse degree-2 vertices
-    
+
     The TCS method uses a 95% parsimony criterion to determine which
     haplotypes can be connected with statistical confidence.
     """
@@ -92,7 +92,7 @@ class TCS(NetworkAlgorithm):
     ) -> HaplotypeNetwork:
         """
         Construct TCS network from sequence alignment.
-        
+
         Implements the component-based connection algorithm from C++ TCS.cpp.
 
         Parameters
@@ -233,7 +233,7 @@ class TCS(NetworkAlgorithm):
     ) -> HaplotypeNetwork:
         """
         Build network using component-based algorithm from C++ TCS.cpp.
-        
+
         This accurately reproduces the C++ logic:
         1. Create all haplotypes as vertices, each in its own component
         2. Group pairs by distance
@@ -265,15 +265,15 @@ class TCS(NetworkAlgorithm):
         # Component tracking: maps haplotype ID to component ID
         # Each haplotype starts in its own component
         component_ids: Dict[str, int] = {h.id: i for i, h in enumerate(haplotypes)}
-        
+
         # Group pairs by distance (like C++ VertContainer and priority queue)
         pairs_by_distance: Dict[int, List[Tuple[str, str]]] = {}
-        
+
         for i, h1 in enumerate(haplotypes):
             for j in range(i + 1, len(haplotypes)):
                 h2 = haplotypes[j]
                 dist = int(round(distance_matrix.get_distance(h1.id, h2.id)))
-                
+
                 if dist <= self.connection_limit:
                     if dist not in pairs_by_distance:
                         pairs_by_distance[dist] = []
@@ -284,30 +284,30 @@ class TCS(NetworkAlgorithm):
             # Keep processing this distance level until no more pairs remain
             while M in pairs_by_distance and len(pairs_by_distance[M]) > 0:
                 pairs = pairs_by_distance[M]
-                
+
                 # Track which component pair we're working on
                 comp_a = -1
                 comp_b = -1
                 other_pairs = []
-                
+
                 for u_id, v_id in pairs:
                     comp_u = component_ids.get(u_id, -1)
                     comp_v = component_ids.get(v_id, -1)
-                    
+
                     # Skip if already in same component
                     if comp_u == comp_v:
                         continue
-                    
+
                     # Ensure comp_u < comp_v
                     if comp_u > comp_v:
                         comp_u, comp_v = comp_v, comp_u
                         u_id, v_id = v_id, u_id
-                    
+
                     # Set component pair on first distinct pair
                     if comp_a < 0:
                         comp_a = comp_u
                         comp_b = comp_v
-                    
+
                     # Process pairs for the current component pair
                     if comp_u == comp_a and comp_v == comp_b:
                         if M == 1:
@@ -317,8 +317,14 @@ class TCS(NetworkAlgorithm):
                             # Infer intermediates for distance > 1
                             if self.infer_intermediates:
                                 self._add_connection_with_intermediates(
-                                    network, u_id, v_id, M, sequence_length, 
-                                    component_ids, comp_u, comp_v
+                                    network,
+                                    u_id,
+                                    v_id,
+                                    M,
+                                    sequence_length,
+                                    component_ids,
+                                    comp_u,
+                                    comp_v,
                                 )
                             else:
                                 # Simple connection without intermediates
@@ -326,7 +332,7 @@ class TCS(NetworkAlgorithm):
                     else:
                         # Save for next iteration of this distance level
                         other_pairs.append((u_id, v_id))
-                
+
                 # Merge components (like C++ component renumbering)
                 if comp_a >= 0:
                     for hap_id in list(component_ids.keys()):
@@ -334,7 +340,7 @@ class TCS(NetworkAlgorithm):
                             component_ids[hap_id] = comp_a
                         elif component_ids[hap_id] > comp_b:
                             component_ids[hap_id] -= 1
-                
+
                 # Update pairs for this distance level
                 if other_pairs:
                     pairs_by_distance[M] = other_pairs
@@ -357,7 +363,7 @@ class TCS(NetworkAlgorithm):
     ) -> None:
         """
         Add connection between u and v, inferring intermediates if needed.
-        
+
         Implements findIntermediates() and newCompositePath() from C++ TCS.cpp.
 
         Parameters
@@ -383,18 +389,20 @@ class TCS(NetworkAlgorithm):
         int_u, int_v, min_path_length = self._find_intermediates(
             network, u_id, v_id, distance, component_ids, comp_u, comp_v
         )
-        
+
         # Check if path already exists
         try:
             existing_path_length = network.get_shortest_path_length(int_u, int_v)
         except:
             existing_path_length = float('inf')
-        
+
         # Only add new path if it's shorter or doesn't exist
-        if existing_path_length == float('inf') or existing_path_length > min_path_length:
+        if (
+            existing_path_length == float('inf')
+            or existing_path_length > min_path_length
+        ):
             self._create_composite_path(
-                network, int_u, int_v, min_path_length, 
-                sequence_length, component_ids
+                network, int_u, int_v, min_path_length, sequence_length, component_ids
             )
 
     def _find_intermediates(
@@ -409,7 +417,7 @@ class TCS(NetworkAlgorithm):
     ) -> Tuple[str, str, int]:
         """
         Find optimal intermediate vertices to connect two components.
-        
+
         Implements C++ TCS::findIntermediates() with scoring system.
 
         Parameters
@@ -437,47 +445,53 @@ class TCS(NetworkAlgorithm):
         min_path_length = dist
         best_u = u_id
         best_v = v_id
-        
+
         # Try all vertices in comp_u (or "no man's land" with comp_id < 0)
         for i_id in list(component_ids.keys()):
-            if component_ids.get(i_id, -1) != comp_u and component_ids.get(i_id, -1) >= 0:
+            if (
+                component_ids.get(i_id, -1) != comp_u
+                and component_ids.get(i_id, -1) >= 0
+            ):
                 continue
-            
+
             # Check if connected to u
             try:
                 path_ui = network.get_shortest_path_length(u_id, i_id)
             except:
                 continue
-            
+
             if path_ui >= dist:
                 continue
-            
+
             # Try all vertices in comp_v
             for j_id in list(component_ids.keys()):
-                if component_ids.get(j_id, -1) != comp_v and component_ids.get(j_id, -1) >= 0:
+                if (
+                    component_ids.get(j_id, -1) != comp_v
+                    and component_ids.get(j_id, -1) >= 0
+                ):
                     continue
-                
+
                 # Check if connected to v
                 try:
                     path_vj = network.get_shortest_path_length(v_id, j_id)
                 except:
                     continue
-                
+
                 if path_vj + path_ui >= dist:
                     continue
-                
+
                 dP = dist - path_vj - path_ui
                 score = self._compute_score(
                     network, i_id, j_id, comp_u, comp_v, dP, dist, component_ids
                 )
-                
+
                 # Select best scoring pair (or shortest path if tied)
                 if score > max_score or (score == max_score and dP < min_path_length):
                     min_path_length = dP
                     max_score = score
                     best_u = i_id
                     best_v = j_id
-        
+
         return best_u, best_v, min_path_length
 
     def _compute_score(
@@ -493,7 +507,7 @@ class TCS(NetworkAlgorithm):
     ) -> float:
         """
         Compute score for intermediate pair using C++ scoring system.
-        
+
         Implements C++ TCS::computeScore().
 
         Parameters
@@ -520,21 +534,22 @@ class TCS(NetworkAlgorithm):
             Score for this intermediate pair.
         """
         score = 0
-        
+
         # Get all original haplotypes (not intermediates)
         original_haps = [
-            hap_id for hap_id in component_ids.keys()
+            hap_id
+            for hap_id in component_ids.keys()
             if not hap_id.startswith('intermediate_')
         ]
-        
+
         for i_id in original_haps:
             if component_ids.get(i_id, -1) != comp_u:
                 continue
-            
+
             for j_id in original_haps:
                 if component_ids.get(j_id, -1) != comp_v:
                     continue
-                
+
                 # Calculate total path through proposed intermediates
                 try:
                     path_ui = network.get_shortest_path_length(u_id, i_id)
@@ -542,10 +557,10 @@ class TCS(NetworkAlgorithm):
                     total_path = dP + path_ui + path_vj
                 except:
                     continue
-                
+
                 # Get original distance
                 orig_dist = self._distance_matrix.get_distance(i_id, j_id)
-                
+
                 # Score based on how well path matches original distance
                 if abs(total_path - orig_dist) < 0.5:
                     score += self.BONUS
@@ -557,7 +572,7 @@ class TCS(NetworkAlgorithm):
                         return float('-inf')  # Invalid
                     else:
                         score -= self.SHORTCUTPENALTY
-        
+
         return score
 
     def _create_composite_path(
@@ -571,7 +586,7 @@ class TCS(NetworkAlgorithm):
     ) -> None:
         """
         Create path of intermediate vertices connecting start to end.
-        
+
         Implements C++ TCS::newCompositePath().
 
         Parameters
@@ -590,40 +605,40 @@ class TCS(NetworkAlgorithm):
             Component membership tracker.
         """
         current_id = start_id
-        
+
         # Create distance-1 intermediate vertices
         for _i in range(1, distance):
             intermediate_id = f'intermediate_{self._intermediate_counter}'
             self._intermediate_counter += 1
-            
+
             # Create placeholder sequence
             intermediate_seq = Sequence(
                 id=intermediate_id,
                 data='N' * sequence_length,
                 description='Inferred intermediate sequence',
             )
-            
+
             intermediate_hap = Haplotype(
                 sequence=intermediate_seq,
                 sample_ids=[],
             )
-            
+
             # Add to network
             network.add_haplotype(intermediate_hap)
             network.add_edge(current_id, intermediate_id, distance=1)
-            
+
             # Mark as "no man's land" (component ID = -1)
             component_ids[intermediate_id] = -1
-            
+
             current_id = intermediate_id
-        
+
         # Connect last intermediate to end
         network.add_edge(current_id, end_id, distance=1)
 
     def _collapse_degree2_vertices(self, network: HaplotypeNetwork) -> HaplotypeNetwork:
         """
         Collapse vertices with degree 2 (post-processing simplification).
-        
+
         Implements C++ TCS post-processing that removes degree-2 vertices
         connecting only two other vertices. This matches lines 161-194 of TCS.cpp.
 
@@ -639,16 +654,16 @@ class TCS(NetworkAlgorithm):
         # Process one vertex at a time (like C++ implementation)
         # Keep looping until no more collapses possible
         changed = True
-        
+
         while changed:
             changed = False
-            
+
             # Find and collapse ONE degree-2 intermediate vertex
             for hap_id in list(network.nodes):
                 # Skip if already removed
                 if not network.has_node(hap_id):
                     continue
-                    
+
                 degree = network.get_degree(hap_id)
 
                 # Only collapse degree-2 vertices
@@ -659,7 +674,7 @@ class TCS(NetworkAlgorithm):
 
                 if len(neighbors) != 2:
                     continue
-                    
+
                 n1, n2 = neighbors
 
                 # Get edge weights
@@ -675,14 +690,14 @@ class TCS(NetworkAlgorithm):
                 if hap.frequency == 0 or 'intermediate' in hap_id.lower():
                     try:
                         combined_weight = w1 + w2
-                        
+
                         # Remove the intermediate vertex and its edges
                         network.remove_haplotype(hap_id)
 
                         # Add direct edge if it doesn't exist
                         if not network.has_edge(n1, n2):
                             network.add_edge(n1, n2, distance=combined_weight)
-                        
+
                         # Mark that we made a change - restart loop
                         changed = True
                         break  # Exit for loop and restart while loop
