@@ -9,7 +9,7 @@ Features:
 - Interactive network visualization with manual node adjustment
 - Haplotype summary tab showing H number to sequence mapping
 - Geographic layout mode with base map display
-- Support for multiple network algorithms (MST, MSN, TCS, MJN, PN)
+- Support for multiple network algorithms (MST, MSN, TCS, MJN, TSW, PN)
 """
 
 import base64
@@ -30,6 +30,7 @@ from pypopart.algorithms import (
     MinimumSpanningNetwork,
     MinimumSpanningTree,
     ParsimonyNetwork,
+    TightSpanWalker,
 )
 from pypopart.core.alignment import Alignment
 from pypopart.core.graph import HaplotypeNetwork
@@ -287,6 +288,10 @@ class PyPopARTApp:
                                     'label': 'PN - Parsimony Network',
                                     'value': 'pn',
                                 },
+                                {
+                                    'label': 'TSW - Tight Span Walker (Parsimony Network)',
+                                    'value': 'tsw',
+                                },
                             ],
                             value='msn',
                             style={'whiteSpace': 'nowrap'},
@@ -325,17 +330,21 @@ class PyPopARTApp:
                             id='layout-select',
                             options=[
                                 {
+                                    'label': 'Hierarchical (Fast)',
+                                    'value': 'hierarchical',
+                                },
+                                {
                                     'label': 'Spring (Force-directed)',
                                     'value': 'spring',
+                                },
+                                {
+                                    'label': 'Spectral (Fast, Large networks)',
+                                    'value': 'spectral',
                                 },
                                 {'label': 'Circular', 'value': 'circular'},
                                 {'label': 'Radial', 'value': 'radial'},
                                 {
-                                    'label': 'Hierarchical',
-                                    'value': 'hierarchical',
-                                },
-                                {
-                                    'label': 'Kamada-Kawai',
+                                    'label': 'Kamada-Kawai (High quality, slow)',
                                     'value': 'kamada_kawai',
                                 },
                                 {
@@ -1036,6 +1045,22 @@ class PyPopARTApp:
                         ),
                         html.Small(
                             'Number of random parsimony trees to sample',
+            elif algorithm == 'tsw':
+                return html.Div(
+                    [
+                        dbc.Label('Distance Metric'),
+                        dcc.Dropdown(
+                            id={'type': 'algorithm-param', 'name': 'distance'},
+                            options=[
+                                {'label': 'Hamming', 'value': 'hamming'},
+                                {'label': 'Jukes-Cantor', 'value': 'jc'},
+                                {'label': 'Kimura 2-parameter', 'value': 'k2p'},
+                            ],
+                            value='hamming',
+                        ),
+                        html.Br(),
+                        html.Small(
+                            'Builds parsimony network using tight span computation',
                             className='text-muted',
                         ),
                     ]
@@ -1102,6 +1127,8 @@ class PyPopARTApp:
                         n_trees=param_value or 100,
                         min_edge_frequency=0.05
                     )
+                elif algorithm == 'tsw':
+                    algo = TightSpanWalker(distance_method=param_value or 'hamming')
                 else:
                     raise ValueError(f'Unknown algorithm: {algorithm}')
 
