@@ -7,7 +7,7 @@
 
 ## Features
 
-- **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), Median-Joining, and TSW (Parsimony Network)
+- **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), Median-Joining (MJN), TSW (Parsimony Network), and Parsimony Network (PN)
 - **Distance Metrics**: Hamming, Jukes-Cantor, Kimura 2-parameter, Tamura-Nei
 - **Comprehensive Analysis**: Network statistics, topology analysis, population genetics measures
 - **Rich Visualization**: Static (matplotlib) and interactive (Plotly) network plots
@@ -187,6 +187,22 @@ pypopart network sequences.fasta -a mjn -e 0 -o network.graphml
 ```
 
 **Use when**: You want to infer ancestral haplotypes and show complex evolutionary relationships. The epsilon parameter controls network complexity (0 = maximum simplification).
+
+### Parsimony Network (PN)
+
+Creates a consensus network by sampling edges from multiple random parsimony trees.
+
+```bash
+pypopart network sequences.fasta -a pn -o network.graphml
+```
+
+**Use when**: You want a consensus approach that captures phylogenetic uncertainty across multiple tree topologies. This method samples 100 random parsimony trees by default and includes edges that appear frequently.
+
+**Features**:
+- Captures phylogenetic uncertainty through tree sampling
+- Can represent reticulation events where multiple edges have similar frequencies
+- Automatically infers median vertices for multi-mutation edges
+- Handles sequences with gaps by treating length differences as mutations
 
 ### Tight Span Walker (TSW) - Parsimony Network
 
@@ -391,6 +407,20 @@ If you use PyPopART in your research, please cite:
 Taranto, A. (2024). PyPopART: Pure Python implementation of haplotype network analysis.
 GitHub repository: https://github.com/adamtaranto/pypopart
 ```
+
+### Algorithm References
+
+PyPopART implements algorithms from the following publications:
+
+- **Minimum Spanning Tree/Network**: Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies and geographic subdivision to reconstruct gene trees within a species: molecular variance parsimony. *Genetics*, 136(1), 343-359.
+
+- **TCS (Statistical Parsimony)**: Clement, M., Posada, D., & Crandall, K. A. (2000). TCS: a computer program to estimate gene genealogies. *Molecular Ecology*, 9(10), 1657-1659.
+
+- **Median-Joining Network**: Bandelt, H. J., Forster, P., & Röhl, A. (1999). Median-joining networks for inferring intraspecific phylogenies. *Molecular Biology and Evolution*, 16(1), 37-48.
+
+- **Parsimony Network**: Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies and geographic subdivision to reconstruct gene trees within a species: molecular variance parsimony. *Genetics*, 136(1), 343-359.
+
+- **Tight Span Walker**: Dress, A. W., Huber, K. T., Koolen, J., Moulton, V., & Spillner, A. (2012). *Basic Phylogenetic Combinatorics*. Cambridge University Press.
 
 ## License
 

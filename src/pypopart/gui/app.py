@@ -9,7 +9,7 @@ Features:
 - Interactive network visualization with manual node adjustment
 - Haplotype summary tab showing H number to sequence mapping
 - Geographic layout mode with base map display
-- Support for multiple network algorithms (MST, MSN, TCS, MJN, TSW)
+- Support for multiple network algorithms (MST, MSN, TCS, MJN, TSW, PN)
 """
 
 import base64
@@ -29,6 +29,7 @@ from pypopart.algorithms import (
     MedianJoiningNetwork,
     MinimumSpanningNetwork,
     MinimumSpanningTree,
+    ParsimonyNetwork,
     TightSpanWalker,
 )
 from pypopart.core.alignment import Alignment
@@ -282,6 +283,10 @@ class PyPopARTApp:
                                 {
                                     'label': 'MJN - Median-Joining Network',
                                     'value': 'mjn',
+                                },
+                                {
+                                    'label': 'PN - Parsimony Network',
+                                    'value': 'pn',
                                 },
                                 {
                                     'label': 'TSW - Tight Span Walker (Parsimony Network)',
@@ -1026,6 +1031,20 @@ class PyPopARTApp:
                         ),
                     ]
                 )
+            elif algorithm == 'pn':
+                return html.Div(
+                    [
+                        dbc.Label('Number of Trees'),
+                        dcc.Slider(
+                            id={'type': 'algorithm-param', 'name': 'n_trees'},
+                            min=10,
+                            max=500,
+                            step=10,
+                            value=100,
+                            marks={i: str(i) for i in range(0, 501, 100)},
+                        ),
+                        html.Small(
+                            'Number of random parsimony trees to sample',
             elif algorithm == 'tsw':
                 return html.Div(
                     [
@@ -1103,6 +1122,11 @@ class PyPopARTApp:
                     algo = TCS(connection_limit=param_value or 10)
                 elif algorithm == 'mjn':
                     algo = MedianJoiningNetwork(epsilon=param_value or 0)
+                elif algorithm == 'pn':
+                    algo = ParsimonyNetwork(
+                        n_trees=param_value or 100,
+                        min_edge_frequency=0.05
+                    )
                 elif algorithm == 'tsw':
                     algo = TightSpanWalker(distance_method=param_value or 'hamming')
                 else:
