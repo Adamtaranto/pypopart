@@ -2027,7 +2027,7 @@ class PyPopARTApp:
 
                     meta = metadata_records.get(sid, {})
                     pop = meta.get('population', '')
-                    
+
                     # Get color for this population
                     color_display = ''
                     if pop and population_colors and pop in population_colors:
@@ -2143,25 +2143,25 @@ class PyPopARTApp:
                 if ((edgeHoverData && !hoverData) || !hoverData) {
                     return {display: 'none'};
                 }
-                
+
                 try {
                     // Get Cytoscape instance
                     const cy = document.getElementById('network-graph')._cyreg.cy;
                     if (!cy) {
                         return {display: 'none'};
                     }
-                    
+
                     // Get the node
                     const nodeId = hoverData.id;
                     const node = cy.getElementById(nodeId);
-                    
+
                     if (!node || node.length === 0) {
                         return {display: 'none'};
                     }
-                    
+
                     // Get rendered position (screen coordinates)
                     const renderedPos = node.renderedPosition();
-                    
+
                     // Position tooltip with offset from node
                     return {
                         display: 'block',
