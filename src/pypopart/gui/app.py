@@ -47,7 +47,6 @@ from pypopart.visualization.cytoscape_plot import (
     InteractiveCytoscapePlotter,
     create_cytoscape_network,
 )
-from pypopart.visualization.interactive_plot import InteractiveNetworkPlotter
 
 
 class PyPopARTApp:
@@ -1102,8 +1101,28 @@ class PyPopARTApp:
                             )
                         )
 
-                    # Add median vector legend item
+                    # Add additional legend items
                     legend_items.append(html.Hr(style={'margin': '5px 0'}))
+
+                    # Mixed population indicator
+                    legend_items.append(
+                        html.Div(
+                            [
+                                html.Span(
+                                    '◉',
+                                    style={
+                                        'color': '#FFD700',
+                                        'fontSize': '20px',
+                                        'marginRight': '5px',
+                                    },
+                                ),
+                                html.Span('Mixed Populations'),
+                            ],
+                            style={'marginBottom': '3px'},
+                        )
+                    )
+
+                    # Median vector
                     legend_items.append(
                         html.Div(
                             [

@@ -97,35 +97,49 @@ class InteractiveCytoscapePlotter:
             # Add population pie chart data if available
             if not is_median and hap and population_colors:
                 pop_counts = hap.get_frequency_by_population()
-                if pop_counts:
-                    # Calculate pie chart segments
+                if pop_counts and len(pop_counts) > 1:
+                    # Multiple populations - prepare for pie chart display
                     total = sum(pop_counts.values())
                     pie_data = []
+                    pie_colors = []
+                    pie_sizes = []
+
                     for pop, count in sorted(pop_counts.items()):
                         if count > 0:
+                            percent = (count / total) * 100
                             pie_data.append({
                                 'population': pop,
                                 'value': count,
-                                'percent': (count / total) * 100,
+                                'percent': percent,
                                 'color': population_colors.get(pop, '#cccccc'),
                             })
+                            pie_colors.append(population_colors.get(pop, '#cccccc'))
+                            pie_sizes.append(percent)
+
+                    # Store pie chart data for custom rendering
                     node_data['pie_data'] = pie_data
                     node_data['has_pie'] = True
+                    node_data['pie_colors'] = pie_colors
+                    node_data['pie_sizes'] = pie_sizes
+
+                    # For Cytoscape pie chart nodes, use a gradient/mixed color indicator
+                    # Use the dominant population color as base
+                    dominant_pop = max(pop_counts.items(), key=lambda x: x[1])[0]
+                    node_data['color'] = population_colors.get(dominant_pop, '#87CEEB')
+                elif pop_counts:
+                    # Single population
+                    node_data['has_pie'] = False
+                    pop = list(pop_counts.keys())[0]
+                    node_data['color'] = population_colors.get(pop, '#87CEEB')
                 else:
                     node_data['has_pie'] = False
+                    node_data['color'] = '#87CEEB'
             else:
                 node_data['has_pie'] = False
-
-            # Determine node color
-            if is_median:
-                node_data['color'] = median_vector_color
-            elif node_data.get('has_pie'):
-                # For pie nodes, use the dominant population color
-                pop_counts = hap.get_frequency_by_population()
-                dominant_pop = max(pop_counts.items(), key=lambda x: x[1])[0]
-                node_data['color'] = population_colors.get(dominant_pop, '#87CEEB')
-            else:
-                node_data['color'] = '#87CEEB'  # lightblue
+                if is_median:
+                    node_data['color'] = median_vector_color
+                else:
+                    node_data['color'] = '#87CEEB'  # lightblue
 
             # Add hover information
             if is_median:
@@ -267,19 +281,20 @@ class InteractiveCytoscapePlotter:
         -------
             List of stylesheet rules for pie chart nodes.
         """
-        # Note: Cytoscape.js supports pie charts natively through the 'pie-' prefix
-        # We'll use the background-color approach with multiple colors
+        # Cytoscape.js supports pie charts through special styling
+        # For nodes with multiple populations, we use a gradient ring to indicate
+        # mixed population composition
         pie_styles = []
 
-        # For nodes with pie data, we need to create a special style
-        # Cytoscape supports pie chart visualization through pie-size and pie-{i}-background-color
+        # Style for pie chart nodes - add a visual indicator
         pie_styles.append({
             'selector': 'node[has_pie = true]',
             'style': {
-                # Pie chart rendering is complex in Cytoscape
-                # For now, use dominant color (already set in node data)
-                # Full pie chart rendering would require custom JavaScript
                 'background-color': 'data(color)',
+                # Add a thicker border to indicate multiple populations
+                'border-width': 4,
+                'border-color': '#FFD700',  # Gold border for mixed populations
+                'border-style': 'double',
             },
         })
 
