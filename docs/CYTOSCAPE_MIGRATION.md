@@ -24,16 +24,17 @@ The PyPopART Dash application now uses Dash Cytoscape for network visualization,
 Nodes containing samples from a single population are displayed with the population's assigned color.
 
 #### Mixed Population Nodes
-Nodes containing samples from multiple populations are indicated by:
-- A **gold double border** to highlight the mixed composition
-- The base color represents the dominant (most frequent) population
+Nodes containing samples from multiple populations are displayed as **pie charts**:
+- Each segment represents a population, sized by its proportion
+- Segment colors match the population colors from the legend
+- Pie charts are generated as SVG and embedded as node backgrounds
 - Hover over the node to see the exact population breakdown
 
 ### 3. Legend Display
 
 The legend (top right corner) shows:
 - **Population colors:** Circle markers with population names
-- **Mixed populations indicator:** Gold circle (◉) indicating nodes with samples from multiple populations
+- **Mixed populations indicator:** Pie icon (◕) indicating nodes with pie chart visualization
 - **Median vectors:** Gray square (■) for inferred median vector nodes
 
 ### 4. Edge Labels
@@ -58,10 +59,11 @@ Each node element contains:
 - `id`: Unique haplotype identifier (e.g., "H1", "H2")
 - `label`: Display label
 - `size`: Visual size based on frequency
-- `color`: Node color (population-based or default)
+- `color`: Node color (population-based, transparent for pie charts, or default)
 - `is_median`: Boolean indicating if this is a median vector
 - `has_pie`: Boolean indicating mixed population composition
 - `pie_data`: Array of population frequency data (for mixed nodes)
+- `pie_svg`: SVG Data URI containing the pie chart visualization (for mixed nodes)
 
 Each edge element contains:
 - `id`: Unique edge identifier

@@ -1104,19 +1104,19 @@ class PyPopARTApp:
                     # Add additional legend items
                     legend_items.append(html.Hr(style={'margin': '5px 0'}))
 
-                    # Mixed population indicator
+                    # Mixed population indicator (pie chart)
                     legend_items.append(
                         html.Div(
                             [
                                 html.Span(
-                                    '◉',
+                                    '◕',
                                     style={
-                                        'color': '#FFD700',
+                                        'color': '#000000',
                                         'fontSize': '20px',
                                         'marginRight': '5px',
                                     },
                                 ),
-                                html.Span('Mixed Populations'),
+                                html.Span('Mixed Populations (Pie Chart)'),
                             ],
                             style={'marginBottom': '3px'},
                         )

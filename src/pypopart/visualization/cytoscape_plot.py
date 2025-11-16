@@ -5,7 +5,9 @@ Provides Cytoscape-based interactive plotting for haplotype networks
 with manual node repositioning, pie chart nodes, and legend support.
 """
 
+import base64
 import colorsys
+import math
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -34,6 +36,73 @@ class InteractiveCytoscapePlotter:
         self.network = network
         self.elements = None
         self.stylesheet = None
+
+    @staticmethod
+    def generate_pie_chart_svg(pie_data: List[Dict]) -> str:
+        """
+        Generate SVG pie chart as Data URI for node background.
+
+        Parameters
+        ----------
+        pie_data :
+            List of dicts with 'percent' and 'color' keys for each segment.
+
+        Returns
+        -------
+            Data URI string with base64-encoded SVG.
+        """
+        size = 100
+        center = size / 2
+        radius = size / 2
+
+        svg_parts = [
+            f'<svg width="{size}" height="{size}" xmlns="http://www.w3.org/2000/svg">'
+        ]
+
+        # Start angle for pie slices (in radians)
+        current_angle = -math.pi / 2  # Start at top (12 o'clock position)
+
+        for segment in pie_data:
+            percent = segment['percent']
+            color = segment['color']
+
+            # Calculate angle for this segment
+            angle_size = (percent / 100) * 2 * math.pi
+
+            # Calculate start and end points
+            start_x = center + radius * math.cos(current_angle)
+            start_y = center + radius * math.sin(current_angle)
+
+            current_angle += angle_size
+
+            end_x = center + radius * math.cos(current_angle)
+            end_y = center + radius * math.sin(current_angle)
+
+            # Use large-arc-flag if angle > 180 degrees
+            large_arc = 1 if angle_size > math.pi else 0
+
+            # Create pie slice path
+            if percent == 100:
+                # Full circle
+                svg_parts.append(
+                    f'<circle cx="{center}" cy="{center}" r="{radius}" fill="{color}"/>'
+                )
+            else:
+                # Pie slice
+                path = (
+                    f'M {center},{center} '
+                    f'L {start_x},{start_y} '
+                    f'A {radius},{radius} 0 {large_arc},1 {end_x},{end_y} '
+                    f'Z'
+                )
+                svg_parts.append(f'<path d="{path}" fill="{color}"/>')
+
+        svg_parts.append('</svg>')
+        svg_str = ''.join(svg_parts)
+
+        # Encode as Data URI
+        encoded = base64.b64encode(svg_str.encode('utf-8')).decode('utf-8')
+        return f'data:image/svg+xml;base64,{encoded}'
 
     def create_elements(
         self,
@@ -122,10 +191,11 @@ class InteractiveCytoscapePlotter:
                     node_data['pie_colors'] = pie_colors
                     node_data['pie_sizes'] = pie_sizes
 
-                    # For Cytoscape pie chart nodes, use a gradient/mixed color indicator
-                    # Use the dominant population color as base
-                    dominant_pop = max(pop_counts.items(), key=lambda x: x[1])[0]
-                    node_data['color'] = population_colors.get(dominant_pop, '#87CEEB')
+                    # Generate SVG pie chart as Data URI
+                    node_data['pie_svg'] = self.generate_pie_chart_svg(pie_data)
+
+                    # Use transparent background to show pie chart
+                    node_data['color'] = 'transparent'
                 elif pop_counts:
                     # Single population
                     node_data['has_pie'] = False
@@ -281,20 +351,18 @@ class InteractiveCytoscapePlotter:
         -------
             List of stylesheet rules for pie chart nodes.
         """
-        # Cytoscape.js supports pie charts through special styling
-        # For nodes with multiple populations, we use a gradient ring to indicate
-        # mixed population composition
         pie_styles = []
 
-        # Style for pie chart nodes - add a visual indicator
+        # Style for pie chart nodes - use SVG background image
         pie_styles.append({
-            'selector': 'node[has_pie = true]',
+            'selector': 'node[pie_svg]',
             'style': {
-                'background-color': 'data(color)',
-                # Add a thicker border to indicate multiple populations
-                'border-width': 4,
-                'border-color': '#FFD700',  # Gold border for mixed populations
-                'border-style': 'double',
+                'background-color': 'transparent',
+                'background-image': 'data(pie_svg)',
+                'background-fit': 'contain',
+                'background-clip': 'node',
+                'border-width': 2,
+                'border-color': '#000000',
             },
         })
 

@@ -29,16 +29,17 @@ Successfully migrated PyPopART's network visualization from Plotly to Dash Cytos
 - Also applied when "Apply Layout" button is clicked
 
 #### ✅ Pie Chart Nodes for Populations
-- Nodes with multiple populations get special visual treatment:
-  - **Gold double border** to indicate mixed populations
-  - Base color shows dominant population
-  - Pie data structure prepared for each node
+- Nodes with multiple populations display as **actual pie charts**:
+  - SVG pie charts generated dynamically for each mixed-population node
+  - Each segment sized by population proportion
+  - Segment colors match population legend
+  - Encoded as Data URI and embedded as node background
   - Population breakdown shown in hover information
 
 #### ✅ Legend Support
 - Dynamic legend in top-right corner showing:
   - Population colors with circle markers (●)
-  - Mixed populations indicator with gold circle (◉)
+  - Mixed populations indicator with pie icon (◕)
   - Median vectors with gray square (■)
 - Legend automatically generated from network data
 - Hidden when no population data available
@@ -63,7 +64,8 @@ Successfully migrated PyPopART's network visualization from Plotly to Dash Cytos
 **Methods:**
 - `create_elements()` - Converts network to Cytoscape elements
 - `create_stylesheet()` - Generates CSS-like styling rules
-- `create_pie_stylesheet()` - Adds pie chart specific styles
+- `create_pie_stylesheet()` - Adds pie chart specific styles with SVG background
+- `generate_pie_chart_svg()` - Generates SVG pie chart as Data URI (static method)
 - `generate_population_colors()` - Auto-generates colors using HSV
 
 **Element Structure:**
@@ -73,10 +75,11 @@ Successfully migrated PyPopART's network visualization from Plotly to Dash Cytos
         'id': 'H1',
         'label': 'H1',
         'size': 25.0,
-        'color': '#FF0000',
+        'color': 'transparent',  # Transparent for pie charts
         'is_median': False,
         'has_pie': True,
         'pie_data': [...],
+        'pie_svg': 'data:image/svg+xml;base64,...',  # SVG Data URI
         'hover': 'H1\nFrequency: 5\n...'
     },
     'position': {'x': 50.0, 'y': 100.0},
@@ -158,16 +161,16 @@ pytest tests/unit/ -v                        # 487 passed
 - Legend shows only when relevant
 - Snap-to-grid configurable per user preference
 
-## Features Not Fully Implemented
+## Features Fully Implemented
 
-### Native Pie Chart Rendering
-**Status:** Partially implemented
+### ✅ SVG Pie Chart Rendering
+**Status:** Fully implemented
 **Details:**
-- Data structure prepared for full pie charts
-- Visual indicator (gold border) shows mixed populations
-- True multi-segment pie chart would require Cytoscape.js extension
-**Workaround:** Dominant population color with gold border indicator
-**Future:** Could implement custom Cytoscape.js extension for full pie rendering
+- True multi-segment pie charts using SVG Data URIs
+- Each node with multiple populations displays an actual pie chart
+- SVG generated dynamically with correct proportions and colors
+- Embedded as background-image in Cytoscape stylesheet
+- No custom Cytoscape.js extensions required
 
 ### Geographic Base Map
 **Status:** Basic support only
