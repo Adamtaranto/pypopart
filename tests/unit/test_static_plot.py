@@ -1,6 +1,4 @@
-"""
-Unit tests for static network visualization.
-"""
+"""Unit tests for static network visualization."""
 
 import matplotlib
 import pytest

@@ -1,6 +1,4 @@
-"""
-Unit tests for metadata file I/O.
-"""
+"""Unit tests for metadata file I/O."""
 
 import pytest
 

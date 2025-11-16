@@ -41,7 +41,7 @@ def hamming_distance_numba(
     -----
     This function is JIT-compiled and cached for maximum performance.
     First call may be slower due to compilation overhead.
-    
+
     N and ? characters are treated as ambiguous and do not count as
     mutations when compared to any base or to each other.
     """
@@ -92,7 +92,7 @@ def p_distance_numba(
     Returns
     -------
         float        Proportion of differing sites (0.0 to 1.0).
-    
+
     Notes
     -----
     N and ? characters are treated as ambiguous and do not count as

@@ -1,6 +1,4 @@
-"""
-Unit tests for population genetics module.
-"""
+"""Unit tests for population genetics module."""
 
 from pypopart.core.alignment import Alignment
 from pypopart.core.graph import HaplotypeNetwork

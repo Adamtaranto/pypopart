@@ -62,7 +62,7 @@ def hamming_distance(
     -----
     When use_numba=True and Numba is available, uses JIT-compiled
     optimized version for better performance on large datasets.
-    
+
     N and ? characters are treated as ambiguous and do not count as
     mutations when compared to any base (A, T, G, C) or to each other.
     """
@@ -90,7 +90,7 @@ def hamming_distance(
 def p_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True) -> float:
     """
     Calculate p-distance (proportion of differing sites).
-    
+
     N and ? characters are treated as ambiguous and do not count as
     mutations when compared to any base (A, T, G, C) or to each other.
     """

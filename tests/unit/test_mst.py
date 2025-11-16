@@ -1,6 +1,4 @@
-"""
-Unit tests for Minimum Spanning Tree (MST) algorithm.
-"""
+"""Unit tests for Minimum Spanning Tree (MST) algorithm."""
 
 import numpy as np
 import pytest

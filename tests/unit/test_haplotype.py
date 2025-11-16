@@ -1,6 +1,4 @@
-"""
-Unit tests for Haplotype class and related functions.
-"""
+"""Unit tests for Haplotype class and related functions."""
 
 import pytest
 

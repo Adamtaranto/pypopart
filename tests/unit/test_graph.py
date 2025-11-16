@@ -1,6 +1,4 @@
-"""
-Unit tests for HaplotypeNetwork class.
-"""
+"""Unit tests for HaplotypeNetwork class."""
 
 import networkx as nx
 import pytest
@@ -577,9 +575,7 @@ class TestHaplotypeNetwork:
                     'sample_ids': ['s3'],
                 },
             ],
-            'edges': [
-                {'source': 'H1', 'target': 'H2', 'weight': 2}
-            ],
+            'edges': [{'source': 'H1', 'target': 'H2', 'weight': 2}],
         }
 
         # Reconstruct network

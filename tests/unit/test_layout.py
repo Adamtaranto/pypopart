@@ -1,6 +1,4 @@
-"""
-Unit tests for layout algorithms.
-"""
+"""Unit tests for layout algorithms."""
 
 import json
 import os

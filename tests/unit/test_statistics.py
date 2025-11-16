@@ -1,6 +1,4 @@
-"""
-Unit tests for statistics module.
-"""
+"""Unit tests for statistics module."""
 
 import numpy as np
 import pytest

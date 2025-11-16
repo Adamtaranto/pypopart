@@ -1,6 +1,4 @@
-"""
-Unit tests for interactive network visualization.
-"""
+"""Unit tests for interactive network visualization."""
 
 import os
 import tempfile

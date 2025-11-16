@@ -9,7 +9,6 @@ Molecular Ecology 9: 1657-1659
 import math
 from typing import List, Optional, Tuple
 
-
 from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix, hamming_distance
 from ..core.graph import HaplotypeNetwork

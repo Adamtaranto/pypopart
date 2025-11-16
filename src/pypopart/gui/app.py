@@ -19,10 +19,10 @@ import traceback
 from typing import Dict, List, Optional, Tuple
 
 import dash
-import dash_cytoscape as cyto
 from dash import Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
+import dash_cytoscape as cyto
 
 from pypopart.algorithms import (
     TCS,
@@ -387,7 +387,7 @@ class PyPopARTApp:
                             step=0.1,
                             value=1.0,
                             marks={0.5: '0.5x', 1.0: '1.0x', 2.0: '2.0x', 3.0: '3.0x'},
-                            tooltip={"placement": "bottom", "always_visible": False},
+                            tooltip={'placement': 'bottom', 'always_visible': False},
                         ),
                         html.Br(),
                         dbc.Label('Node Size', className='fw-bold'),
@@ -402,7 +402,7 @@ class PyPopARTApp:
                             step=5,
                             value=40,
                             marks={10: '10', 40: '40', 70: '70', 100: '100'},
-                            tooltip={"placement": "bottom", "always_visible": False},
+                            tooltip={'placement': 'bottom', 'always_visible': False},
                         ),
                         html.Br(),
                         dbc.Label('Edge Width', className='fw-bold'),
@@ -417,7 +417,7 @@ class PyPopARTApp:
                             step=0.5,
                             value=3,
                             marks={1: '1', 3: '3', 6: '6', 10: '10'},
-                            tooltip={"placement": "bottom", "always_visible": False},
+                            tooltip={'placement': 'bottom', 'always_visible': False},
                         ),
                         html.Br(),
                         dbc.Button(
@@ -449,7 +449,10 @@ class PyPopARTApp:
                         dcc.Dropdown(
                             id='export-format',
                             options=[
-                                {'label': 'GraphML (Cytoscape/Gephi)', 'value': 'graphml'},
+                                {
+                                    'label': 'GraphML (Cytoscape/Gephi)',
+                                    'value': 'graphml',
+                                },
                                 {'label': 'GML (Graph Format)', 'value': 'gml'},
                                 {'label': 'JSON', 'value': 'json'},
                                 {'label': 'PNG Image', 'value': 'png'},
@@ -479,7 +482,10 @@ class PyPopARTApp:
                 # Search bar
                 html.Div(
                     [
-                        html.Label('Search Haplotype:', style={'marginRight': '10px', 'fontWeight': 'bold'}),
+                        html.Label(
+                            'Search Haplotype:',
+                            style={'marginRight': '10px', 'fontWeight': 'bold'},
+                        ),
                         dcc.Dropdown(
                             id='haplotype-search',
                             placeholder='Select H number(s) to highlight...',
@@ -487,7 +493,14 @@ class PyPopARTApp:
                             clearable=True,
                             multi=True,
                         ),
-                        html.Div(id='search-feedback', style={'display': 'inline-block', 'marginLeft': '10px', 'color': 'red'}),
+                        html.Div(
+                            id='search-feedback',
+                            style={
+                                'display': 'inline-block',
+                                'marginLeft': '10px',
+                                'color': 'red',
+                            },
+                        ),
                     ],
                     style={
                         'position': 'absolute',
@@ -550,9 +563,9 @@ class PyPopARTApp:
                             autoungrabify=False,
                         )
                     ],
-                )
+                ),
             ],
-            style={'position': 'relative'}
+            style={'position': 'relative'},
         )
 
     def _create_statistics_tab(self) -> html.Div:
@@ -616,13 +629,20 @@ class PyPopARTApp:
                             ),
                             style={'display': 'inline-block', 'marginRight': '10px'},
                         ),
-                        html.Div(id='h-number-feedback', style={'display': 'inline-block', 'marginLeft': '10px'}),
+                        html.Div(
+                            id='h-number-feedback',
+                            style={'display': 'inline-block', 'marginLeft': '10px'},
+                        ),
                     ],
                     style={'padding': '20px 20px 10px 20px'},
                 ),
                 html.Div(
                     id='haplotype-summary-display',
-                    style={'padding': '0 20px 20px 20px', 'height': '75vh', 'overflow-y': 'auto'},
+                    style={
+                        'padding': '0 20px 20px 20px',
+                        'height': '75vh',
+                        'overflow-y': 'auto',
+                    },
                 ),
                 dcc.Store(id='h-number-mapping-store'),
             ]
@@ -638,8 +658,12 @@ class PyPopARTApp:
                 ),
                 html.Div(
                     id='metadata-display',
-                    style={'padding': '0 20px 20px 20px', 'height': '75vh', 'overflow-y': 'auto'},
-                )
+                    style={
+                        'padding': '0 20px 20px 20px',
+                        'height': '75vh',
+                        'overflow-y': 'auto',
+                    },
+                ),
             ]
         )
 
@@ -842,6 +866,7 @@ class PyPopARTApp:
                 # If population labels provided but no colors, generate colors automatically
                 if populations and not population_colors:
                     import colorsys
+
                     unique_pops = sorted(set(populations.values()))
                     n = len(unique_pops)
                     for i, pop in enumerate(unique_pops):
@@ -854,13 +879,17 @@ class PyPopARTApp:
                             int(r * 255), int(g * 255), int(b * 255)
                         )
                         population_colors[pop] = hex_color
-                    self.logger.info(f'Auto-generated colors for {len(unique_pops)} populations')
+                    self.logger.info(
+                        f'Auto-generated colors for {len(unique_pops)} populations'
+                    )
 
                 metadata_data = {
                     'raw': metadata_dict,
                     'coordinates': coordinates,
                     'populations': populations,
-                    'population_colors': population_colors if population_colors else None,
+                    'population_colors': population_colors
+                    if population_colors
+                    else None,
                     'sequence_ids': list(metadata_dict.keys()),
                 }
 
@@ -1061,7 +1090,9 @@ class PyPopARTApp:
                             'is_median': network.graph.nodes[node].get(
                                 'median_vector', False
                             ),
-                            'sample_ids': network.graph.nodes[node].get('sample_ids', []),
+                            'sample_ids': network.graph.nodes[node].get(
+                                'sample_ids', []
+                            ),
                         }
                         for node in network.graph.nodes()
                     ],
@@ -1077,7 +1108,8 @@ class PyPopARTApp:
 
                 # Count median/inferred nodes
                 n_medians = sum(
-                    1 for node in network.graph.nodes()
+                    1
+                    for node in network.graph.nodes()
                     if network.graph.nodes[node].get('is_median', False)
                 )
 
@@ -1116,7 +1148,11 @@ class PyPopARTApp:
 
         @self.app.callback(
             Output('layout-store', 'data'),
-            [Input('apply-layout-button', 'n_clicks'), Input('network-store', 'data'), Input('spacing-slider', 'value')],
+            [
+                Input('apply-layout-button', 'n_clicks'),
+                Input('network-store', 'data'),
+                Input('spacing-slider', 'value'),
+            ],
             [
                 State('layout-select', 'value'),
                 State('metadata-store', 'data'),
@@ -1159,8 +1195,10 @@ class PyPopARTApp:
 
                 # Apply spacing factor to expand/contract the layout
                 if spacing_factor and spacing_factor != 1.0:
-                    positions = {node: (pos[0] * spacing_factor, pos[1] * spacing_factor)
-                                for node, pos in positions.items()}
+                    positions = {
+                        node: (pos[0] * spacing_factor, pos[1] * spacing_factor)
+                        for node, pos in positions.items()
+                    }
 
                 # Convert to serializable format
                 layout_data = {node: list(pos) for node, pos in positions.items()}
@@ -1364,7 +1402,10 @@ class PyPopARTApp:
                             # Check if position actually changed
                             if node_id in current_layout:
                                 old_pos = current_layout[node_id]
-                                if abs(old_pos[0] - x) > 0.01 or abs(old_pos[1] - y) > 0.01:
+                                if (
+                                    abs(old_pos[0] - x) > 0.01
+                                    or abs(old_pos[1] - y) > 0.01
+                                ):
                                     position_changed = True
                             updated_layout[node_id] = [x, y]
 
@@ -1530,7 +1571,9 @@ class PyPopARTApp:
                                     base,
                                     style={
                                         'backgroundColor': color,
-                                        'color': 'white' if base.upper() not in ['-', 'N'] else 'black',
+                                        'color': 'white'
+                                        if base.upper() not in ['-', 'N']
+                                        else 'black',
                                         'padding': '0 1px',
                                     },
                                 )
@@ -1540,14 +1583,20 @@ class PyPopARTApp:
                             seq_spans.append(html.Span(base, style={'color': 'black'}))
 
                     # Combine ID and sequence
-                    rows.append(html.Div([id_span] + seq_spans, style={'whiteSpace': 'pre'}))
+                    rows.append(
+                        html.Div([id_span] + seq_spans, style={'whiteSpace': 'pre'})
+                    )
 
                 # Add note if sequences were truncated
                 if len(alignment_data['sequences']) > 50:
                     rows.append(
                         html.Div(
                             f'\n... ({len(alignment_data["sequences"]) - 50} more sequences)',
-                            style={'color': 'gray', 'fontStyle': 'italic', 'marginTop': '10px'},
+                            style={
+                                'color': 'gray',
+                                'fontStyle': 'italic',
+                                'marginTop': '10px',
+                            },
                         )
                     )
 
@@ -1605,7 +1654,9 @@ class PyPopARTApp:
                         populations_display = ''
                     else:
                         haplotype_type = '🟢 Observed'
-                        sample_display = ', '.join(sample_ids) if sample_ids else 'Unknown'
+                        sample_display = (
+                            ', '.join(sample_ids) if sample_ids else 'Unknown'
+                        )
 
                         # Collect populations for this haplotype
                         if has_populations:
@@ -1613,18 +1664,22 @@ class PyPopARTApp:
                             for sid in sample_ids:
                                 if sid in metadata_data['populations']:
                                     populations.add(metadata_data['populations'][sid])
-                            populations_display = ', '.join(sorted(populations)) if populations else ''
+                            populations_display = (
+                                ', '.join(sorted(populations)) if populations else ''
+                            )
                         else:
                             populations_display = ''
 
-                    haplotype_mapping.append({
-                        'h_label': h_label,
-                        'node_id': node_id,
-                        'type': haplotype_type,
-                        'frequency': frequency,
-                        'samples': sample_display,
-                        'populations': populations_display,
-                    })
+                    haplotype_mapping.append(
+                        {
+                            'h_label': h_label,
+                            'node_id': node_id,
+                            'type': haplotype_type,
+                            'frequency': frequency,
+                            'samples': sample_display,
+                            'populations': populations_display,
+                        }
+                    )
 
                 # Create table headers (conditionally include populations)
                 headers = [
@@ -1664,42 +1719,50 @@ class PyPopARTApp:
                 n_observed = sum(1 for h in haplotype_mapping if '🟢' in h['type'])
                 n_inferred = sum(1 for h in haplotype_mapping if '🔵' in h['type'])
 
-                return html.Div([
-                    html.H4('Haplotype Summary'),
-                    html.P([
-                        f'Total haplotypes: {len(haplotype_mapping)} ',
-                        f'(🟢 {n_observed} observed, 🔵 {n_inferred} inferred)',
-                    ]),
-                    html.Hr(),
-                    dbc.Table(
-                        table_header + table_body,
-                        bordered=True,
-                        hover=True,
-                        responsive=True,
-                        striped=True,
-                        style={'fontSize': '14px'},
-                    ),
-                ])
+                return html.Div(
+                    [
+                        html.H4('Haplotype Summary'),
+                        html.P(
+                            [
+                                f'Total haplotypes: {len(haplotype_mapping)} ',
+                                f'(🟢 {n_observed} observed, 🔵 {n_inferred} inferred)',
+                            ]
+                        ),
+                        html.Hr(),
+                        dbc.Table(
+                            table_header + table_body,
+                            bordered=True,
+                            hover=True,
+                            responsive=True,
+                            striped=True,
+                            style={'fontSize': '14px'},
+                        ),
+                    ]
+                )
 
             except Exception as e:
                 self.logger.error(f'Error creating haplotype summary: {e}')
                 self.logger.error(traceback.format_exc())
                 return html.Div(
                     [
-                        html.H5('Error creating haplotype summary', style={'color': 'red'}),
+                        html.H5(
+                            'Error creating haplotype summary', style={'color': 'red'}
+                        ),
                         html.P(str(e)),
-                        html.Details([
-                            html.Summary('Show traceback'),
-                            html.Pre(
-                                traceback.format_exc(),
-                                style={
-                                    'background': '#f5f5f5',
-                                    'padding': '10px',
-                                    'overflow': 'auto',
-                                    'font-size': '12px',
-                                },
-                            ),
-                        ]),
+                        html.Details(
+                            [
+                                html.Summary('Show traceback'),
+                                html.Pre(
+                                    traceback.format_exc(),
+                                    style={
+                                        'background': '#f5f5f5',
+                                        'padding': '10px',
+                                        'overflow': 'auto',
+                                        'font-size': '12px',
+                                    },
+                                ),
+                            ]
+                        ),
                     ],
                     style={'color': 'red', 'padding': '20px'},
                 )
@@ -1843,7 +1906,10 @@ class PyPopARTApp:
                 Output('network-graph', 'stylesheet', allow_duplicate=True),
             ],
             [Input('network-store', 'data'), Input('haplotype-search', 'value')],
-            [State('network-graph', 'stylesheet'), State('h-number-mapping-store', 'data')],
+            [
+                State('network-graph', 'stylesheet'),
+                State('h-number-mapping-store', 'data'),
+            ],
             prevent_initial_call=True,
         )
         def update_search_and_highlight(
@@ -1877,10 +1943,15 @@ class PyPopARTApp:
                     current_stylesheet = []
 
                 # Remove ALL existing highlight styles (for any node)
-                base_stylesheet = [s for s in current_stylesheet
-                                  if not (s.get('selector', '').startswith('node[id = "')
-                                         and 'border-color' in s.get('style', {})
-                                         and s.get('style', {}).get('border-color') == '#FF0000')]
+                base_stylesheet = [
+                    s
+                    for s in current_stylesheet
+                    if not (
+                        s.get('selector', '').startswith('node[id = "')
+                        and 'border-color' in s.get('style', {})
+                        and s.get('style', {}).get('border-color') == '#FF0000'
+                    )
+                ]
 
                 # If nodes are selected, add highlight styles
                 if selected_h_list:
@@ -1893,14 +1964,16 @@ class PyPopARTApp:
                         # Map H number to node ID
                         node_id = h_to_node.get(selected_h)
                         if node_id:
-                            base_stylesheet.append({
-                                'selector': f'node[id = "{node_id}"]',
-                                'style': {
-                                    'border-width': '5px',
-                                    'border-color': '#FF0000',
-                                    'border-style': 'solid',
+                            base_stylesheet.append(
+                                {
+                                    'selector': f'node[id = "{node_id}"]',
+                                    'style': {
+                                        'border-width': '5px',
+                                        'border-color': '#FF0000',
+                                        'border-style': 'solid',
+                                    },
                                 }
-                            })
+                            )
 
                     return h_numbers, base_stylesheet
 
@@ -1968,7 +2041,9 @@ class PyPopARTApp:
                         sample_display = 'None'
                     else:
                         haplotype_type = 'Observed'
-                        sample_display = '; '.join(sample_ids) if sample_ids else 'Unknown'
+                        sample_display = (
+                            '; '.join(sample_ids) if sample_ids else 'Unknown'
+                        )
 
                     row = [h_label, haplotype_type, frequency, sample_display]
 
@@ -1978,7 +2053,9 @@ class PyPopARTApp:
                         for sid in sample_ids:
                             if sid in metadata_data['populations']:
                                 populations.add(metadata_data['populations'][sid])
-                        pop_display = '; '.join(sorted(populations)) if populations else ''
+                        pop_display = (
+                            '; '.join(sorted(populations)) if populations else ''
+                        )
                         row.append(pop_display)
 
                     writer.writerow(row)
@@ -2017,9 +2094,15 @@ class PyPopARTApp:
                     # Build metadata records
                     for sid in metadata_data.get('sequence_ids', []):
                         metadata_records[sid] = {
-                            'population': metadata_data.get('populations', {}).get(sid, ''),
-                            'latitude': metadata_data.get('coordinates', {}).get(sid, {}).get('lat', ''),
-                            'longitude': metadata_data.get('coordinates', {}).get(sid, {}).get('lon', ''),
+                            'population': metadata_data.get('populations', {}).get(
+                                sid, ''
+                            ),
+                            'latitude': metadata_data.get('coordinates', {})
+                            .get(sid, {})
+                            .get('lat', ''),
+                            'longitude': metadata_data.get('coordinates', {})
+                            .get(sid, {})
+                            .get('lon', ''),
                         }
 
                 # Union of all IDs
@@ -2027,7 +2110,11 @@ class PyPopARTApp:
 
                 # Check for duplicates in alignment
                 alignment_id_list = [seq['id'] for seq in alignment_data['sequences']]
-                alignment_duplicates = [sid for sid in set(alignment_id_list) if alignment_id_list.count(sid) > 1]
+                alignment_duplicates = [
+                    sid
+                    for sid in set(alignment_id_list)
+                    if alignment_id_list.count(sid) > 1
+                ]
 
                 # Check for mismatches
                 only_in_alignment = alignment_ids - metadata_ids
@@ -2036,36 +2123,46 @@ class PyPopARTApp:
                 # Build warnings
                 warnings = []
                 if alignment_duplicates:
-                    warnings.append(dbc.Alert(
-                        f'⚠️ Duplicate IDs found in alignment: {", ".join(alignment_duplicates)}',
-                        color='warning',
-                    ))
+                    warnings.append(
+                        dbc.Alert(
+                            f'⚠️ Duplicate IDs found in alignment: {", ".join(alignment_duplicates)}',
+                            color='warning',
+                        )
+                    )
                 if only_in_alignment and metadata_data:
-                    warnings.append(dbc.Alert(
-                        f'⚠️ {len(only_in_alignment)} IDs only in alignment (not in metadata)',
-                        color='info',
-                    ))
+                    warnings.append(
+                        dbc.Alert(
+                            f'⚠️ {len(only_in_alignment)} IDs only in alignment (not in metadata)',
+                            color='info',
+                        )
+                    )
                 if only_in_metadata:
-                    warnings.append(dbc.Alert(
-                        f'⚠️ {len(only_in_metadata)} IDs only in metadata (not in alignment)',
-                        color='info',
-                    ))
+                    warnings.append(
+                        dbc.Alert(
+                            f'⚠️ {len(only_in_metadata)} IDs only in metadata (not in alignment)',
+                            color='info',
+                        )
+                    )
 
                 # Get population colors if available
-                population_colors = metadata_data.get('population_colors', {}) if metadata_data else {}
+                population_colors = (
+                    metadata_data.get('population_colors', {}) if metadata_data else {}
+                )
 
                 # Build table
                 table_header = [
                     html.Thead(
-                        html.Tr([
-                            html.Th('Sequence ID'),
-                            html.Th('In Alignment'),
-                            html.Th('In Metadata'),
-                            html.Th('Population'),
-                            html.Th('Color'),
-                            html.Th('Latitude'),
-                            html.Th('Longitude'),
-                        ])
+                        html.Tr(
+                            [
+                                html.Th('Sequence ID'),
+                                html.Th('In Alignment'),
+                                html.Th('In Metadata'),
+                                html.Th('Population'),
+                                html.Th('Color'),
+                                html.Th('Latitude'),
+                                html.Th('Longitude'),
+                            ]
+                        )
                     )
                 ]
 
@@ -2081,21 +2178,32 @@ class PyPopARTApp:
                     color_display = ''
                     if pop and population_colors and pop in population_colors:
                         color_hex = population_colors[pop]
-                        color_display = html.Div([
-                            html.Span('●', style={'color': color_hex, 'fontSize': '16px', 'marginRight': '5px'}),
-                            html.Span(color_hex, style={'fontSize': '12px'})
-                        ])
+                        color_display = html.Div(
+                            [
+                                html.Span(
+                                    '●',
+                                    style={
+                                        'color': color_hex,
+                                        'fontSize': '16px',
+                                        'marginRight': '5px',
+                                    },
+                                ),
+                                html.Span(color_hex, style={'fontSize': '12px'}),
+                            ]
+                        )
 
                     table_rows.append(
-                        html.Tr([
-                            html.Td(sid),
-                            html.Td(in_alignment, style={'textAlign': 'center'}),
-                            html.Td(in_metadata, style={'textAlign': 'center'}),
-                            html.Td(pop),
-                            html.Td(color_display),
-                            html.Td(meta.get('latitude', '')),
-                            html.Td(meta.get('longitude', '')),
-                        ])
+                        html.Tr(
+                            [
+                                html.Td(sid),
+                                html.Td(in_alignment, style={'textAlign': 'center'}),
+                                html.Td(in_metadata, style={'textAlign': 'center'}),
+                                html.Td(pop),
+                                html.Td(color_display),
+                                html.Td(meta.get('latitude', '')),
+                                html.Td(meta.get('longitude', '')),
+                            ]
+                        )
                     )
 
                 table_body = [html.Tbody(table_rows)]
@@ -2163,19 +2271,26 @@ class PyPopARTApp:
 
                 # Build tooltip content
                 if is_median or len(sample_ids) == 0:
-                    content = html.Div([
-                        html.Strong(h_label or 'Unknown'),
-                        html.Br(),
-                        html.Span('Inferred median vector'),
-                    ])
+                    content = html.Div(
+                        [
+                            html.Strong(h_label or 'Unknown'),
+                            html.Br(),
+                            html.Span('Inferred median vector'),
+                        ]
+                    )
                 else:
-                    content = html.Div([
-                        html.Strong(h_label or 'Unknown'),
-                        html.Br(),
-                        html.Span(f'Sequences ({len(sample_ids)}):'),
-                        html.Br(),
-                        html.Span(', '.join(sample_ids[:10]) + ('...' if len(sample_ids) > 10 else '')),
-                    ])
+                    content = html.Div(
+                        [
+                            html.Strong(h_label or 'Unknown'),
+                            html.Br(),
+                            html.Span(f'Sequences ({len(sample_ids)}):'),
+                            html.Br(),
+                            html.Span(
+                                ', '.join(sample_ids[:10])
+                                + ('...' if len(sample_ids) > 10 else '')
+                            ),
+                        ]
+                    )
 
                 return content
 
@@ -2239,7 +2354,10 @@ class PyPopARTApp:
             }
             """,
             Output('node-tooltip', 'style'),
-            [Input('network-graph', 'mouseoverNodeData'), Input('network-graph', 'mouseoverEdgeData')],
+            [
+                Input('network-graph', 'mouseoverNodeData'),
+                Input('network-graph', 'mouseoverEdgeData'),
+            ],
         )
 
         @self.app.callback(
@@ -2371,16 +2489,23 @@ class PyPopARTApp:
                 csv_reader = csv.DictReader(io.StringIO(decoded))
 
                 # Validate required columns
-                if csv_reader.fieldnames is None or set(csv_reader.fieldnames) != {'current_h_number', 'new_label'}:
-                    return None, dbc.Alert(
-                        [
-                            html.Strong('❌ Invalid CSV Format'),
-                            html.Br(),
-                            'CSV must have exactly two columns: "current_h_number" and "new_label"',
-                        ],
-                        color='danger',
-                        dismissable=True,
-                    ), dash.no_update
+                if csv_reader.fieldnames is None or set(csv_reader.fieldnames) != {
+                    'current_h_number',
+                    'new_label',
+                }:
+                    return (
+                        None,
+                        dbc.Alert(
+                            [
+                                html.Strong('❌ Invalid CSV Format'),
+                                html.Br(),
+                                'CSV must have exactly two columns: "current_h_number" and "new_label"',
+                            ],
+                            color='danger',
+                            dismissable=True,
+                        ),
+                        dash.no_update,
+                    )
 
                 # Reconstruct network to get node IDs
                 network = HaplotypeNetwork.from_serialized(network_data)
@@ -2405,7 +2530,9 @@ class PyPopARTApp:
                         continue
 
                     if not new_label:
-                        errors.append(f'Row {row_num}: Missing new_label for {current_h}')
+                        errors.append(
+                            f'Row {row_num}: Missing new_label for {current_h}'
+                        )
                         continue
 
                     if current_h not in h_to_node:
@@ -2427,12 +2554,20 @@ class PyPopARTApp:
                         seen_labels[label] = node_id
 
                 if errors:
-                    error_msg = html.Div([
-                        html.Strong('❌ Validation Errors:'),
-                        html.Ul([html.Li(err) for err in errors[:10]]),
-                        html.P(f'({len(errors)} total errors)') if len(errors) > 10 else None,
-                    ])
-                    return None, dbc.Alert(error_msg, color='danger', dismissable=True), dash.no_update
+                    error_msg = html.Div(
+                        [
+                            html.Strong('❌ Validation Errors:'),
+                            html.Ul([html.Li(err) for err in errors[:10]]),
+                            html.P(f'({len(errors)} total errors)')
+                            if len(errors) > 10
+                            else None,
+                        ]
+                    )
+                    return (
+                        None,
+                        dbc.Alert(error_msg, color='danger', dismissable=True),
+                        dash.no_update,
+                    )
 
                 # If validation passed, update the graph with new labels
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}
@@ -2468,15 +2603,19 @@ class PyPopARTApp:
             except Exception as e:
                 self.logger.error(f'Error processing H number mapping: {e}')
                 self.logger.error(traceback.format_exc())
-                return None, dbc.Alert(
-                    [
-                        html.Strong('❌ Error processing mapping'),
-                        html.Br(),
-                        str(e),
-                    ],
-                    color='danger',
-                    dismissable=True,
-                ), dash.no_update
+                return (
+                    None,
+                    dbc.Alert(
+                        [
+                            html.Strong('❌ Error processing mapping'),
+                            html.Br(),
+                            str(e),
+                        ],
+                        color='danger',
+                        dismissable=True,
+                    ),
+                    dash.no_update,
+                )
 
         # Clientside callback to auto-fit network when elements are updated
         # Only fit when not in manual edit mode

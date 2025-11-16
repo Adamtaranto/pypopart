@@ -133,9 +133,7 @@ class TestInteractiveCytoscapePlotter:
 
         # Get nodes
         nodes = {
-            e['data']['id']: e
-            for e in elements
-            if 'source' not in e.get('data', {})
+            e['data']['id']: e for e in elements if 'source' not in e.get('data', {})
         }
 
         # H3 has frequency 3, should be larger than H2 (frequency 1)
@@ -174,9 +172,7 @@ class TestInteractiveCytoscapePlotter:
         layout = {'H1': (0, 0), 'H2': (1, 0), 'H3': (2, 0)}
         pop_colors = {'PopA': '#FF0000', 'PopB': '#0000FF'}
 
-        elements = plotter.create_elements(
-            layout=layout, population_colors=pop_colors
-        )
+        elements = plotter.create_elements(layout=layout, population_colors=pop_colors)
 
         # Find H2 which has both populations
         node = [e for e in elements if e['data']['id'] == 'H2'][0]

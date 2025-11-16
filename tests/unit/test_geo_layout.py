@@ -1,6 +1,4 @@
-"""
-Unit tests for geographic layout algorithms.
-"""
+"""Unit tests for geographic layout algorithms."""
 
 import pytest
 

@@ -1,6 +1,4 @@
-"""
-Unit tests for Alignment class.
-"""
+"""Unit tests for Alignment class."""
 
 import numpy as np
 import pytest

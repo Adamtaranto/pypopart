@@ -1,6 +1,4 @@
-"""
-Unit tests for Sequence class.
-"""
+"""Unit tests for Sequence class."""
 
 import pytest
 

@@ -1,6 +1,4 @@
-"""
-Unit tests for FASTA file I/O.
-"""
+"""Unit tests for FASTA file I/O."""
 
 import gzip
 

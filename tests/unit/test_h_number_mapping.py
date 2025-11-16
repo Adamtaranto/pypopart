@@ -5,7 +5,6 @@ import csv
 import io
 
 
-
 class TestHNumberMapping:
     """Test cases for H number label mapping feature."""
 

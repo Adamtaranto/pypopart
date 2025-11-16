@@ -154,7 +154,9 @@ class InteractiveCytoscapePlotter:
                 size = node_size_scale * 0.8
             elif hap:
                 # Use sqrt of frequency, but ensure minimum size
-                size = max(node_size_scale * 0.5, node_size_scale * np.sqrt(hap.frequency))
+                size = max(
+                    node_size_scale * 0.5, node_size_scale * np.sqrt(hap.frequency)
+                )
             else:
                 size = node_size_scale * 0.5
 
@@ -188,12 +190,14 @@ class InteractiveCytoscapePlotter:
                     for pop, count in sorted(pop_counts.items()):
                         if count > 0:
                             percent = (count / total) * 100
-                            pie_data.append({
-                                'population': pop,
-                                'value': count,
-                                'percent': percent,
-                                'color': population_colors.get(pop, '#cccccc'),
-                            })
+                            pie_data.append(
+                                {
+                                    'population': pop,
+                                    'value': count,
+                                    'percent': percent,
+                                    'color': population_colors.get(pop, '#cccccc'),
+                                }
+                            )
                             pie_colors.append(population_colors.get(pop, '#cccccc'))
                             pie_sizes.append(percent)
 
@@ -349,9 +353,7 @@ class InteractiveCytoscapePlotter:
         self.stylesheet = stylesheet
         return stylesheet
 
-    def create_pie_stylesheet(
-        self, population_colors: Dict[str, str]
-    ) -> List[Dict]:
+    def create_pie_stylesheet(self, population_colors: Dict[str, str]) -> List[Dict]:
         """
         Create stylesheet with pie chart support for nodes.
 
@@ -367,23 +369,23 @@ class InteractiveCytoscapePlotter:
         pie_styles = []
 
         # Style for pie chart nodes - use SVG background image
-        pie_styles.append({
-            'selector': 'node[pie_svg]',
-            'style': {
-                'background-color': 'transparent',
-                'background-image': 'data(pie_svg)',
-                'background-fit': 'contain',
-                'background-clip': 'node',
-                'border-width': 2,
-                'border-color': '#000000',
-            },
-        })
+        pie_styles.append(
+            {
+                'selector': 'node[pie_svg]',
+                'style': {
+                    'background-color': 'transparent',
+                    'background-image': 'data(pie_svg)',
+                    'background-fit': 'contain',
+                    'background-clip': 'node',
+                    'border-width': 2,
+                    'border-color': '#000000',
+                },
+            }
+        )
 
         return pie_styles
 
-    def generate_population_colors(
-        self, populations: List[str]
-    ) -> Dict[str, str]:
+    def generate_population_colors(self, populations: List[str]) -> Dict[str, str]:
         """
         Generate distinct colors for populations using HSV color space.
 

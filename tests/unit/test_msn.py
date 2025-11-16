@@ -1,6 +1,4 @@
-"""
-Unit tests for Minimum Spanning Network (MSN) algorithm.
-"""
+"""Unit tests for Minimum Spanning Network (MSN) algorithm."""
 
 from pypopart.algorithms.msn import MinimumSpanningNetwork
 from pypopart.core.alignment import Alignment

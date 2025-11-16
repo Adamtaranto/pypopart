@@ -1,6 +1,4 @@
-"""
-Unit tests for NEXUS file I/O.
-"""
+"""Unit tests for NEXUS file I/O."""
 
 import pytest
 

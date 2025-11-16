@@ -1,6 +1,4 @@
-"""
-Unit tests for Median-Joining Network (MJN) algorithm.
-"""
+"""Unit tests for Median-Joining Network (MJN) algorithm."""
 
 from pypopart.algorithms.mjn import MedianJoiningNetwork
 from pypopart.core.alignment import Alignment
@@ -258,7 +256,9 @@ class TestMedianJoiningNetwork:
 
         # Create network with a degree-1 median
         network = HaplotypeNetwork()
-        h1 = Haplotype(Sequence('h1', 'AAAA'), sample_ids=['s1', 's2', 's3', 's4', 's5'])
+        h1 = Haplotype(
+            Sequence('h1', 'AAAA'), sample_ids=['s1', 's2', 's3', 's4', 's5']
+        )
         h2 = Haplotype(Sequence('h2', 'TTTT'), sample_ids=['s6', 's7', 's8'])
         median = Haplotype(Sequence('Median_0', 'AATT'), sample_ids=[])
 
@@ -283,7 +283,9 @@ class TestMedianJoiningNetwork:
 
         # Create a star network
         network = HaplotypeNetwork()
-        center = Haplotype(Sequence('center', 'AAAA'), sample_ids=[f's{i}' for i in range(10)])
+        center = Haplotype(
+            Sequence('center', 'AAAA'), sample_ids=[f's{i}' for i in range(10)]
+        )
         h1 = Haplotype(Sequence('h1', 'AAAT'), sample_ids=['s10', 's11'])
         h2 = Haplotype(Sequence('h2', 'AATT'), sample_ids=['s12', 's13', 's14'])
         h3 = Haplotype(Sequence('h3', 'ATTT'), sample_ids=['s15'])
@@ -311,7 +313,9 @@ class TestMedianJoiningNetwork:
 
         mjn = MedianJoiningNetwork()
 
-        h1 = Haplotype(Sequence('h1', 'AAAA'), sample_ids=['s1', 's2', 's3', 's4', 's5'])
+        h1 = Haplotype(
+            Sequence('h1', 'AAAA'), sample_ids=['s1', 's2', 's3', 's4', 's5']
+        )
         h2 = Haplotype(Sequence('h2', 'AATT'), sample_ids=['s6', 's7', 's8'])
         h3 = Haplotype(Sequence('h3', 'TTAA'), sample_ids=['s9', 's10'])
 

@@ -1,6 +1,4 @@
-"""
-Unit tests for PHYLIP file I/O.
-"""
+"""Unit tests for PHYLIP file I/O."""
 
 import pytest
 

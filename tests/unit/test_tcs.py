@@ -1,6 +1,4 @@
-"""
-Unit tests for TCS (Statistical Parsimony) algorithm.
-"""
+"""Unit tests for TCS (Statistical Parsimony) algorithm."""
 
 from pypopart.algorithms.tcs import TCS
 from pypopart.core.alignment import Alignment

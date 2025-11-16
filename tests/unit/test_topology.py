@@ -1,6 +1,4 @@
-"""
-Unit tests for topology analysis module.
-"""
+"""Unit tests for topology analysis module."""
 
 from pypopart.core.graph import HaplotypeNetwork
 from pypopart.core.haplotype import Haplotype

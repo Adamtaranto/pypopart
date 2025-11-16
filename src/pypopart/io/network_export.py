@@ -15,7 +15,9 @@ from pypopart.core.graph import HaplotypeNetwork
 from pypopart.core.haplotype import Haplotype
 
 
-def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') -> nx.Graph:
+def _sanitize_graph_for_export(
+    graph: nx.Graph, format_type: str = 'generic'
+) -> nx.Graph:
     """
     Create a copy of the graph with serializable attributes.
 
@@ -38,7 +40,7 @@ def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') ->
     sanitized = nx.Graph()
 
     # GraphML only supports str, int, float, bool (no lists or dicts)
-    strict_mode = (format_type == 'graphml')
+    strict_mode = format_type == 'graphml'
 
     # Copy nodes with sanitized attributes
     for node, attrs in graph.nodes(data=True):
@@ -56,15 +58,26 @@ def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') ->
                     clean_attrs[key] = ','.join(str(item) for item in value)
                 else:
                     # Convert to list for formats that support it
-                    clean_attrs[key] = [str(item) if not isinstance(item, (str, int, float, bool, type(None))) else item for item in value]
+                    clean_attrs[key] = [
+                        str(item)
+                        if not isinstance(item, (str, int, float, bool, type(None)))
+                        else item
+                        for item in value
+                    ]
             elif isinstance(value, dict):
                 if strict_mode:
                     # Convert to JSON string for GraphML
                     import json
+
                     clean_attrs[key] = json.dumps(value)
                 else:
                     # Keep as dict for formats that support it
-                    clean_attrs[key] = {k: str(v) if not isinstance(v, (str, int, float, bool, type(None))) else v for k, v in value.items()}
+                    clean_attrs[key] = {
+                        k: str(v)
+                        if not isinstance(v, (str, int, float, bool, type(None)))
+                        else v
+                        for k, v in value.items()
+                    }
             elif isinstance(value, (str, int, float, bool, type(None))):
                 # Already serializable
                 clean_attrs[key] = value
@@ -88,6 +101,7 @@ def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') ->
             elif isinstance(value, dict):
                 if strict_mode:
                     import json
+
                     clean_attrs[key] = json.dumps(value)
                 else:
                     clean_attrs[key] = dict(value)

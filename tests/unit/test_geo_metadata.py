@@ -1,6 +1,4 @@
-"""
-Unit tests for geographic metadata handling.
-"""
+"""Unit tests for geographic metadata handling."""
 
 import pytest
 
