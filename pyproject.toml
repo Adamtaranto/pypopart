@@ -23,6 +23,7 @@ dependencies = [
     "click",
     "dash",
     "dash-bootstrap-components",
+    "dash-cytoscape",
     "folium",
     "matplotlib",
     "networkx",
