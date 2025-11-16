@@ -12,6 +12,73 @@ from typing import Any, Dict, Union
 import networkx as nx
 
 from pypopart.core.graph import HaplotypeNetwork
+from pypopart.core.haplotype import Haplotype
+
+
+def _sanitize_graph_for_export(graph: nx.Graph) -> nx.Graph:
+    """
+    Create a copy of the graph with serializable attributes.
+    
+    Converts Haplotype objects and other non-serializable types to 
+    basic Python types (strings, lists, dicts) for export.
+    
+    Parameters
+    ----------
+    graph :
+        NetworkX graph with potentially non-serializable attributes.
+        
+    Returns
+    -------
+        New graph with sanitized attributes.
+    """
+    # Create a deep copy to avoid modifying original
+    sanitized = nx.Graph()
+    
+    # Copy nodes with sanitized attributes
+    for node, attrs in graph.nodes(data=True):
+        clean_attrs = {}
+        for key, value in attrs.items():
+            if key == 'haplotype':
+                # Skip the Haplotype object - we have the data in other attributes
+                continue
+            elif isinstance(value, Haplotype):
+                # Convert Haplotype to dict if found elsewhere
+                clean_attrs[key] = str(value)
+            elif isinstance(value, (list, tuple, set)):
+                # Convert to list and ensure all elements are serializable
+                clean_attrs[key] = [str(item) if not isinstance(item, (str, int, float, bool, type(None))) else item for item in value]
+            elif isinstance(value, dict):
+                # Recursively clean dict values
+                clean_attrs[key] = {k: str(v) if not isinstance(v, (str, int, float, bool, type(None), list, dict)) else v for k, v in value.items()}
+            elif isinstance(value, (str, int, float, bool, type(None))):
+                # Already serializable
+                clean_attrs[key] = value
+            else:
+                # Convert anything else to string
+                clean_attrs[key] = str(value)
+        
+        sanitized.add_node(node, **clean_attrs)
+    
+    # Copy edges with sanitized attributes
+    for source, target, attrs in graph.edges(data=True):
+        clean_attrs = {}
+        for key, value in attrs.items():
+            if isinstance(value, (str, int, float, bool, type(None))):
+                clean_attrs[key] = value
+            elif isinstance(value, (list, tuple)):
+                clean_attrs[key] = list(value)
+            elif isinstance(value, dict):
+                clean_attrs[key] = dict(value)
+            else:
+                clean_attrs[key] = str(value)
+        
+        sanitized.add_edge(source, target, **clean_attrs)
+    
+    # Copy graph-level attributes
+    if hasattr(graph, 'graph'):
+        sanitized.graph.update(graph.graph)
+    
+    return sanitized
 
 
 class GraphMLExporter:
@@ -40,8 +107,11 @@ class GraphMLExporter:
         # Convert network to NetworkX graph if needed
         graph = network.graph if hasattr(network, 'graph') else network
 
+        # Sanitize graph data for export
+        sanitized_graph = _sanitize_graph_for_export(graph)
+
         # Write to GraphML
-        nx.write_graphml(graph, self.filepath)
+        nx.write_graphml(sanitized_graph, self.filepath)
 
 
 class GMLExporter:
@@ -69,8 +139,11 @@ class GMLExporter:
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
+        # Sanitize graph data for export
+        sanitized_graph = _sanitize_graph_for_export(graph)
+
         # Write to GML
-        nx.write_gml(graph, self.filepath)
+        nx.write_gml(sanitized_graph, self.filepath)
 
 
 class CytoscapeExporter:
@@ -98,8 +171,11 @@ class CytoscapeExporter:
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
+        # Sanitize graph data for export
+        sanitized_graph = _sanitize_graph_for_export(graph)
+
         # Convert to Cytoscape JSON format
-        cytoscape_data = nx.cytoscape_data(graph)
+        cytoscape_data = nx.cytoscape_data(sanitized_graph)
 
         with open(self.filepath, 'w') as f:
             json.dump(cytoscape_data, f, indent=2)
@@ -132,16 +208,19 @@ class JSONExporter:
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
+        # Sanitize graph data for export
+        sanitized_graph = _sanitize_graph_for_export(graph)
+
         # Build JSON structure
         data = {'nodes': [], 'edges': [], 'metadata': {}}
 
         # Add nodes
-        for node, attrs in graph.nodes(data=True):
+        for node, attrs in sanitized_graph.nodes(data=True):
             node_data = {'id': str(node), 'attributes': dict(attrs)}
             data['nodes'].append(node_data)
 
         # Add edges
-        for source, target, attrs in graph.edges(data=True):
+        for source, target, attrs in sanitized_graph.edges(data=True):
             edge_data = {
                 'source': str(source),
                 'target': str(target),
@@ -150,8 +229,8 @@ class JSONExporter:
             data['edges'].append(edge_data)
 
         # Add graph metadata
-        if hasattr(graph, 'graph'):
-            data['metadata'] = dict(graph.graph)
+        if hasattr(sanitized_graph, 'graph'):
+            data['metadata'] = dict(sanitized_graph.graph)
 
         with open(self.filepath, 'w') as f:
             json.dump(data, f, indent=2)
