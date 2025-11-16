@@ -274,7 +274,7 @@ class InteractiveCytoscapePlotter:
             List of stylesheet dictionaries.
         """
         stylesheet = [
-            # Default node style
+            # Default node style - circular markers
             {
                 'selector': 'node',
                 'style': {
@@ -284,6 +284,7 @@ class InteractiveCytoscapePlotter:
                     'background-color': 'data(color)',
                     'width': 'data(size)',
                     'height': 'data(size)',
+                    'shape': 'ellipse',
                     'border-width': 2,
                     'border-color': '#000000',
                     'font-size': '10px',
@@ -292,11 +293,11 @@ class InteractiveCytoscapePlotter:
                     'text-outline-color': '#ffffff',
                 },
             },
-            # Median vector style - square shape
+            # Median vector style - also circular but distinguished by color
             {
                 'selector': 'node[is_median = true]',
                 'style': {
-                    'shape': 'square',
+                    'shape': 'ellipse',
                     'background-color': median_vector_color,
                 },
             },
