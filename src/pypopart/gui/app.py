@@ -2187,11 +2187,12 @@ class PyPopARTApp:
 
         # Use clientside callback for tooltip positioning
         # This gets the actual rendered position from Cytoscape
+        # The callback hides tooltip when mouse moves away by checking for null/undefined hover data
         self.app.clientside_callback(
             """
             function(hoverData, edgeHoverData) {
-                // Hide tooltip if hovering over edge or no node data
-                if ((edgeHoverData && !hoverData) || !hoverData) {
+                // Hide tooltip if no node data or if hovering over edge instead of node
+                if (!hoverData || (edgeHoverData && !hoverData)) {
                     return {display: 'none'};
                 }
 
@@ -2204,6 +2205,10 @@ class PyPopARTApp:
 
                     // Get the node
                     const nodeId = hoverData.id;
+                    if (!nodeId) {
+                        return {display: 'none'};
+                    }
+                    
                     const node = cy.getElementById(nodeId);
 
                     if (!node || node.length === 0) {
