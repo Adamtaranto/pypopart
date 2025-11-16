@@ -7,7 +7,7 @@
 
 ## Features
 
-- **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), and Median-Joining
+- **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), Median-Joining, and TSW (Parsimony Network)
 - **Distance Metrics**: Hamming, Jukes-Cantor, Kimura 2-parameter, Tamura-Nei
 - **Comprehensive Analysis**: Network statistics, topology analysis, population genetics measures
 - **Rich Visualization**: Static (matplotlib) and interactive (Plotly) network plots
@@ -187,6 +187,16 @@ pypopart network sequences.fasta -a mjn -e 0 -o network.graphml
 ```
 
 **Use when**: You want to infer ancestral haplotypes and show complex evolutionary relationships. The epsilon parameter controls network complexity (0 = maximum simplification).
+
+### Tight Span Walker (TSW) - Parsimony Network
+
+Constructs networks using the tight span of the distance matrix, preserving all metric properties.
+
+```bash
+pypopart network sequences.fasta -a tsw -o network.graphml
+```
+
+**Use when**: You need accurate metric-preserving networks for complex evolutionary relationships with reticulation. Best for small to medium datasets (n < 100). Automatically infers ancestral/median sequences.
 
 ## Distance Metrics
 

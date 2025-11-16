@@ -9,7 +9,7 @@ Features:
 - Interactive network visualization with manual node adjustment
 - Haplotype summary tab showing H number to sequence mapping
 - Geographic layout mode with base map display
-- Support for multiple network algorithms (MST, MSN, TCS, MJN)
+- Support for multiple network algorithms (MST, MSN, TCS, MJN, TSW)
 """
 
 import base64
@@ -29,6 +29,7 @@ from pypopart.algorithms import (
     MedianJoiningNetwork,
     MinimumSpanningNetwork,
     MinimumSpanningTree,
+    TightSpanWalker,
 )
 from pypopart.core.alignment import Alignment
 from pypopart.core.graph import HaplotypeNetwork
@@ -281,6 +282,10 @@ class PyPopARTApp:
                                 {
                                     'label': 'MJN - Median-Joining Network',
                                     'value': 'mjn',
+                                },
+                                {
+                                    'label': 'TSW - Tight Span Walker (Parsimony Network)',
+                                    'value': 'tsw',
                                 },
                             ],
                             value='msn',
@@ -1017,6 +1022,26 @@ class PyPopARTApp:
                         ),
                     ]
                 )
+            elif algorithm == 'tsw':
+                return html.Div(
+                    [
+                        dbc.Label('Distance Metric'),
+                        dcc.Dropdown(
+                            id={'type': 'algorithm-param', 'name': 'distance'},
+                            options=[
+                                {'label': 'Hamming', 'value': 'hamming'},
+                                {'label': 'Jukes-Cantor', 'value': 'jc'},
+                                {'label': 'Kimura 2-parameter', 'value': 'k2p'},
+                            ],
+                            value='hamming',
+                        ),
+                        html.Br(),
+                        html.Small(
+                            'Builds parsimony network using tight span computation',
+                            className='text-muted',
+                        ),
+                    ]
+                )
             return html.Div()
 
         @self.app.callback(
@@ -1074,6 +1099,8 @@ class PyPopARTApp:
                     algo = TCS(connection_limit=param_value or 10)
                 elif algorithm == 'mjn':
                     algo = MedianJoiningNetwork(epsilon=param_value or 0)
+                elif algorithm == 'tsw':
+                    algo = TightSpanWalker(distance_method=param_value or 'hamming')
                 else:
                     raise ValueError(f'Unknown algorithm: {algorithm}')
 
