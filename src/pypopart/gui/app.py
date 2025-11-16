@@ -339,7 +339,7 @@ class PyPopARTApp:
                                     'value': 'geographic',
                                 },
                             ],
-                            value='spring',
+                            value='hierarchical',
                             style={'whiteSpace': 'nowrap'},
                         ),
                         html.Br(),
@@ -447,9 +447,10 @@ class PyPopARTApp:
                         html.Label('Search Haplotype:', style={'marginRight': '10px', 'fontWeight': 'bold'}),
                         dcc.Dropdown(
                             id='haplotype-search',
-                            placeholder='Select H number to highlight...',
-                            style={'width': '250px', 'display': 'inline-block'},
+                            placeholder='Select H number(s) to highlight...',
+                            style={'width': '300px', 'display': 'inline-block'},
                             clearable=True,
+                            multi=True,
                         ),
                         html.Div(id='search-feedback', style={'display': 'inline-block', 'marginLeft': '10px', 'color': 'red'}),
                     ],
@@ -776,13 +777,34 @@ class PyPopARTApp:
                             meta, lat_column='latitude', lon_column='longitude'
                         )
                         if coords:
-                            coordinates[seq_id] = coords
+                            coordinates[seq_id] = {'lat': coords[0], 'lon': coords[1]}
                     except (ValueError, KeyError):
                         pass
+
+                # Extract population labels from metadata
+                populations = {}
+                population_colors = {}
+                for seq_id, meta in metadata_dict.items():
+                    if 'population' in meta and meta['population']:
+                        populations[seq_id] = meta['population']
+
+                # Extract color mappings if provided in metadata
+                colors = {}
+                for seq_id, meta in metadata_dict.items():
+                    if 'color' in meta and meta['color']:
+                        colors[seq_id] = meta['color']
+                        # Also track population colors
+                        if 'population' in meta and meta['population']:
+                            pop = meta['population']
+                            if pop not in population_colors:
+                                population_colors[pop] = meta['color']
 
                 metadata_data = {
                     'raw': metadata_dict,
                     'coordinates': coordinates,
+                    'populations': populations,
+                    'population_colors': population_colors if population_colors else None,
+                    'sequence_ids': list(metadata_dict.keys()),
                 }
 
                 # Build status message
@@ -1120,6 +1142,11 @@ class PyPopARTApp:
                 # Convert layout data
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}
 
+                # Generate H number labels for nodes
+                node_labels = {}
+                for i, node_id in enumerate(sorted(network.graph.nodes()), start=1):
+                    node_labels[node_id] = f'H{i}'
+
                 # Extract population colors from metadata if available
                 population_colors = None
                 if metadata_data and metadata_data.get('populations'):
@@ -1148,6 +1175,7 @@ class PyPopARTApp:
                     population_colors=population_colors,
                     show_labels=True,
                     show_edge_labels=True,
+                    node_labels=node_labels,
                 )
 
                 # Add geographic styling if in geographic mode
@@ -1736,10 +1764,10 @@ class PyPopARTApp:
         )
         def update_search_and_highlight(
             network_data: Optional[Dict],
-            selected_h: Optional[str],
+            selected_h_list: Optional[List[str]],
             current_stylesheet: List[Dict],
         ) -> Tuple[List[Dict], List[Dict]]:
-            """Update search dropdown options and highlight selected node."""
+            """Update search dropdown options and highlight selected nodes."""
             if not network_data:
                 return [], current_stylesheet or []
 
@@ -1753,23 +1781,31 @@ class PyPopARTApp:
                     h_label = f'H{i}'
                     h_numbers.append({'label': h_label, 'value': node_id})
 
-                # Update stylesheet to highlight selected node
-                if selected_h and current_stylesheet:
+                # Update stylesheet to highlight selected nodes
+                if selected_h_list and current_stylesheet:
+                    # Ensure it's a list (might be single value in some cases)
+                    if not isinstance(selected_h_list, list):
+                        selected_h_list = [selected_h_list]
+
                     # Create a copy of the stylesheet
                     new_stylesheet = current_stylesheet.copy()
 
                     # Remove any existing highlight styles
-                    new_stylesheet = [s for s in new_stylesheet if not s.get('selector', '').startswith(f'node[id = "{selected_h}"]')]
+                    new_stylesheet = [s for s in new_stylesheet if not any(
+                        s.get('selector', '').startswith(f'node[id = "{h}"]')
+                        for h in selected_h_list
+                    )]
 
-                    # Add highlight style for selected node
-                    new_stylesheet.append({
-                        'selector': f'node[id = "{selected_h}"]',
-                        'style': {
-                            'border-width': '5px',
-                            'border-color': '#FF0000',
-                            'border-style': 'solid',
-                        }
-                    })
+                    # Add highlight style for each selected node
+                    for selected_h in selected_h_list:
+                        new_stylesheet.append({
+                            'selector': f'node[id = "{selected_h}"]',
+                            'style': {
+                                'border-width': '5px',
+                                'border-color': '#FF0000',
+                                'border-style': 'solid',
+                            }
+                        })
 
                     return h_numbers, new_stylesheet
 
@@ -2009,7 +2045,8 @@ class PyPopARTApp:
                         html.Span(', '.join(sample_ids[:10]) + ('...' if len(sample_ids) > 10 else '')),
                     ])
 
-                # Position tooltip (basic positioning near mouse)
+                # Position tooltip using renderedPosition from hover data
+                # Cytoscape provides position information we can use
                 style = {
                     'display': 'block',
                     'position': 'absolute',
@@ -2021,10 +2058,23 @@ class PyPopARTApp:
                     'pointerEvents': 'none',
                     'maxWidth': '300px',
                     'fontSize': '12px',
-                    'left': '50%',
-                    'top': '50%',
-                    'transform': 'translate(-50%, -50%)',
                 }
+
+                # Use renderedPosition from Cytoscape hover event if available
+                if 'renderedPosition' in hover_data:
+                    rendered_pos = hover_data['renderedPosition']
+                    # Offset tooltip slightly from node position
+                    style['left'] = f'{rendered_pos.get("x", 0) + 10}px'
+                    style['top'] = f'{rendered_pos.get("y", 0) - 30}px'
+                else:
+                    # Fallback: use position data if renderedPosition not available
+                    if 'position' in hover_data:
+                        pos = hover_data['position']
+                        style['left'] = f'{pos.get("x", 0) + 10}px'
+                        style['top'] = f'{pos.get("y", 0) - 30}px'
+                    else:
+                        # Last resort: don't show tooltip if we have no position info
+                        return html.Div(), {'display': 'none'}
 
                 return content, style
 
