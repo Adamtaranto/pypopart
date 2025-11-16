@@ -25,6 +25,7 @@ dependencies = [
     "dash-bootstrap-components",
     "dash-cytoscape",
     "folium",
+    "lxml",
     "matplotlib",
     "networkx",
     "numba",

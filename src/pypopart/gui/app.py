@@ -23,8 +23,6 @@ import dash_cytoscape as cyto
 from dash import Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-import networkx as nx
-import plotly.graph_objects as go
 
 from pypopart.algorithms import (
     TCS,
@@ -389,6 +387,36 @@ class PyPopARTApp:
                             step=0.1,
                             value=1.0,
                             marks={0.5: '0.5x', 1.0: '1.0x', 2.0: '2.0x', 3.0: '3.0x'},
+                            tooltip={"placement": "bottom", "always_visible": False},
+                        ),
+                        html.Br(),
+                        dbc.Label('Node Size', className='fw-bold'),
+                        html.Small(
+                            'Adjust the size of nodes',
+                            className='text-muted d-block mb-2',
+                        ),
+                        dcc.Slider(
+                            id='node-size-slider',
+                            min=10,
+                            max=100,
+                            step=5,
+                            value=40,
+                            marks={10: '10', 40: '40', 70: '70', 100: '100'},
+                            tooltip={"placement": "bottom", "always_visible": False},
+                        ),
+                        html.Br(),
+                        dbc.Label('Edge Width', className='fw-bold'),
+                        html.Small(
+                            'Adjust the width of edges',
+                            className='text-muted d-block mb-2',
+                        ),
+                        dcc.Slider(
+                            id='edge-width-slider',
+                            min=1,
+                            max=10,
+                            step=0.5,
+                            value=3,
+                            marks={1: '1', 3: '3', 6: '6', 10: '10'},
                             tooltip={"placement": "bottom", "always_visible": False},
                         ),
                         html.Br(),
@@ -2157,11 +2185,12 @@ class PyPopARTApp:
 
         # Use clientside callback for tooltip positioning
         # This gets the actual rendered position from Cytoscape
+        # The callback hides tooltip when mouse moves away by checking for null/undefined hover data
         self.app.clientside_callback(
             """
             function(hoverData, edgeHoverData) {
-                // Hide tooltip if hovering over edge or no node data
-                if ((edgeHoverData && !hoverData) || !hoverData) {
+                // Hide tooltip if no node data or if hovering over edge instead of node
+                if (!hoverData || (edgeHoverData && !hoverData)) {
                     return {display: 'none'};
                 }
 
@@ -2174,6 +2203,10 @@ class PyPopARTApp:
 
                     // Get the node
                     const nodeId = hoverData.id;
+                    if (!nodeId) {
+                        return {display: 'none'};
+                    }
+
                     const node = cy.getElementById(nodeId);
 
                     if (!node || node.length === 0) {
@@ -2208,6 +2241,49 @@ class PyPopARTApp:
             Output('node-tooltip', 'style'),
             [Input('network-graph', 'mouseoverNodeData'), Input('network-graph', 'mouseoverEdgeData')],
         )
+
+        @self.app.callback(
+            Output('network-graph', 'stylesheet', allow_duplicate=True),
+            [
+                Input('node-size-slider', 'value'),
+                Input('edge-width-slider', 'value'),
+            ],
+            State('network-graph', 'stylesheet'),
+            prevent_initial_call=True,
+        )
+        def update_node_edge_sizes(
+            node_size: int,
+            edge_width: float,
+            current_stylesheet: List[Dict],
+        ) -> List[Dict]:
+            """Update node size and edge width in stylesheet."""
+            if not current_stylesheet:
+                raise PreventUpdate
+
+            # Create a copy of the stylesheet
+            new_stylesheet = []
+            for style in current_stylesheet:
+                new_style = style.copy()
+
+                # Update node size
+                if style.get('selector') == 'node':
+                    if 'style' not in new_style:
+                        new_style['style'] = {}
+                    new_style['style'] = {**new_style['style']}
+                    # Override the size to be a fixed value instead of data-dependent
+                    new_style['style']['width'] = node_size
+                    new_style['style']['height'] = node_size
+
+                # Update edge width
+                elif style.get('selector') == 'edge':
+                    if 'style' not in new_style:
+                        new_style['style'] = {}
+                    new_style['style'] = {**new_style['style']}
+                    new_style['style']['width'] = edge_width
+
+                new_stylesheet.append(new_style)
+
+            return new_stylesheet
 
         @self.app.callback(
             Output('download-h-number-template', 'data'),

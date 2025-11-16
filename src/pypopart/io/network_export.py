@@ -18,10 +18,10 @@ from pypopart.core.haplotype import Haplotype
 def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') -> nx.Graph:
     """
     Create a copy of the graph with serializable attributes.
-    
-    Converts Haplotype objects and other non-serializable types to 
+
+    Converts Haplotype objects and other non-serializable types to
     basic Python types for export.
-    
+
     Parameters
     ----------
     graph :
@@ -29,17 +29,17 @@ def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') ->
     format_type :
         Export format type. 'graphml' uses stricter serialization (only primitives),
         'generic' allows lists and dicts for formats like JSON and GML.
-        
+
     Returns
     -------
         New graph with sanitized attributes.
     """
     # Create a deep copy to avoid modifying original
     sanitized = nx.Graph()
-    
+
     # GraphML only supports str, int, float, bool (no lists or dicts)
     strict_mode = (format_type == 'graphml')
-    
+
     # Copy nodes with sanitized attributes
     for node, attrs in graph.nodes(data=True):
         clean_attrs = {}
@@ -71,9 +71,9 @@ def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') ->
             else:
                 # Convert anything else to string
                 clean_attrs[key] = str(value)
-        
+
         sanitized.add_node(node, **clean_attrs)
-    
+
     # Copy edges with sanitized attributes
     for source, target, attrs in graph.edges(data=True):
         clean_attrs = {}
@@ -93,13 +93,13 @@ def _sanitize_graph_for_export(graph: nx.Graph, format_type: str = 'generic') ->
                     clean_attrs[key] = dict(value)
             else:
                 clean_attrs[key] = str(value)
-        
+
         sanitized.add_edge(source, target, **clean_attrs)
-    
+
     # Copy graph-level attributes
     if hasattr(graph, 'graph'):
         sanitized.graph.update(graph.graph)
-    
+
     return sanitized
 
 
@@ -161,8 +161,8 @@ class GMLExporter:
         """
         graph = network.graph if hasattr(network, 'graph') else network
 
-        # Sanitize graph data for export
-        sanitized_graph = _sanitize_graph_for_export(graph)
+        # Sanitize graph data for export (GML requires strings like GraphML)
+        sanitized_graph = _sanitize_graph_for_export(graph, format_type='graphml')
 
         # Write to GML
         nx.write_gml(sanitized_graph, self.filepath)
