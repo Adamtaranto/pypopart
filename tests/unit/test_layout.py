@@ -18,6 +18,7 @@ from pypopart.layout.algorithms import (
     LayoutManager,
     ManualLayout,
     RadialLayout,
+    SpectralLayout,
 )
 
 
@@ -243,6 +244,9 @@ class TestRadialLayout:
 
         assert len(layout) == 3
         # Should handle disconnected nodes gracefully
+        # All nodes should have positions
+        for node in ['hap1', 'hap2', 'hap3']:
+            assert node in layout
 
 
 class TestHierarchicalLayout:
@@ -300,6 +304,16 @@ class TestHierarchicalLayout:
         assert min(y_coords) >= 0
         assert max(y_coords) <= 3.0
 
+    def test_disconnected_network(self, disconnected_network):
+        """Test hierarchical layout with disconnected network."""
+        algo = HierarchicalLayout(disconnected_network)
+        layout = algo.compute()
+
+        # Should compute positions for all nodes including disconnected ones
+        assert len(layout) == 3
+        for node in ['hap1', 'hap2', 'hap3']:
+            assert node in layout
+
 
 class TestKamadaKawaiLayout:
     """Test KamadaKawaiLayout class."""
@@ -319,6 +333,39 @@ class TestKamadaKawaiLayout:
         layout = algo.compute(scale=2.0, center=(5.0, 5.0))
 
         assert len(layout) == 3
+
+
+class TestSpectralLayout:
+    """Test SpectralLayout class."""
+
+    def test_compute(self, simple_network):
+        """Test spectral layout computation."""
+        algo = SpectralLayout(simple_network)
+        layout = algo.compute()
+
+        assert len(layout) == 3
+        assert all(node in layout for node in ['hap1', 'hap2', 'hap3'])
+
+        # Check that positions are tuples of floats
+        for _node, pos in layout.items():
+            assert isinstance(pos, tuple)
+            assert len(pos) == 2
+            assert all(isinstance(x, (int, float)) for x in pos)
+
+    def test_compute_with_parameters(self, simple_network):
+        """Test spectral layout with parameters."""
+        algo = SpectralLayout(simple_network)
+
+        layout = algo.compute(scale=2.0, center=(5.0, 5.0))
+
+        assert len(layout) == 3
+
+        # Check center is approximately correct
+        avg_x = sum(pos[0] for pos in layout.values()) / len(layout)
+        avg_y = sum(pos[1] for pos in layout.values()) / len(layout)
+
+        assert abs(avg_x - 5.0) < 1.0
+        assert abs(avg_y - 5.0) < 1.0
 
 
 class TestManualLayout:
@@ -403,6 +450,7 @@ class TestLayoutManager:
         assert 'radial' in algos
         assert 'hierarchical' in algos
         assert 'kamada_kawai' in algos
+        assert 'spectral' in algos
         assert 'manual' in algos
 
     def test_compute_layout_force_directed(self, simple_network):
@@ -443,6 +491,14 @@ class TestLayoutManager:
         manager = LayoutManager(simple_network)
 
         layout = manager.compute_layout('kamada_kawai')
+
+        assert len(layout) == 3
+
+    def test_compute_layout_spectral(self, simple_network):
+        """Test computing spectral layout."""
+        manager = LayoutManager(simple_network)
+
+        layout = manager.compute_layout('spectral')
 
         assert len(layout) == 3
 
