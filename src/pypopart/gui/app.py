@@ -36,7 +36,7 @@ from pypopart.core.alignment import Alignment
 from pypopart.core.graph import HaplotypeNetwork
 from pypopart.io import FastaReader, NexusReader, PhylipReader
 from pypopart.io.metadata import MetadataReader, extract_coordinates
-from pypopart.io.network_export import GraphMLExporter, JSONExporter
+from pypopart.io.network_export import GMLExporter, GraphMLExporter, JSONExporter
 from pypopart.layout.algorithms import GeographicLayout, LayoutManager
 from pypopart.stats import (
     calculate_diversity_metrics,
@@ -1713,18 +1713,20 @@ class PyPopARTApp:
                 raise PreventUpdate from None
 
         @self.app.callback(
-            Output('download-data', 'data'),
+            [
+                Output('download-data', 'data'),
+                Output('network-graph', 'generateImage', allow_duplicate=True),
+            ],
             Input('export-button', 'n_clicks'),
             [
                 State('network-store', 'data'),
                 State('export-format', 'value'),
-                State('network-graph', 'figure'),
             ],
             prevent_initial_call=True,
         )
         def export_network(
-            n_clicks: int, network_data: Dict, export_format: str, figure: Dict
-        ) -> Dict:
+            n_clicks: int, network_data: Dict, export_format: str
+        ) -> Tuple[Dict, Dict]:
             """Export network in selected format."""
             if not network_data:
                 raise PreventUpdate
@@ -1732,7 +1734,6 @@ class PyPopARTApp:
             try:
                 # Reconstruct network
                 network = HaplotypeNetwork.from_serialized(network_data)
-                G = network._graph
 
                 # Export based on format
                 if export_format == 'graphml':
@@ -1743,19 +1744,31 @@ class PyPopARTApp:
                         exporter.export(network)
                         with open(tmp.name, 'r') as f:
                             content = f.read()
-                    return {
-                        'content': content,
-                        'filename': 'network.graphml',
-                        'type': 'text/xml',
-                    }
+                    return (
+                        {
+                            'content': content,
+                            'filename': 'network.graphml',
+                            'type': 'text/xml',
+                        },
+                        dash.no_update,
+                    )
 
                 elif export_format == 'gml':
-                    content = '\n'.join(nx.generate_gml(G))
-                    return {
-                        'content': content,
-                        'filename': 'network.gml',
-                        'type': 'text/plain',
-                    }
+                    with tempfile.NamedTemporaryFile(
+                        mode='w', suffix='.gml', delete=False
+                    ) as tmp:
+                        exporter = GMLExporter(tmp.name)
+                        exporter.export(network)
+                        with open(tmp.name, 'r') as f:
+                            content = f.read()
+                    return (
+                        {
+                            'content': content,
+                            'filename': 'network.gml',
+                            'type': 'text/plain',
+                        },
+                        dash.no_update,
+                    )
 
                 elif export_format == 'json':
                     with tempfile.NamedTemporaryFile(
@@ -1765,21 +1778,29 @@ class PyPopARTApp:
                         exporter.export(network)
                         with open(tmp.name, 'r') as f:
                             content = f.read()
-                    return {
-                        'content': content,
-                        'filename': 'network.json',
-                        'type': 'application/json',
-                    }
+                    return (
+                        {
+                            'content': content,
+                            'filename': 'network.json',
+                            'type': 'application/json',
+                        },
+                        dash.no_update,
+                    )
 
                 elif export_format in ['png', 'svg']:
-                    # Export figure as image
-                    fig = go.Figure(figure)
-                    img_bytes = fig.to_image(format=export_format)
-                    return {
-                        'content': base64.b64encode(img_bytes).decode(),
+                    # Use Cytoscape's built-in image generation feature
+                    # This triggers client-side export with automatic download
+                    image_config = {
+                        'type': export_format,
+                        'action': 'download',
                         'filename': f'network.{export_format}',
-                        'base64': True,
+                        'options': {
+                            'output': 'base64uri',
+                            'bg': 'white',
+                            'full': True,
+                        },
                     }
+                    return (dash.no_update, image_config)
 
             except Exception as e:
                 logging.error(f'Error exporting: {e}')
