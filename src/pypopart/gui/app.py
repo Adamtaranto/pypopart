@@ -151,6 +151,10 @@ class PyPopARTApp:
                                             label='Haplotype Summary',
                                         ),
                                         dbc.Tab(
+                                            self._create_metadata_tab(),
+                                            label='Metadata',
+                                        ),
+                                        dbc.Tab(
                                             self._create_alignment_tab(),
                                             label='Alignment',
                                         ),
@@ -372,17 +376,19 @@ class PyPopARTApp:
                             style={'display': 'none'},
                         ),
                         html.Br(),
-                        dbc.Checklist(
-                            id='snap-to-grid',
-                            options=[{'label': ' Snap to Grid', 'value': 'snap'}],
-                            value=[],
-                            inline=True,
-                        ),
-                        html.Br(),
                         dbc.Button(
                             '🎨 Apply Layout',
                             id='apply-layout-button',
                             color='info',
+                            className='w-100',
+                            disabled=True,
+                        ),
+                        html.Br(),
+                        dbc.Button(
+                            '📐 Snap to Grid',
+                            id='snap-to-grid-button',
+                            color='secondary',
+                            outline=True,
                             className='w-100',
                             disabled=True,
                         ),
@@ -435,6 +441,31 @@ class PyPopARTApp:
         """Create network visualization tab."""
         return html.Div(
             [
+                # Search bar
+                html.Div(
+                    [
+                        html.Label('Search Haplotype:', style={'marginRight': '10px', 'fontWeight': 'bold'}),
+                        dcc.Dropdown(
+                            id='haplotype-search',
+                            placeholder='Select H number to highlight...',
+                            style={'width': '250px', 'display': 'inline-block'},
+                            clearable=True,
+                        ),
+                        html.Div(id='search-feedback', style={'display': 'inline-block', 'marginLeft': '10px', 'color': 'red'}),
+                    ],
+                    style={
+                        'position': 'absolute',
+                        'top': '10px',
+                        'left': '10px',
+                        'background': 'white',
+                        'padding': '10px',
+                        'border': '1px solid #ccc',
+                        'borderRadius': '5px',
+                        'zIndex': 1000,
+                        'display': 'flex',
+                        'alignItems': 'center',
+                    },
+                ),
                 # Legend display
                 html.Div(
                     id='network-legend',
@@ -448,6 +479,22 @@ class PyPopARTApp:
                         'borderRadius': '5px',
                         'zIndex': 1000,
                         'maxWidth': '200px',
+                    },
+                ),
+                # Tooltip display on hover
+                html.Div(
+                    id='node-tooltip',
+                    style={
+                        'position': 'absolute',
+                        'display': 'none',
+                        'background': 'rgba(0, 0, 0, 0.8)',
+                        'color': 'white',
+                        'padding': '10px',
+                        'borderRadius': '5px',
+                        'zIndex': 2000,
+                        'pointerEvents': 'none',
+                        'maxWidth': '300px',
+                        'fontSize': '12px',
                     },
                 ),
                 dcc.Loading(
@@ -503,8 +550,54 @@ class PyPopARTApp:
         return html.Div(
             [
                 html.Div(
+                    [
+                        dbc.Button(
+                            '⬇️ Download as CSV',
+                            id='download-haplotype-csv-button',
+                            color='primary',
+                            size='sm',
+                            style={'marginRight': '10px'},
+                        ),
+                        dcc.Download(id='download-haplotype-csv'),
+                        dbc.Button(
+                            '✏️ Edit H Numbers',
+                            id='edit-h-numbers-button',
+                            color='secondary',
+                            outline=True,
+                            size='sm',
+                            style={'marginRight': '10px'},
+                        ),
+                        dbc.Button(
+                            '💾 Save H Numbers',
+                            id='save-h-numbers-button',
+                            color='success',
+                            size='sm',
+                            disabled=True,
+                        ),
+                        html.Div(id='h-number-feedback', style={'display': 'inline-block', 'marginLeft': '10px'}),
+                    ],
+                    style={'padding': '20px 20px 10px 20px'},
+                ),
+                html.Div(
                     id='haplotype-summary-display',
-                    style={'padding': '20px', 'height': '85vh', 'overflow-y': 'auto'},
+                    style={'padding': '0 20px 20px 20px', 'height': '75vh', 'overflow-y': 'auto'},
+                ),
+                dcc.Store(id='h-numbers-store'),
+                dcc.Store(id='edit-mode-store', data=False),
+            ]
+        )
+
+    def _create_metadata_tab(self) -> html.Div:
+        """Create metadata tab showing imported metadata and alignment IDs."""
+        return html.Div(
+            [
+                html.Div(
+                    id='metadata-warnings',
+                    style={'padding': '20px 20px 10px 20px'},
+                ),
+                html.Div(
+                    id='metadata-display',
+                    style={'padding': '0 20px 20px 20px', 'height': '75vh', 'overflow-y': 'auto'},
                 )
             ]
         )
@@ -823,6 +916,7 @@ class PyPopARTApp:
                 Output('network-store', 'data'),
                 Output('computation-feedback', 'children'),
                 Output('apply-layout-button', 'disabled'),
+                Output('snap-to-grid-button', 'disabled'),
                 Output('export-button', 'disabled'),
             ],
             Input('compute-button', 'n_clicks'),
@@ -838,7 +932,7 @@ class PyPopARTApp:
             alignment_data: Dict,
             algorithm: str,
             param_values: List,
-        ) -> Tuple[Optional[Dict], html.Div, bool, bool]:
+        ) -> Tuple[Optional[Dict], html.Div, bool, bool, bool]:
             """Compute haplotype network using selected algorithm."""
             if not alignment_data:
                 raise PreventUpdate
@@ -921,7 +1015,7 @@ class PyPopARTApp:
 
                 feedback = dbc.Alert(feedback_parts, color='success')
 
-                return network_data, feedback, False, False
+                return network_data, feedback, False, False, False
 
             except Exception as e:
                 self.logger.error(f'Error computing network: {e}')
@@ -940,6 +1034,7 @@ class PyPopARTApp:
                     ),
                     True,
                     True,
+                    True,
                 )
 
         @self.app.callback(
@@ -947,7 +1042,6 @@ class PyPopARTApp:
             [Input('apply-layout-button', 'n_clicks'), Input('network-store', 'data')],
             [
                 State('layout-select', 'value'),
-                State('snap-to-grid', 'value'),
                 State('metadata-store', 'data'),
                 State('map-projection', 'value'),
             ],
@@ -957,7 +1051,6 @@ class PyPopARTApp:
             n_clicks: Optional[int],
             network_data: Optional[Dict],
             layout_method: str,
-            snap_to_grid: List[str],
             metadata_data: Optional[Dict],
             projection: str,
         ) -> Optional[Dict]:
@@ -985,17 +1078,6 @@ class PyPopARTApp:
                 else:
                     layout_manager = LayoutManager(network)
                     positions = layout_manager.compute_layout(layout_method)
-
-                # Snap to grid if requested
-                if 'snap' in snap_to_grid:
-                    grid_size = 0.1
-                    positions = {
-                        node: (
-                            round(pos[0] / grid_size) * grid_size,
-                            round(pos[1] / grid_size) * grid_size,
-                        )
-                        for node, pos in positions.items()
-                    }
 
                 # Convert to serializable format
                 layout_data = {node: list(pos) for node, pos in positions.items()}
@@ -1159,13 +1241,12 @@ class PyPopARTApp:
         @self.app.callback(
             Output('layout-store', 'data', allow_duplicate=True),
             Input('network-graph', 'elements'),
-            [State('layout-store', 'data'), State('snap-to-grid', 'value')],
+            State('layout-store', 'data'),
             prevent_initial_call=True,
         )
         def update_node_positions(
             elements: Optional[List[Dict]],
             current_layout: Optional[Dict],
-            snap_to_grid: List[str],
         ) -> Optional[Dict]:
             """Update node positions when user drags nodes in Cytoscape."""
             if not elements or not current_layout:
@@ -1182,13 +1263,6 @@ class PyPopARTApp:
                             # Cytoscape positions are scaled by 100
                             x = element['position']['x'] / 100
                             y = element['position']['y'] / 100
-
-                            # Apply snap to grid if enabled
-                            if 'snap' in snap_to_grid:
-                                grid_size = 0.1
-                                x = round(x / grid_size) * grid_size
-                                y = round(y / grid_size) * grid_size
-
                             updated_layout[node_id] = [x, y]
 
                 return updated_layout
@@ -1382,10 +1456,10 @@ class PyPopARTApp:
 
         @self.app.callback(
             Output('haplotype-summary-display', 'children'),
-            [Input('network-store', 'data'), Input('alignment-store', 'data')],
+            [Input('network-store', 'data'), Input('alignment-store', 'data'), Input('metadata-store', 'data')],
         )
         def update_haplotype_summary(
-            network_data: Optional[Dict], alignment_data: Optional[Dict]
+            network_data: Optional[Dict], alignment_data: Optional[Dict], metadata_data: Optional[Dict]
         ) -> html.Div:
             """Update haplotype summary showing H number to sequence name mapping."""
             if not network_data or not alignment_data:
@@ -1394,6 +1468,9 @@ class PyPopARTApp:
             try:
                 # Reconstruct network
                 network = HaplotypeNetwork.from_serialized(network_data)
+
+                # Check if we have population data
+                has_populations = metadata_data and metadata_data.get('populations')
 
                 # Create mapping of H numbers to sequence names
                 haplotype_mapping = []
@@ -1409,9 +1486,20 @@ class PyPopARTApp:
                     if is_median or len(sample_ids) == 0:
                         haplotype_type = '🔵 Inferred'
                         sample_display = 'None (inferred ancestral haplotype)'
+                        populations_display = ''
                     else:
                         haplotype_type = '🟢 Observed'
                         sample_display = ', '.join(sample_ids) if sample_ids else 'Unknown'
+
+                        # Collect populations for this haplotype
+                        if has_populations:
+                            populations = set()
+                            for sid in sample_ids:
+                                if sid in metadata_data['populations']:
+                                    populations.add(metadata_data['populations'][sid])
+                            populations_display = ', '.join(sorted(populations)) if populations else ''
+                        else:
+                            populations_display = ''
 
                     haplotype_mapping.append({
                         'h_label': h_label,
@@ -1419,22 +1507,25 @@ class PyPopARTApp:
                         'type': haplotype_type,
                         'frequency': frequency,
                         'samples': sample_display,
+                        'populations': populations_display,
                     })
 
-                # Create table
-                table_header = [
-                    html.Thead(
-                        html.Tr([
-                            html.Th('H Number'),
-                            html.Th('Type'),
-                            html.Th('Frequency'),
-                            html.Th('Sample IDs'),
-                        ])
-                    )
+                # Create table headers (conditionally include populations)
+                headers = [
+                    html.Th('H Number'),
+                    html.Th('Type'),
+                    html.Th('Frequency'),
+                    html.Th('Sample IDs'),
                 ]
+                if has_populations:
+                    headers.append(html.Th('Populations'))
 
-                table_rows = [
-                    html.Tr([
+                table_header = [html.Thead(html.Tr(headers))]
+
+                # Create table rows
+                table_rows = []
+                for hap in haplotype_mapping:
+                    row_cells = [
                         html.Td(hap['h_label'], style={'fontWeight': 'bold'}),
                         html.Td(hap['type']),
                         html.Td(hap['frequency']),
@@ -1446,9 +1537,10 @@ class PyPopARTApp:
                                 'whiteSpace': 'normal',
                             },
                         ),
-                    ])
-                    for hap in haplotype_mapping
-                ]
+                    ]
+                    if has_populations:
+                        row_cells.append(html.Td(hap['populations']))
+                    table_rows.append(html.Tr(row_cells))
 
                 table_body = [html.Tbody(table_rows)]
 
@@ -1605,6 +1697,362 @@ class PyPopARTApp:
                 logging.error(f'Error exporting: {e}')
                 logging.error(traceback.format_exc())
                 raise PreventUpdate from None
+
+        # New callbacks for enhanced features
+
+        @self.app.callback(
+            Output('layout-store', 'data', allow_duplicate=True),
+            Input('snap-to-grid-button', 'n_clicks'),
+            State('layout-store', 'data'),
+            prevent_initial_call=True,
+        )
+        def snap_to_grid(n_clicks: Optional[int], layout_data: Optional[Dict]) -> Optional[Dict]:
+            """Apply snap to grid to current layout."""
+            if not layout_data or n_clicks is None:
+                raise PreventUpdate
+
+            try:
+                grid_size = 0.1
+                snapped_layout = {
+                    node: [
+                        round(pos[0] / grid_size) * grid_size,
+                        round(pos[1] / grid_size) * grid_size,
+                    ]
+                    for node, pos in layout_data.items()
+                }
+                return snapped_layout
+            except Exception as e:
+                self.logger.error(f'Error snapping to grid: {e}')
+                raise PreventUpdate from e
+
+        @self.app.callback(
+            [
+                Output('haplotype-search', 'options'),
+                Output('network-graph', 'stylesheet', allow_duplicate=True),
+            ],
+            [Input('network-store', 'data'), Input('haplotype-search', 'value')],
+            State('network-graph', 'stylesheet'),
+            prevent_initial_call=True,
+        )
+        def update_search_and_highlight(
+            network_data: Optional[Dict],
+            selected_h: Optional[str],
+            current_stylesheet: List[Dict],
+        ) -> Tuple[List[Dict], List[Dict]]:
+            """Update search dropdown options and highlight selected node."""
+            if not network_data:
+                return [], current_stylesheet or []
+
+            try:
+                # Reconstruct network
+                network = HaplotypeNetwork.from_serialized(network_data)
+
+                # Build H number options
+                h_numbers = []
+                for i, node_id in enumerate(sorted(network.graph.nodes()), start=1):
+                    h_label = f'H{i}'
+                    h_numbers.append({'label': h_label, 'value': node_id})
+
+                # Update stylesheet to highlight selected node
+                if selected_h and current_stylesheet:
+                    # Create a copy of the stylesheet
+                    new_stylesheet = current_stylesheet.copy()
+
+                    # Remove any existing highlight styles
+                    new_stylesheet = [s for s in new_stylesheet if not s.get('selector', '').startswith(f'node[id = "{selected_h}"]')]
+
+                    # Add highlight style for selected node
+                    new_stylesheet.append({
+                        'selector': f'node[id = "{selected_h}"]',
+                        'style': {
+                            'border-width': '5px',
+                            'border-color': '#FF0000',
+                            'border-style': 'solid',
+                        }
+                    })
+
+                    return h_numbers, new_stylesheet
+
+                return h_numbers, current_stylesheet or []
+
+            except Exception as e:
+                self.logger.error(f'Error updating search: {e}')
+                return [], current_stylesheet or []
+
+        @self.app.callback(
+            Output('download-haplotype-csv', 'data'),
+            Input('download-haplotype-csv-button', 'n_clicks'),
+            [State('network-store', 'data'), State('alignment-store', 'data'), State('metadata-store', 'data')],
+            prevent_initial_call=True,
+        )
+        def download_haplotype_csv(
+            n_clicks: Optional[int],
+            network_data: Optional[Dict],
+            alignment_data: Optional[Dict],
+            metadata_data: Optional[Dict],
+        ) -> Optional[Dict]:
+            """Download haplotype summary as CSV."""
+            if not network_data or not alignment_data:
+                raise PreventUpdate
+
+            try:
+                import csv
+                import io
+
+                # Reconstruct network
+                network = HaplotypeNetwork.from_serialized(network_data)
+
+                # Build CSV content
+                output = io.StringIO()
+                writer = csv.writer(output)
+
+                # Write header
+                headers = ['H_Number', 'Type', 'Frequency', 'Sample_IDs']
+                if metadata_data and metadata_data.get('populations'):
+                    headers.append('Populations')
+                writer.writerow(headers)
+
+                # Write data rows
+                for i, node_id in enumerate(sorted(network.graph.nodes()), start=1):
+                    node_data = network.graph.nodes[node_id]
+                    sample_ids = node_data.get('sample_ids', [])
+                    is_median = node_data.get('median_vector', False)
+                    frequency = node_data.get('frequency', len(sample_ids))
+
+                    h_label = f'H{i}'
+
+                    if is_median or len(sample_ids) == 0:
+                        haplotype_type = 'Inferred'
+                        sample_display = 'None'
+                    else:
+                        haplotype_type = 'Observed'
+                        sample_display = '; '.join(sample_ids) if sample_ids else 'Unknown'
+
+                    row = [h_label, haplotype_type, frequency, sample_display]
+
+                    # Add populations if metadata available
+                    if metadata_data and metadata_data.get('populations'):
+                        populations = set()
+                        for sid in sample_ids:
+                            if sid in metadata_data['populations']:
+                                populations.add(metadata_data['populations'][sid])
+                        pop_display = '; '.join(sorted(populations)) if populations else ''
+                        row.append(pop_display)
+
+                    writer.writerow(row)
+
+                return {
+                    'content': output.getvalue(),
+                    'filename': 'haplotype_summary.csv',
+                }
+
+            except Exception as e:
+                self.logger.error(f'Error generating CSV: {e}')
+                raise PreventUpdate from e
+
+        @self.app.callback(
+            Output('metadata-display', 'children'),
+            Output('metadata-warnings', 'children'),
+            [Input('alignment-store', 'data'), Input('metadata-store', 'data')],
+        )
+        def update_metadata_tab(
+            alignment_data: Optional[Dict],
+            metadata_data: Optional[Dict],
+        ) -> Tuple[html.Div, html.Div]:
+            """Display metadata with all sequence IDs."""
+            if not alignment_data:
+                return html.Div('Upload alignment to view metadata'), html.Div()
+
+            try:
+                # Get sequence IDs from alignment
+                alignment_ids = {seq['id'] for seq in alignment_data['sequences']}
+
+                # Get metadata IDs if available
+                metadata_ids = set()
+                metadata_records = {}
+                if metadata_data:
+                    metadata_ids = set(metadata_data.get('sequence_ids', []))
+                    # Build metadata records
+                    for sid in metadata_data.get('sequence_ids', []):
+                        metadata_records[sid] = {
+                            'population': metadata_data.get('populations', {}).get(sid, ''),
+                            'latitude': metadata_data.get('coordinates', {}).get(sid, {}).get('lat', ''),
+                            'longitude': metadata_data.get('coordinates', {}).get(sid, {}).get('lon', ''),
+                        }
+
+                # Union of all IDs
+                all_ids = alignment_ids.union(metadata_ids)
+
+                # Check for duplicates in alignment
+                alignment_id_list = [seq['id'] for seq in alignment_data['sequences']]
+                alignment_duplicates = [sid for sid in set(alignment_id_list) if alignment_id_list.count(sid) > 1]
+
+                # Check for mismatches
+                only_in_alignment = alignment_ids - metadata_ids
+                only_in_metadata = metadata_ids - alignment_ids
+
+                # Build warnings
+                warnings = []
+                if alignment_duplicates:
+                    warnings.append(dbc.Alert(
+                        f'⚠️ Duplicate IDs found in alignment: {", ".join(alignment_duplicates)}',
+                        color='warning',
+                    ))
+                if only_in_alignment and metadata_data:
+                    warnings.append(dbc.Alert(
+                        f'⚠️ {len(only_in_alignment)} IDs only in alignment (not in metadata)',
+                        color='info',
+                    ))
+                if only_in_metadata:
+                    warnings.append(dbc.Alert(
+                        f'⚠️ {len(only_in_metadata)} IDs only in metadata (not in alignment)',
+                        color='info',
+                    ))
+
+                # Build table
+                table_header = [
+                    html.Thead(
+                        html.Tr([
+                            html.Th('Sequence ID'),
+                            html.Th('In Alignment'),
+                            html.Th('In Metadata'),
+                            html.Th('Population'),
+                            html.Th('Latitude'),
+                            html.Th('Longitude'),
+                        ])
+                    )
+                ]
+
+                table_rows = []
+                for sid in sorted(all_ids):
+                    in_alignment = '✓' if sid in alignment_ids else '✗'
+                    in_metadata = '✓' if sid in metadata_ids else '✗'
+
+                    meta = metadata_records.get(sid, {})
+
+                    table_rows.append(
+                        html.Tr([
+                            html.Td(sid),
+                            html.Td(in_alignment, style={'textAlign': 'center'}),
+                            html.Td(in_metadata, style={'textAlign': 'center'}),
+                            html.Td(meta.get('population', '')),
+                            html.Td(meta.get('latitude', '')),
+                            html.Td(meta.get('longitude', '')),
+                        ])
+                    )
+
+                table_body = [html.Tbody(table_rows)]
+
+                table = dbc.Table(
+                    table_header + table_body,
+                    bordered=True,
+                    hover=True,
+                    responsive=True,
+                    striped=True,
+                    style={'fontSize': '14px'},
+                )
+
+                return table, html.Div(warnings)
+
+            except Exception as e:
+                self.logger.error(f'Error creating metadata display: {e}')
+                self.logger.error(traceback.format_exc())
+                return html.Div(f'Error: {str(e)}'), html.Div()
+
+        @self.app.callback(
+            Output('node-tooltip', 'children'),
+            Output('node-tooltip', 'style'),
+            Input('network-graph', 'mouseoverNodeData'),
+            State('network-store', 'data'),
+        )
+        def show_node_tooltip(
+            hover_data: Optional[Dict],
+            network_data: Optional[Dict],
+        ) -> Tuple[html.Div, Dict]:
+            """Show tooltip with sequence IDs when hovering over a node."""
+            if not hover_data or not network_data:
+                return html.Div(), {'display': 'none'}
+
+            try:
+                # Reconstruct network
+                network = HaplotypeNetwork.from_serialized(network_data)
+
+                # Get node data
+                node_id = hover_data.get('id')
+                if not node_id:
+                    return html.Div(), {'display': 'none'}
+
+                node_data = network.graph.nodes.get(node_id, {})
+                sample_ids = node_data.get('sample_ids', [])
+                is_median = node_data.get('median_vector', False)
+
+                # Find H number for this node
+                h_label = None
+                for i, nid in enumerate(sorted(network.graph.nodes()), start=1):
+                    if nid == node_id:
+                        h_label = f'H{i}'
+                        break
+
+                # Build tooltip content
+                if is_median or len(sample_ids) == 0:
+                    content = html.Div([
+                        html.Strong(h_label or 'Unknown'),
+                        html.Br(),
+                        html.Span('Inferred median vector'),
+                    ])
+                else:
+                    content = html.Div([
+                        html.Strong(h_label or 'Unknown'),
+                        html.Br(),
+                        html.Span(f'Sequences ({len(sample_ids)}):'),
+                        html.Br(),
+                        html.Span(', '.join(sample_ids[:10]) + ('...' if len(sample_ids) > 10 else '')),
+                    ])
+
+                # Position tooltip (basic positioning near mouse)
+                style = {
+                    'display': 'block',
+                    'position': 'absolute',
+                    'background': 'rgba(0, 0, 0, 0.8)',
+                    'color': 'white',
+                    'padding': '10px',
+                    'borderRadius': '5px',
+                    'zIndex': 2000,
+                    'pointerEvents': 'none',
+                    'maxWidth': '300px',
+                    'fontSize': '12px',
+                    'left': '50%',
+                    'top': '50%',
+                    'transform': 'translate(-50%, -50%)',
+                }
+
+                return content, style
+
+            except Exception as e:
+                self.logger.error(f'Error showing tooltip: {e}')
+                return html.Div(), {'display': 'none'}
+
+        @self.app.callback(
+            Output('h-number-feedback', 'children'),
+            Input('edit-h-numbers-button', 'n_clicks'),
+            prevent_initial_call=True,
+        )
+        def show_edit_message(n_clicks: Optional[int]) -> html.Div:
+            """Show message about H number editing feature."""
+            if n_clicks:
+                return dbc.Alert(
+                    [
+                        html.Strong('ℹ️ Feature Note: '),
+                        'Custom H number editing requires a more complex implementation. ',
+                        'This feature allows manual renaming of haplotype identifiers but needs ',
+                        'an editable DataTable component with validation. Consider exporting to CSV, ',
+                        'editing externally, and using the custom labels for publication.',
+                    ],
+                    color='info',
+                    dismissable=True,
+                    style={'marginTop': '10px'},
+                )
+            raise PreventUpdate
 
     def _format_central_haplotypes(self, central: Dict) -> html.Div:
         """Format central haplotypes for display."""
