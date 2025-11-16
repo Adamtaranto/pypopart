@@ -1,6 +1,4 @@
-"""
-Unit tests for PyPopART GUI application.
-"""
+"""Unit tests for PyPopART GUI application."""
 
 
 class TestPyPopARTApp:

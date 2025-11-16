@@ -1,12 +1,9 @@
-"""
-Unit tests for H number mapping functionality in GUI.
-"""
+"""Unit tests for H number mapping functionality in GUI."""
 
 import base64
 import csv
 import io
 
-import pytest
 
 
 class TestHNumberMapping:
@@ -157,7 +154,7 @@ H99,Unknown"""
     def test_whitespace_handling(self):
         """Test that leading/trailing whitespace is properly handled."""
         csv_content = """current_h_number,new_label
- H1 , Central 
+ H1 , Central
 H2,Branch_A"""
 
         reader = csv.DictReader(io.StringIO(csv_content))

@@ -1113,7 +1113,7 @@ class PyPopARTApp:
 
                 # Apply spacing factor to expand/contract the layout
                 if spacing_factor and spacing_factor != 1.0:
-                    positions = {node: (pos[0] * spacing_factor, pos[1] * spacing_factor) 
+                    positions = {node: (pos[0] * spacing_factor, pos[1] * spacing_factor)
                                 for node, pos in positions.items()}
 
                 # Convert to serializable format
@@ -1798,10 +1798,10 @@ class PyPopARTApp:
                 # Create a clean stylesheet without any highlight styles
                 if not current_stylesheet:
                     current_stylesheet = []
-                
+
                 # Remove ALL existing highlight styles (for any node)
-                base_stylesheet = [s for s in current_stylesheet 
-                                  if not (s.get('selector', '').startswith('node[id = "') 
+                base_stylesheet = [s for s in current_stylesheet
+                                  if not (s.get('selector', '').startswith('node[id = "')
                                          and 'border-color' in s.get('style', {})
                                          and s.get('style', {}).get('border-color') == '#FF0000')]
 
@@ -2045,7 +2045,7 @@ class PyPopARTApp:
             # Hide tooltip if hovering over edge instead of node
             if edge_hover_data and not hover_data:
                 return html.Div(), {'display': 'none'}
-            
+
             if not hover_data or not network_data:
                 return html.Div(), {'display': 'none'}
 
