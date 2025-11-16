@@ -62,6 +62,9 @@ def hamming_distance(
     -----
     When use_numba=True and Numba is available, uses JIT-compiled
     optimized version for better performance on large datasets.
+    
+    N and ? characters are treated as ambiguous and do not count as
+    mutations when compared to any base (A, T, G, C) or to each other.
     """
     if len(seq1) != len(seq2):
         raise ValueError(f'Sequences must have same length: {len(seq1)} vs {len(seq2)}')
@@ -75,6 +78,9 @@ def hamming_distance(
     for c1, c2 in zip(seq1.data, seq2.data):
         if ignore_gaps and (c1 == '-' or c2 == '-'):
             continue
+        # Skip positions with N or ? (ambiguous bases)
+        if c1 in 'N?' or c2 in 'N?':
+            continue
         if c1 != c2:
             differences += 1
 
@@ -82,7 +88,12 @@ def hamming_distance(
 
 
 def p_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True) -> float:
-    """Calculate p-distance (proportion of differing sites)."""
+    """
+    Calculate p-distance (proportion of differing sites).
+    
+    N and ? characters are treated as ambiguous and do not count as
+    mutations when compared to any base (A, T, G, C) or to each other.
+    """
     if len(seq1) != len(seq2):
         raise ValueError(f'Sequences must have same length: {len(seq1)} vs {len(seq2)}')
 
@@ -91,6 +102,9 @@ def p_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True) -> floa
 
     for c1, c2 in zip(seq1.data, seq2.data):
         if ignore_gaps and (c1 == '-' or c2 == '-'):
+            continue
+        # Skip positions with N or ? (ambiguous bases)
+        if c1 in 'N?' or c2 in 'N?':
             continue
         compared_sites += 1
         if c1 != c2:

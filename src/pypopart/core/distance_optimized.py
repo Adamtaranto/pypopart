@@ -41,18 +41,27 @@ def hamming_distance_numba(
     -----
     This function is JIT-compiled and cached for maximum performance.
     First call may be slower due to compilation overhead.
+    
+    N and ? characters are treated as ambiguous and do not count as
+    mutations when compared to any base or to each other.
     """
     if len(seq1_bytes) != len(seq2_bytes):
         return -1  # Error indicator
 
     differences = 0
     gap_byte = ord('-')
+    N_byte = ord('N')
+    question_byte = ord('?')
 
     for i in range(len(seq1_bytes)):
         c1 = seq1_bytes[i]
         c2 = seq2_bytes[i]
 
         if ignore_gaps and (c1 == gap_byte or c2 == gap_byte):
+            continue
+
+        # Skip positions with N or ? (ambiguous bases)
+        if c1 == N_byte or c1 == question_byte or c2 == N_byte or c2 == question_byte:
             continue
 
         if c1 != c2:
@@ -83,6 +92,11 @@ def p_distance_numba(
     Returns
     -------
         float        Proportion of differing sites (0.0 to 1.0).
+    
+    Notes
+    -----
+    N and ? characters are treated as ambiguous and do not count as
+    mutations when compared to any base or to each other.
     """
     if len(seq1_bytes) != len(seq2_bytes):
         return -1.0  # Error indicator
@@ -90,12 +104,18 @@ def p_distance_numba(
     differences = 0
     compared_sites = 0
     gap_byte = ord('-')
+    N_byte = ord('N')
+    question_byte = ord('?')
 
     for i in range(len(seq1_bytes)):
         c1 = seq1_bytes[i]
         c2 = seq2_bytes[i]
 
         if ignore_gaps and (c1 == gap_byte or c2 == gap_byte):
+            continue
+
+        # Skip positions with N or ? (ambiguous bases)
+        if c1 == N_byte or c1 == question_byte or c2 == N_byte or c2 == question_byte:
             continue
 
         compared_sites += 1
