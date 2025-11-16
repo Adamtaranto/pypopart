@@ -180,8 +180,10 @@ class TestParsimonyNetwork:
         seq1 = Sequence('seq1', 'ATCG')
         seq2 = Sequence('seq2', 'ATC')
 
-        with pytest.raises(ValueError):
-            pn._calculate_pairwise_distance(seq1, seq2)
+        # Should now handle unequal lengths by counting length difference as mutations
+        distance = pn._calculate_pairwise_distance(seq1, seq2)
+        # Length diff is 1, and all 3 matching positions are the same, so distance = 1
+        assert distance == 1.0
 
     def test_pn_median_vertex_creation(self):
         """Test that median vertices are created for multi-mutation edges."""
@@ -289,8 +291,9 @@ class TestParsimonyNetwork:
         network = pn.construct_network(alignment)
 
         # All edge weights should be non-negative
-        for edge in network.edges:
-            assert edge['distance'] >= 0
+        for source, target in network.edges:
+            dist = network.get_edge_distance(source, target)
+            assert dist >= 0
 
     def test_pn_with_gaps(self):
         """Test PN with sequences containing gaps."""

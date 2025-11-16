@@ -226,13 +226,12 @@ class TestTightSpanWalker:
     def test_tsw_invalid_alignment(self):
         """Test TSW with invalid alignment (unequal sequence lengths)."""
         tsw = TightSpanWalker()
-        alignment = Alignment(
-            [Sequence('seq1', 'ATCG'), Sequence('seq2', 'ATC')]
-        )
-
-        # Should raise error during distance calculation
+        
+        # Should raise error during alignment construction
         with pytest.raises((ValueError, AssertionError)):
-            tsw.construct_network(alignment)
+            alignment = Alignment(
+                [Sequence('seq1', 'ATCG'), Sequence('seq2', 'ATC')]
+            )
 
     def test_tsw_network_properties(self):
         """Test that constructed network has valid properties."""

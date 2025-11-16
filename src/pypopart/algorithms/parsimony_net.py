@@ -363,6 +363,9 @@ class ParsimonyNetwork(NetworkAlgorithm):
         """
         Calculate distance between two sequences.
 
+        Handles sequences of different lengths (e.g., due to gap removal)
+        by padding the shorter sequence.
+
         Parameters
         ----------
         seq1 : Sequence
@@ -375,10 +378,18 @@ class ParsimonyNetwork(NetworkAlgorithm):
         float
             Distance between sequences.
         """
-        if len(seq1.data) != len(seq2.data):
-            raise ValueError("Sequences must have equal length")
+        # If lengths differ (due to gap removal), pad the shorter one
+        len1, len2 = len(seq1.data), len(seq2.data)
+        if len1 != len2:
+            # Count length difference as mutations
+            length_diff = abs(len1 - len2)
+            # Compare only the overlapping part
+            min_len = min(len1, len2)
+            distance = sum(c1 != c2 for c1, c2 in zip(seq1.data[:min_len], seq2.data[:min_len]))
+            distance += length_diff
+            return float(distance)
 
-        # Simple Hamming distance
+        # Simple Hamming distance for equal length sequences
         distance = sum(c1 != c2 for c1, c2 in zip(seq1.data, seq2.data))
         return float(distance)
 
@@ -441,7 +452,7 @@ class ParsimonyNetwork(NetworkAlgorithm):
 
             # Check if this sequence already exists in network
             existing_id = None
-            for hap_id in network.haplotype_ids:
+            for hap_id in network.nodes:
                 hap = network.get_haplotype(hap_id)
                 if hap.data == median_seq_str:
                     existing_id = hap_id
