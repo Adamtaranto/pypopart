@@ -6,9 +6,8 @@ with manual node repositioning, pie chart nodes, and legend support.
 """
 
 import colorsys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-import dash_cytoscape as cyto
 import numpy as np
 
 from ..core.graph import HaplotypeNetwork
@@ -82,7 +81,8 @@ class InteractiveCytoscapePlotter:
             if is_median:
                 size = node_size_scale * 0.8
             elif hap:
-                size = node_size_scale * np.sqrt(hap.frequency)
+                # Use sqrt of frequency, but ensure minimum size
+                size = max(node_size_scale * 0.5, node_size_scale * np.sqrt(hap.frequency))
             else:
                 size = node_size_scale * 0.5
 
@@ -144,7 +144,10 @@ class InteractiveCytoscapePlotter:
             # Create element with position
             element = {
                 'data': node_data,
-                'position': {'x': pos[0] * 100, 'y': pos[1] * 100},  # Scale for visibility
+                'position': {
+                    'x': float(pos[0] * 100),
+                    'y': float(pos[1] * 100),
+                },  # Scale for visibility
                 'grabbable': True,
             }
 
