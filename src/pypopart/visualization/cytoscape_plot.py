@@ -112,6 +112,7 @@ class InteractiveCytoscapePlotter:
         show_labels: bool = True,
         show_edge_labels: bool = True,
         median_vector_color: str = '#D3D3D3',
+        node_labels: Optional[Dict[str, str]] = None,
     ) -> List[Dict]:
         """
         Create Cytoscape elements from network data.
@@ -130,6 +131,8 @@ class InteractiveCytoscapePlotter:
             Whether to show edge labels with mutation counts.
         median_vector_color :
             Color for median vector nodes.
+        node_labels :
+            Custom labels for nodes {node_id: label}.
 
         Returns
         -------
@@ -155,10 +158,19 @@ class InteractiveCytoscapePlotter:
             else:
                 size = node_size_scale * 0.5
 
+            # Determine label
+            if show_labels:
+                if node_labels and node in node_labels:
+                    label = node_labels[node]
+                else:
+                    label = node
+            else:
+                label = ''
+
             # Build node data
             node_data = {
                 'id': node,
-                'label': node if show_labels else '',
+                'label': label,
                 'size': size,
                 'is_median': is_median,
             }
@@ -412,6 +424,7 @@ def create_cytoscape_network(
     show_labels: bool = True,
     show_edge_labels: bool = True,
     median_vector_color: str = '#D3D3D3',
+    node_labels: Optional[Dict[str, str]] = None,
 ) -> Tuple[List[Dict], List[Dict]]:
     """
     Create Cytoscape elements and stylesheet for a haplotype network.
@@ -432,6 +445,8 @@ def create_cytoscape_network(
         Whether to show edge labels with mutation counts.
     median_vector_color :
         Color for median vector nodes.
+    node_labels :
+        Custom labels for nodes {node_id: label}.
 
     Returns
     -------
@@ -461,6 +476,7 @@ def create_cytoscape_network(
         show_labels=show_labels,
         show_edge_labels=show_edge_labels,
         median_vector_color=median_vector_color,
+        node_labels=node_labels,
     )
 
     stylesheet = plotter.create_stylesheet(
