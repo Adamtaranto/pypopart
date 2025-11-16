@@ -376,19 +376,25 @@ class PyPopARTApp:
                             style={'display': 'none'},
                         ),
                         html.Br(),
+                        dbc.Label('Node Spacing', className='fw-bold'),
+                        html.Small(
+                            'Adjust the spacing between nodes',
+                            className='text-muted d-block mb-2',
+                        ),
+                        dcc.Slider(
+                            id='spacing-slider',
+                            min=0.5,
+                            max=3.0,
+                            step=0.1,
+                            value=1.0,
+                            marks={0.5: '0.5x', 1.0: '1.0x', 2.0: '2.0x', 3.0: '3.0x'},
+                            tooltip={"placement": "bottom", "always_visible": False},
+                        ),
+                        html.Br(),
                         dbc.Button(
                             '🎨 Apply Layout',
                             id='apply-layout-button',
                             color='info',
-                            className='w-100',
-                            disabled=True,
-                        ),
-                        html.Br(),
-                        dbc.Button(
-                            '📐 Snap to Grid',
-                            id='snap-to-grid-button',
-                            color='secondary',
-                            outline=True,
                             className='w-100',
                             disabled=True,
                         ),
@@ -511,6 +517,8 @@ class PyPopARTApp:
                             minZoom=0.1,
                             maxZoom=5,
                             wheelSensitivity=0.2,
+                            zoom=1,
+                            autoungrabify=False,
                         )
                     ],
                 )
@@ -938,7 +946,6 @@ class PyPopARTApp:
                 Output('network-store', 'data'),
                 Output('computation-feedback', 'children'),
                 Output('apply-layout-button', 'disabled'),
-                Output('snap-to-grid-button', 'disabled'),
                 Output('export-button', 'disabled'),
             ],
             Input('compute-button', 'n_clicks'),
@@ -954,7 +961,7 @@ class PyPopARTApp:
             alignment_data: Dict,
             algorithm: str,
             param_values: List,
-        ) -> Tuple[Optional[Dict], html.Div, bool, bool, bool]:
+        ) -> Tuple[Optional[Dict], html.Div, bool, bool]:
             """Compute haplotype network using selected algorithm."""
             if not alignment_data:
                 raise PreventUpdate
@@ -1037,7 +1044,7 @@ class PyPopARTApp:
 
                 feedback = dbc.Alert(feedback_parts, color='success')
 
-                return network_data, feedback, False, False, False
+                return network_data, feedback, False, False
 
             except Exception as e:
                 self.logger.error(f'Error computing network: {e}')
@@ -1056,12 +1063,11 @@ class PyPopARTApp:
                     ),
                     True,
                     True,
-                    True,
                 )
 
         @self.app.callback(
             Output('layout-store', 'data'),
-            [Input('apply-layout-button', 'n_clicks'), Input('network-store', 'data')],
+            [Input('apply-layout-button', 'n_clicks'), Input('network-store', 'data'), Input('spacing-slider', 'value')],
             [
                 State('layout-select', 'value'),
                 State('metadata-store', 'data'),
@@ -1072,6 +1078,7 @@ class PyPopARTApp:
         def apply_layout(
             n_clicks: Optional[int],
             network_data: Optional[Dict],
+            spacing_factor: float,
             layout_method: str,
             metadata_data: Optional[Dict],
             projection: str,
@@ -1100,6 +1107,11 @@ class PyPopARTApp:
                 else:
                     layout_manager = LayoutManager(network)
                     positions = layout_manager.compute_layout(layout_method)
+
+                # Apply spacing factor to expand/contract the layout
+                if spacing_factor and spacing_factor != 1.0:
+                    positions = {node: (pos[0] * spacing_factor, pos[1] * spacing_factor) 
+                                for node, pos in positions.items()}
 
                 # Convert to serializable format
                 layout_data = {node: list(pos) for node, pos in positions.items()}
@@ -1729,31 +1741,6 @@ class PyPopARTApp:
         # New callbacks for enhanced features
 
         @self.app.callback(
-            Output('layout-store', 'data', allow_duplicate=True),
-            Input('snap-to-grid-button', 'n_clicks'),
-            State('layout-store', 'data'),
-            prevent_initial_call=True,
-        )
-        def snap_to_grid(n_clicks: Optional[int], layout_data: Optional[Dict]) -> Optional[Dict]:
-            """Apply snap to grid to current layout."""
-            if not layout_data or n_clicks is None:
-                raise PreventUpdate
-
-            try:
-                grid_size = 0.1
-                snapped_layout = {
-                    node: [
-                        round(pos[0] / grid_size) * grid_size,
-                        round(pos[1] / grid_size) * grid_size,
-                    ]
-                    for node, pos in layout_data.items()
-                }
-                return snapped_layout
-            except Exception as e:
-                self.logger.error(f'Error snapping to grid: {e}')
-                raise PreventUpdate from e
-
-        @self.app.callback(
             [
                 Output('haplotype-search', 'options'),
                 Output('network-graph', 'stylesheet', allow_duplicate=True),
@@ -1775,41 +1762,48 @@ class PyPopARTApp:
                 # Reconstruct network
                 network = HaplotypeNetwork.from_serialized(network_data)
 
-                # Build H number options
+                # Build H number options - mapping H numbers to node IDs
                 h_numbers = []
+                h_to_node = {}
                 for i, node_id in enumerate(sorted(network.graph.nodes()), start=1):
                     h_label = f'H{i}'
-                    h_numbers.append({'label': h_label, 'value': node_id})
+                    h_numbers.append({'label': h_label, 'value': h_label})
+                    h_to_node[h_label] = node_id
 
-                # Update stylesheet to highlight selected nodes
-                if selected_h_list and current_stylesheet:
+                # Create a clean stylesheet without any highlight styles
+                if not current_stylesheet:
+                    current_stylesheet = []
+                
+                # Remove ALL existing highlight styles (for any node)
+                base_stylesheet = [s for s in current_stylesheet 
+                                  if not (s.get('selector', '').startswith('node[id = "') 
+                                         and 'border-color' in s.get('style', {})
+                                         and s.get('style', {}).get('border-color') == '#FF0000')]
+
+                # If nodes are selected, add highlight styles
+                if selected_h_list:
                     # Ensure it's a list (might be single value in some cases)
                     if not isinstance(selected_h_list, list):
                         selected_h_list = [selected_h_list]
 
-                    # Create a copy of the stylesheet
-                    new_stylesheet = current_stylesheet.copy()
-
-                    # Remove any existing highlight styles
-                    new_stylesheet = [s for s in new_stylesheet if not any(
-                        s.get('selector', '').startswith(f'node[id = "{h}"]')
-                        for h in selected_h_list
-                    )]
-
-                    # Add highlight style for each selected node
+                    # Add highlight style for each selected H number
                     for selected_h in selected_h_list:
-                        new_stylesheet.append({
-                            'selector': f'node[id = "{selected_h}"]',
-                            'style': {
-                                'border-width': '5px',
-                                'border-color': '#FF0000',
-                                'border-style': 'solid',
-                            }
-                        })
+                        # Map H number to node ID
+                        node_id = h_to_node.get(selected_h)
+                        if node_id:
+                            base_stylesheet.append({
+                                'selector': f'node[id = "{node_id}"]',
+                                'style': {
+                                    'border-width': '5px',
+                                    'border-color': '#FF0000',
+                                    'border-style': 'solid',
+                                }
+                            })
 
-                    return h_numbers, new_stylesheet
+                    return h_numbers, base_stylesheet
 
-                return h_numbers, current_stylesheet or []
+                # No selection - return clean stylesheet
+                return h_numbers, base_stylesheet
 
             except Exception as e:
                 self.logger.error(f'Error updating search: {e}')
@@ -1996,16 +1990,26 @@ class PyPopARTApp:
                 return html.Div(f'Error: {str(e)}'), html.Div()
 
         @self.app.callback(
-            Output('node-tooltip', 'children'),
-            Output('node-tooltip', 'style'),
-            Input('network-graph', 'mouseoverNodeData'),
+            [
+                Output('node-tooltip', 'children'),
+                Output('node-tooltip', 'style'),
+            ],
+            [
+                Input('network-graph', 'mouseoverNodeData'),
+                Input('network-graph', 'mouseoverEdgeData'),
+            ],
             State('network-store', 'data'),
         )
         def show_node_tooltip(
             hover_data: Optional[Dict],
+            edge_hover_data: Optional[Dict],
             network_data: Optional[Dict],
         ) -> Tuple[html.Div, Dict]:
             """Show tooltip with sequence IDs when hovering over a node."""
+            # Hide tooltip if hovering over edge instead of node
+            if edge_hover_data and not hover_data:
+                return html.Div(), {'display': 'none'}
+            
             if not hover_data or not network_data:
                 return html.Div(), {'display': 'none'}
 
@@ -2058,20 +2062,21 @@ class PyPopARTApp:
                     'pointerEvents': 'none',
                     'maxWidth': '300px',
                     'fontSize': '12px',
+                    'whiteSpace': 'nowrap',
                 }
 
                 # Use renderedPosition from Cytoscape hover event if available
                 if 'renderedPosition' in hover_data:
                     rendered_pos = hover_data['renderedPosition']
                     # Offset tooltip slightly from node position
-                    style['left'] = f'{rendered_pos.get("x", 0) + 10}px'
-                    style['top'] = f'{rendered_pos.get("y", 0) - 30}px'
+                    style['left'] = f'{rendered_pos.get("x", 0) + 15}px'
+                    style['top'] = f'{rendered_pos.get("y", 0) - 40}px'
                 else:
                     # Fallback: use position data if renderedPosition not available
                     if 'position' in hover_data:
                         pos = hover_data['position']
-                        style['left'] = f'{pos.get("x", 0) + 10}px'
-                        style['top'] = f'{pos.get("y", 0) - 30}px'
+                        style['left'] = f'{pos.get("x", 0) + 15}px'
+                        style['top'] = f'{pos.get("y", 0) - 40}px'
                     else:
                         # Last resort: don't show tooltip if we have no position info
                         return html.Div(), {'display': 'none'}
@@ -2103,6 +2108,33 @@ class PyPopARTApp:
                     style={'marginTop': '10px'},
                 )
             raise PreventUpdate
+
+        # Clientside callback to auto-fit network when elements are updated
+        self.app.clientside_callback(
+            """
+            function(elements) {
+                if (!elements || elements.length === 0) {
+                    return window.dash_clientside.no_update;
+                }
+                // Trigger a fit after elements are loaded
+                // This must return a value for the output
+                setTimeout(function() {
+                    try {
+                        const cy = document.getElementById('network-graph')._cyreg.cy;
+                        if (cy) {
+                            cy.fit(null, 50);  // Fit with 50px padding
+                            cy.center();
+                        }
+                    } catch (e) {
+                        console.log('Could not auto-fit network:', e);
+                    }
+                }, 100);
+                return elements.length;
+            }
+            """,
+            Output('network-graph', 'zoom'),
+            Input('network-graph', 'elements'),
+        )
 
     def _format_central_haplotypes(self, central: Dict) -> html.Div:
         """Format central haplotypes for display."""
