@@ -82,7 +82,7 @@ class TestParsimonyNetwork:
         network = pn.construct_network(alignment)
 
         # Should have 3 haplotype nodes
-        assert len([n for n in network.haplotype_ids if not network.is_median(n)]) == 3
+        assert len([n for n in network.nodes if not network.is_median_vector(n)]) == 3
         # Should have edges connecting them
         assert len(network.edges) >= 2
 
@@ -198,7 +198,7 @@ class TestParsimonyNetwork:
         network = pn.construct_network(alignment)
 
         # Should have median vertices between very different sequences
-        median_count = len([n for n in network.haplotype_ids if network.is_median(n)])
+        median_count = len([n for n in network.nodes if network.is_median_vector(n)])
 
         # With 5 differences, should have some medians
         assert median_count >= 0  # May or may not create medians depending on tree sampling
@@ -254,7 +254,7 @@ class TestParsimonyNetwork:
         network = pn.construct_network(alignment)
 
         # Should have all 6 sequences
-        observed_count = len([n for n in network.haplotype_ids if not network.is_median(n)])
+        observed_count = len([n for n in network.nodes if not network.is_median_vector(n)])
         assert observed_count == 6
 
     def test_pn_star_topology(self):
@@ -274,7 +274,7 @@ class TestParsimonyNetwork:
         network = pn.construct_network(alignment)
 
         # Should have all 4 sequences
-        assert len([n for n in network.haplotype_ids if not network.is_median(n)]) == 4
+        assert len([n for n in network.nodes if not network.is_median_vector(n)]) == 4
 
     def test_pn_network_properties(self):
         """Test that constructed network has valid properties."""

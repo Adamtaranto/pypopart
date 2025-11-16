@@ -74,7 +74,7 @@ class TestTightSpanWalker:
         network = tsw.construct_network(alignment)
 
         # Should have 3 haplotype nodes
-        assert len([n for n in network.haplotype_ids if not network.is_median(n)]) == 3
+        assert len([n for n in network.nodes if not network.is_median_vector(n)]) == 3
         # Should have edges connecting them
         assert len(network.edges) >= 2
 
@@ -154,7 +154,7 @@ class TestTightSpanWalker:
         network = tsw.construct_network(alignment)
 
         # Should have all 4 sequences
-        assert len([n for n in network.haplotype_ids if not network.is_median(n)]) == 4
+        assert len([n for n in network.nodes if not network.is_median_vector(n)]) == 4
 
         # Center should be connected to all others
         center_neighbors = list(network.graph.neighbors('H1'))  # Assuming H1 is center
@@ -175,7 +175,7 @@ class TestTightSpanWalker:
         network = tsw.construct_network(alignment)
 
         # Count median vectors
-        median_count = len([n for n in network.haplotype_ids if network.is_median(n)])
+        median_count = len([n for n in network.nodes if network.is_median_vector(n)])
 
         # For sequences with many differences, medians may be needed
         # This is algorithm-dependent, so just check network was built
@@ -250,11 +250,12 @@ class TestTightSpanWalker:
         assert network.is_connected()
 
         # All edge weights should be non-negative
-        for edge in network.edges:
-            assert edge['distance'] >= 0
+        for source, target in network.edges:
+            dist = network.get_edge_distance(source, target)
+            assert dist >= 0
 
         # All nodes should be reachable
-        for node_id in network.haplotype_ids:
+        for node_id in network.nodes:
             assert len(list(network.graph.neighbors(node_id))) > 0 or len(network) == 1
 
     def test_tsw_with_gaps(self):

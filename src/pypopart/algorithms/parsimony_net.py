@@ -184,7 +184,7 @@ class ParsimonyNetwork(NetworkAlgorithm):
 
         # Sample edges from random parsimony trees
         edge_counts = self._sample_edges_from_trees(
-            haplotypes, dist_array, alignment.seq_length
+            haplotypes, dist_array, alignment.length
         )
 
         # Add edges that meet frequency threshold
