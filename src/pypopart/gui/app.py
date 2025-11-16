@@ -2068,29 +2068,26 @@ class PyPopARTApp:
                 return html.Div(f'Error: {str(e)}'), html.Div()
 
         @self.app.callback(
-            [
-                Output('node-tooltip', 'children'),
-                Output('node-tooltip', 'style'),
-            ],
+            Output('node-tooltip', 'children'),
             [
                 Input('network-graph', 'mouseoverNodeData'),
                 Input('network-graph', 'mouseoverEdgeData'),
             ],
             [State('network-store', 'data'), State('h-number-mapping-store', 'data')],
         )
-        def show_node_tooltip(
+        def update_tooltip_content(
             hover_data: Optional[Dict],
             edge_hover_data: Optional[Dict],
             network_data: Optional[Dict],
             h_number_mapping: Optional[Dict],
-        ) -> Tuple[html.Div, Dict]:
-            """Show tooltip with sequence IDs when hovering over a node."""
+        ) -> html.Div:
+            """Update tooltip content based on hovered node."""
             # Hide tooltip if hovering over edge instead of node
             if edge_hover_data and not hover_data:
-                return html.Div(), {'display': 'none'}
+                return html.Div()
 
             if not hover_data or not network_data:
-                return html.Div(), {'display': 'none'}
+                return html.Div()
 
             try:
                 # Reconstruct network
@@ -2099,7 +2096,7 @@ class PyPopARTApp:
                 # Get node data
                 node_id = hover_data.get('id')
                 if not node_id:
-                    return html.Div(), {'display': 'none'}
+                    return html.Div()
 
                 node_data = network.graph.nodes.get(node_id, {})
                 sample_ids = node_data.get('sample_ids', [])
@@ -2131,43 +2128,65 @@ class PyPopARTApp:
                         html.Span(', '.join(sample_ids[:10]) + ('...' if len(sample_ids) > 10 else '')),
                     ])
 
-                # Position tooltip using renderedPosition from hover data
-                # Cytoscape provides position information we can use
-                style = {
-                    'display': 'block',
-                    'position': 'absolute',
-                    'background': 'rgba(0, 0, 0, 0.8)',
-                    'color': 'white',
-                    'padding': '10px',
-                    'borderRadius': '5px',
-                    'zIndex': 2000,
-                    'pointerEvents': 'none',
-                    'maxWidth': '300px',
-                    'fontSize': '12px',
-                    'whiteSpace': 'nowrap',
-                }
-
-                # Use renderedPosition from Cytoscape hover event if available
-                if 'renderedPosition' in hover_data:
-                    rendered_pos = hover_data['renderedPosition']
-                    # Offset tooltip slightly from node position
-                    style['left'] = f'{rendered_pos.get("x", 0) + 15}px'
-                    style['top'] = f'{rendered_pos.get("y", 0) - 40}px'
-                else:
-                    # Fallback: use position data if renderedPosition not available
-                    if 'position' in hover_data:
-                        pos = hover_data['position']
-                        style['left'] = f'{pos.get("x", 0) + 15}px'
-                        style['top'] = f'{pos.get("y", 0) - 40}px'
-                    else:
-                        # Last resort: don't show tooltip if we have no position info
-                        return html.Div(), {'display': 'none'}
-
-                return content, style
+                return content
 
             except Exception as e:
                 self.logger.error(f'Error showing tooltip: {e}')
-                return html.Div(), {'display': 'none'}
+                return html.Div()
+
+        # Use clientside callback for tooltip positioning
+        # This gets the actual rendered position from Cytoscape
+        self.app.clientside_callback(
+            """
+            function(hoverData, edgeHoverData) {
+                // Hide tooltip if hovering over edge or no node data
+                if ((edgeHoverData && !hoverData) || !hoverData) {
+                    return {display: 'none'};
+                }
+                
+                try {
+                    // Get Cytoscape instance
+                    const cy = document.getElementById('network-graph')._cyreg.cy;
+                    if (!cy) {
+                        return {display: 'none'};
+                    }
+                    
+                    // Get the node
+                    const nodeId = hoverData.id;
+                    const node = cy.getElementById(nodeId);
+                    
+                    if (!node || node.length === 0) {
+                        return {display: 'none'};
+                    }
+                    
+                    // Get rendered position (screen coordinates)
+                    const renderedPos = node.renderedPosition();
+                    
+                    // Position tooltip with offset from node
+                    return {
+                        display: 'block',
+                        position: 'absolute',
+                        left: (renderedPos.x + 15) + 'px',
+                        top: (renderedPos.y - 40) + 'px',
+                        background: 'rgba(0, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: '10px',
+                        borderRadius: '5px',
+                        zIndex: 2000,
+                        pointerEvents: 'none',
+                        maxWidth: '300px',
+                        fontSize: '12px',
+                        whiteSpace: 'normal',
+                    };
+                } catch (e) {
+                    console.log('Error positioning tooltip:', e);
+                    return {display: 'none'};
+                }
+            }
+            """,
+            Output('node-tooltip', 'style'),
+            [Input('network-graph', 'mouseoverNodeData'), Input('network-graph', 'mouseoverEdgeData')],
+        )
 
         @self.app.callback(
             Output('download-h-number-template', 'data'),
