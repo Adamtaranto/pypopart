@@ -23,8 +23,6 @@ import dash_cytoscape as cyto
 from dash import Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-import networkx as nx
-import plotly.graph_objects as go
 
 from pypopart.algorithms import (
     TCS,
@@ -2208,7 +2206,7 @@ class PyPopARTApp:
                     if (!nodeId) {
                         return {display: 'none'};
                     }
-                    
+
                     const node = cy.getElementById(nodeId);
 
                     if (!node || node.length === 0) {
@@ -2266,7 +2264,7 @@ class PyPopARTApp:
             new_stylesheet = []
             for style in current_stylesheet:
                 new_style = style.copy()
-                
+
                 # Update node size
                 if style.get('selector') == 'node':
                     if 'style' not in new_style:
@@ -2275,16 +2273,16 @@ class PyPopARTApp:
                     # Override the size to be a fixed value instead of data-dependent
                     new_style['style']['width'] = node_size
                     new_style['style']['height'] = node_size
-                
+
                 # Update edge width
                 elif style.get('selector') == 'edge':
                     if 'style' not in new_style:
                         new_style['style'] = {}
                     new_style['style'] = {**new_style['style']}
                     new_style['style']['width'] = edge_width
-                
+
                 new_stylesheet.append(new_style)
-            
+
             return new_stylesheet
 
         @self.app.callback(
