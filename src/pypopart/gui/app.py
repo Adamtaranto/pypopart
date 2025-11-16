@@ -325,17 +325,21 @@ class PyPopARTApp:
                             id='layout-select',
                             options=[
                                 {
+                                    'label': 'Hierarchical (Fast)',
+                                    'value': 'hierarchical',
+                                },
+                                {
                                     'label': 'Spring (Force-directed)',
                                     'value': 'spring',
+                                },
+                                {
+                                    'label': 'Spectral (Fast, Large networks)',
+                                    'value': 'spectral',
                                 },
                                 {'label': 'Circular', 'value': 'circular'},
                                 {'label': 'Radial', 'value': 'radial'},
                                 {
-                                    'label': 'Hierarchical',
-                                    'value': 'hierarchical',
-                                },
-                                {
-                                    'label': 'Kamada-Kawai',
+                                    'label': 'Kamada-Kawai (High quality, slow)',
                                     'value': 'kamada_kawai',
                                 },
                                 {

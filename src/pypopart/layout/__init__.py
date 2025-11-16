@@ -13,6 +13,7 @@ from .algorithms import (
     LayoutManager,
     ManualLayout,
     RadialLayout,
+    SpectralLayout,
 )
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     'RadialLayout',
     'HierarchicalLayout',
     'KamadaKawaiLayout',
+    'SpectralLayout',
     'ManualLayout',
     'LayoutManager',
 ]
