@@ -295,7 +295,7 @@ class PyPopARTApp:
                                     'value': 'tsw',
                                 },
                             ],
-                            value='msn',
+                            value='mst',
                             style={'whiteSpace': 'nowrap'},
                         ),
                         html.Br(),
@@ -362,7 +362,7 @@ class PyPopARTApp:
                                 #'value': 'geographic',
                                 #                                },
                             ],
-                            value='hierarchical',
+                            value='spring',
                             style={'whiteSpace': 'nowrap'},
                         ),
                         html.Br(),
@@ -482,7 +482,7 @@ class PyPopARTApp:
                                 {'label': 'PNG Image', 'value': 'png'},
                                 {'label': 'SVG Image', 'value': 'svg'},
                             ],
-                            value='graphml',
+                            value='svg',
                             style={'whiteSpace': 'nowrap'},
                         ),
                         html.Br(),
@@ -1260,14 +1260,29 @@ class PyPopARTApp:
                     # Create a copy of the graph
                     G = network.graph.copy()
 
-                    # Set edge length proportional to mutation count (stored in distance)
+                    # Get all mutation distances to calculate relative scaling
+                    all_distances = [G[u][v].get('distance', 1) for u, v in G.edges()]
+                    min_dist = min(all_distances) if all_distances else 1
+                    max_dist = max(all_distances) if all_distances else 1
+
+                    self.logger.info(
+                        f'Edge distances range: {min_dist} to {max_dist} mutations'
+                    )
+
+                    # Set edge length proportional to mutation count in NORMALIZED space
                     for u, v in G.edges():
                         mutations = G[u][v].get('distance', 1)
 
-                        # Scale mutation count to pixel distance
-                        # Base length of 100px + 50px per mutation
-                        # e.g., 1 mutation = 150px, 7 mutations = 450px
-                        G[u][v]['ideal_length'] = 100 + (mutations * 50)
+                        # Normalize to 0.1-1.0 range based on min/max distances
+                        # This keeps proportions but prevents huge layouts
+                        if max_dist > min_dist:
+                            normalized_length = 0.1 + 0.9 * (
+                                (mutations - min_dist) / (max_dist - min_dist)
+                            )
+                        else:
+                            normalized_length = 0.5  # All edges same length
+
+                        G[u][v]['ideal_length'] = normalized_length
 
                     self.logger.info(
                         f'Applying {layout_method} layout with proportional edge lengths'
@@ -1279,23 +1294,25 @@ class PyPopARTApp:
                         # We need to invert our ideal_length
                         for u, v in G.edges():
                             ideal_len = G[u][v]['ideal_length']
-                            # Invert: short edges (low mutations) get high weight (attract more)
-                            # long edges (high mutations) get low weight (attract less)
-                            G[u][v]['spring_weight'] = 1.0 / ideal_len
+                            # Invert: short edges get high weight (attract more)
+                            # Add small epsilon to avoid division by zero
+                            G[u][v]['spring_weight'] = 1.0 / (ideal_len + 0.01)
 
                         positions = nx.spring_layout(
                             G,
                             weight='spring_weight',
-                            k=0.5,  # Optimal distance scaling factor
-                            iterations=100,  # More iterations for better convergence
-                            scale=spacing_factor * 500,
+                            k=None,  # Let NetworkX calculate optimal k
+                            iterations=100,
+                            scale=spacing_factor
+                            * 1.0,  # Scale is applied to normalized coords
+                            seed=42,  # For reproducibility
                         )
 
                     elif layout_method == 'kamada_kawai_proportional':
                         # Kamada-Kawai layout respects edge distances directly
                         # Use ideal_length as the weight (desired distance)
                         positions = nx.kamada_kawai_layout(
-                            G, weight='ideal_length', scale=spacing_factor * 500
+                            G, weight='ideal_length', scale=spacing_factor * 1.0
                         )
 
                 # Apply standard layouts (non-proportional)
