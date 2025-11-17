@@ -2451,70 +2451,65 @@ class PyPopARTApp:
 
         # Use clientside callback for tooltip positioning
         # This gets the actual rendered position from Cytoscape
-        # Combined approach: handles mouseout events and background clicks
         self.app.clientside_callback(
             """
-            function(hoverData, mouseoutData, edgeHoverData, tapData) {
-                // Hide tooltip if:
-                // 1. Mouse moved out of a node
-                // 2. Clicked on background (tapData is null)
-                // 3. No hover data
-                // 4. Hovering over edge instead of node
-                if (mouseoutData || !tapData || !hoverData || (edgeHoverData && !hoverData)) {
-                    return {display: 'none'};
+            function() {
+                // Set up event listeners once when page loads
+                if (window.tooltipSetup) {
+                    return window.dash_clientside.no_update;
                 }
+                window.tooltipSetup = true;
 
-                try {
-                    // Get Cytoscape instance
-                    const cy = document.getElementById('network-graph')._cyreg.cy;
-                    if (!cy) {
-                        return {display: 'none'};
+                setTimeout(function() {
+                    try {
+                        const cy = document.getElementById('network-graph')._cyreg.cy;
+                        const tooltip = document.getElementById('node-tooltip');
+                        
+                        if (!cy || !tooltip) {
+                            console.log('Could not find cytoscape or tooltip element');
+                            return;
+                        }
+
+                        // Hide tooltip on mouseover edge or background
+                        cy.on('mouseover', 'edge', function(evt) {
+                            tooltip.style.display = 'none';
+                        });
+
+                        cy.on('mouseover', function(evt) {
+                            // If target is cy (background), hide tooltip
+                            if (evt.target === cy) {
+                                tooltip.style.display = 'none';
+                            }
+                        });
+
+                        // Show tooltip on node hover
+                        cy.on('mouseover', 'node', function(evt) {
+                            const node = evt.target;
+                            const renderedPos = node.renderedPosition();
+                            
+                            tooltip.style.display = 'block';
+                            tooltip.style.left = (renderedPos.x + 15) + 'px';
+                            tooltip.style.top = (renderedPos.y - 40) + 'px';
+                        });
+
+                        // Hide tooltip when mouse leaves node
+                        cy.on('mouseout', 'node', function(evt) {
+                            tooltip.style.display = 'none';
+                        });
+
+                        console.log('Tooltip event listeners installed');
+
+                    } catch (e) {
+                        console.log('Error setting up tooltip:', e);
                     }
+                }, 500);
 
-                    // Get the node
-                    const nodeId = hoverData.id;
-                    if (!nodeId) {
-                        return {display: 'none'};
-                    }
-
-                    const node = cy.getElementById(nodeId);
-
-                    if (!node || node.length === 0) {
-                        return {display: 'none'};
-                    }
-
-                    // Get rendered position (screen coordinates)
-                    const renderedPos = node.renderedPosition();
-
-                    // Position tooltip with offset from node
-                    return {
-                        display: 'block',
-                        position: 'absolute',
-                        left: (renderedPos.x + 15) + 'px',
-                        top: (renderedPos.y - 40) + 'px',
-                        background: 'rgba(0, 0, 0, 0.8)',
-                        color: 'white',
-                        padding: '10px',
-                        borderRadius: '5px',
-                        zIndex: 2000,
-                        pointerEvents: 'none',
-                        maxWidth: '300px',
-                        fontSize: '12px',
-                        whiteSpace: 'normal',
-                    };
-                } catch (e) {
-                    console.log('Error positioning tooltip:', e);
-                    return {display: 'none'};
-                }
+                return window.dash_clientside.no_update;
             }
             """,
-            Output('node-tooltip', 'style'),
-            [
-                Input('network-graph', 'mouseoverNodeData'),
-                Input('network-graph', 'mouseoutNodeData'),
-                Input('network-graph', 'mouseoverEdgeData'),
-                Input('network-graph', 'tapData'),
-            ],
+            Output('node-tooltip', 'style', allow_duplicate=True),
+            Input('network-graph', 'elements'),
+            prevent_initial_call=True,
         )
 
         @self.app.callback(
