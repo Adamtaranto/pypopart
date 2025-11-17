@@ -89,8 +89,9 @@ class HaplotypeNetwork:
         for edge in network_data.get('edges', []):
             source = edge['source']
             target = edge['target']
-            weight = edge.get('weight', 1)
-            network.add_edge(source, target, distance=weight)
+            weight = edge.get('weight', 1.0)
+            distance = edge.get('distance', 0)
+            network.add_edge(source, target, distance=distance, weight=weight)
 
         return network
 
@@ -154,7 +155,12 @@ class HaplotypeNetwork:
         self._median_vectors.discard(haplotype_id)
 
     def add_edge(
-        self, source: str, target: str, distance: float = 1.0, **attributes
+        self,
+        source: str,
+        target: str,
+        distance: int = 0,
+        weight: float = 1.0,
+        **attributes,
     ) -> None:
         """
         Add an edge between two haplotypes.
@@ -176,7 +182,7 @@ class HaplotypeNetwork:
             raise KeyError(f"Target node '{target}' not found in network")
 
         self._graph.add_edge(
-            source, target, weight=distance, distance=distance, **attributes
+            source, target, weight=weight, distance=distance, **attributes
         )
 
     def remove_edge(self, source: str, target: str) -> None:

@@ -1168,10 +1168,10 @@ class PyPopARTApp:
                         {
                             'source': u,
                             'target': v,
-                            # Distance contains mutation count (from original graph data)
-                            'distance': network.graph[u][v].get('distance', network.graph[u][v].get('weight', 1)),
-                            # Weight is always 1.0 for uniform edge weights
-                            'weight': 1.0,
+                            # We copy it to 'distance' for use in labels and proportional layouts
+                            'distance': network.graph[u][v].get('distance', 0),
+                            # Weight is set to uniform 1.0 (not used for labels)
+                            'weight': network.graph[u][v].get('weight', 1.0),
                         }
                         for u, v in network.graph.edges()
                     ],
@@ -1359,8 +1359,19 @@ class PyPopARTApp:
                 return [], [], html.Div('Upload data and compute network to visualize')
 
             try:
+                # ADD DEBUG CODE HERE - Check serialized network data
+                self.logger.debug('=== DEBUG: Network data edges ===')
+                for i, edge in enumerate(network_data['edges'][:3]):
+                    self.logger.debug(f'Serialized edge {i}: {edge}')
+
                 # Reconstruct network
                 network = HaplotypeNetwork.from_serialized(network_data)
+
+                # ADD DEBUG CODE HERE - Check reconstructed graph
+                self.logger.debug('=== DEBUG: Reconstructed graph edges ===')
+                for u, v in list(network.graph.edges())[:3]:
+                    edge_data = network.graph[u][v]
+                    self.logger.debug(f'Graph edge {u}->{v}: {edge_data}')
 
                 # Convert layout data
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}

@@ -255,14 +255,20 @@ class InteractiveCytoscapePlotter:
 
         # Create edges
         for u, v in graph.edges():
-            weight = graph[u][v].get('weight', 1)
+            # Get mutation count from distance attribute
+            distance = graph[u][v].get('distance', 1)
+            # Get weight for layout purposes (should be uniform)
+            weight = graph[u][v].get('weight', 1.0)
 
             edge_data = {
                 'id': f'{u}-{v}',
                 'source': u,
                 'target': v,
-                'weight': weight,
-                'label': str(int(weight)) if show_edge_labels and weight > 0 else '',
+                'distance': distance,  # Mutation count for labels and proportional layout
+                'weight': weight,  # Uniform weight for standard layouts
+                'label': str(int(distance))
+                if show_edge_labels and distance > 0
+                else '',
             }
 
             elements.append({'data': edge_data})
