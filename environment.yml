@@ -21,8 +21,6 @@ dependencies:
   - pytest-benchmark
   - mypy
   - ruff
-  - sphinx
-  - sphinx_rtd_theme
   - ipython
   - jupyter
   - notebook
