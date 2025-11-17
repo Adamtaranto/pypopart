@@ -4,8 +4,6 @@ This test module specifically validates that the epsilon parameter
 correctly controls network relaxation and alternative edge inclusion.
 """
 
-import pytest
-
 from pypopart.algorithms.msn import MinimumSpanningNetwork
 from pypopart.algorithms.mst import MinimumSpanningTree
 from pypopart.core.alignment import Alignment

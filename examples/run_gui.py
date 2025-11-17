@@ -16,7 +16,7 @@ if __name__ == '__main__':
     print("\nTo stop the server, press Ctrl+C in this terminal")
     print("=" * 60)
     print()
-    
+
     # Launch the GUI
     # Set debug=True for development, debug=False for production
     main(debug=True, port=8050)

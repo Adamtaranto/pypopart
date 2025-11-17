@@ -301,7 +301,7 @@ class TightSpanWalker(NetworkAlgorithm):
             # Vertices are green if they're closer to f
             if abs(fi + dt_fg + gi - distance_matrix.matrix[i, idx2]) < self.epsilon:
                 green_vertices.add(i)
-            # Vertices are red if they're closer to g  
+            # Vertices are red if they're closer to g
             elif abs(fi + dt_fg - gi) < self.epsilon:
                 red_vertices.add(i)
 
@@ -362,9 +362,7 @@ class TightSpanWalker(NetworkAlgorithm):
             # Recursively add geodesic from h to g
             h_idx = self._dt_matrix.shape[0] - 1
             h_hap = network.get_haplotype(h_id)
-            self._add_geodesic_path(
-                network, h_hap, hap2, distance_matrix, h_idx, idx2
-            )
+            self._add_geodesic_path(network, h_hap, hap2, distance_matrix, h_idx, idx2)
 
     def _create_median_vertex(self, hap1: Haplotype, hap2: Haplotype) -> Haplotype:
         """
@@ -414,9 +412,7 @@ class TightSpanWalker(NetworkAlgorithm):
 
         return median_hap
 
-    def _prune_unnecessary_medians(
-        self, network: HaplotypeNetwork
-    ) -> HaplotypeNetwork:
+    def _prune_unnecessary_medians(self, network: HaplotypeNetwork) -> HaplotypeNetwork:
         """
         Prune median vertices that don't bridge observed nodes.
 

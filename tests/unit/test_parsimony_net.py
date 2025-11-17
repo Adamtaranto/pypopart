@@ -1,11 +1,7 @@
 """Unit tests for Parsimony Network (PN) algorithm."""
 
-import numpy as np
-import pytest
-
 from pypopart.algorithms.parsimony_net import ParsimonyNetwork
 from pypopart.core.alignment import Alignment
-from pypopart.core.distance import DistanceMatrix
 from pypopart.core.sequence import Sequence
 
 
@@ -47,9 +43,7 @@ class TestParsimonyNetwork:
     def test_pn_two_identical_sequences(self):
         """Test PN with two identical sequences."""
         pn = ParsimonyNetwork()
-        alignment = Alignment(
-            [Sequence('seq1', 'ATCG'), Sequence('seq2', 'ATCG')]
-        )
+        alignment = Alignment([Sequence('seq1', 'ATCG'), Sequence('seq2', 'ATCG')])
         network = pn.construct_network(alignment)
 
         # Should have one haplotype node with frequency 2
@@ -59,9 +53,7 @@ class TestParsimonyNetwork:
     def test_pn_two_different_sequences(self):
         """Test PN with two different sequences."""
         pn = ParsimonyNetwork(n_trees=10, min_edge_frequency=0.0)
-        alignment = Alignment(
-            [Sequence('seq1', 'ATCG'), Sequence('seq2', 'ATCT')]
-        )
+        alignment = Alignment([Sequence('seq1', 'ATCG'), Sequence('seq2', 'ATCT')])
         network = pn.construct_network(alignment)
 
         # Should have at least 2 nodes
@@ -203,7 +195,9 @@ class TestParsimonyNetwork:
         median_count = len([n for n in network.nodes if network.is_median_vector(n)])
 
         # With 5 differences, should have some medians
-        assert median_count >= 0  # May or may not create medians depending on tree sampling
+        assert (
+            median_count >= 0
+        )  # May or may not create medians depending on tree sampling
 
     def test_pn_network_connectivity(self):
         """Test that constructed network is connected."""
@@ -256,7 +250,9 @@ class TestParsimonyNetwork:
         network = pn.construct_network(alignment)
 
         # Should have all 6 sequences
-        observed_count = len([n for n in network.nodes if not network.is_median_vector(n)])
+        observed_count = len(
+            [n for n in network.nodes if not network.is_median_vector(n)]
+        )
         assert observed_count == 6
 
     def test_pn_star_topology(self):

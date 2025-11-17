@@ -22,7 +22,7 @@ References
 
 import random
 from collections import defaultdict
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -216,9 +216,9 @@ class ParsimonyNetwork(NetworkAlgorithm):
             Dictionary mapping edge (as tuple of IDs) to count across trees.
         """
         edge_counts: Dict[Tuple[str, str], int] = defaultdict(int)
-        n = len(haplotypes)
+        len(haplotypes)
 
-        for tree_idx in range(self.n_trees):
+        for _tree_idx in range(self.n_trees):
             # Build a random parsimony tree using modified neighbor joining
             tree_edges = self._build_random_parsimony_tree(
                 haplotypes, dist_array.copy()
@@ -276,9 +276,13 @@ class ParsimonyNetwork(NetworkAlgorithm):
                     # Get distance between clusters (use minimum for simplicity)
                     min_dist = float('inf')
                     for id_i in active_clusters[idx_i]:
-                        i_pos = next(k for k, h in enumerate(haplotypes) if h.id == id_i)
+                        i_pos = next(
+                            k for k, h in enumerate(haplotypes) if h.id == id_i
+                        )
                         for id_j in active_clusters[idx_j]:
-                            j_pos = next(k for k, h in enumerate(haplotypes) if h.id == id_j)
+                            j_pos = next(
+                                k for k, h in enumerate(haplotypes) if h.id == id_j
+                            )
                             if i_pos < n and j_pos < n:
                                 min_dist = min(min_dist, dist_matrix[i_pos, j_pos])
 
@@ -383,7 +387,9 @@ class ParsimonyNetwork(NetworkAlgorithm):
             length_diff = abs(len1 - len2)
             # Compare only the overlapping part
             min_len = min(len1, len2)
-            distance = sum(c1 != c2 for c1, c2 in zip(seq1.data[:min_len], seq2.data[:min_len]))
+            distance = sum(
+                c1 != c2 for c1, c2 in zip(seq1.data[:min_len], seq2.data[:min_len])
+            )
             distance += length_diff
             return float(distance)
 
