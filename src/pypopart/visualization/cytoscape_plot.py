@@ -109,6 +109,7 @@ class InteractiveCytoscapePlotter:
         layout: Optional[Dict[str, Tuple[float, float]]] = None,
         node_size_scale: float = 20.0,
         population_colors: Optional[Dict[str, str]] = None,
+        population_mapping: Optional[Dict[str, str]] = None,
         show_labels: bool = True,
         show_edge_labels: bool = True,
         median_vector_color: str = '#D3D3D3',
@@ -125,6 +126,8 @@ class InteractiveCytoscapePlotter:
             Scaling factor for node sizes.
         population_colors :
             Color mapping for populations {pop_name: color}.
+        population_mapping :
+            Mapping of sample_id to population {sample_id: population}.
         show_labels :
             Whether to show node labels.
         show_edge_labels :
@@ -179,7 +182,18 @@ class InteractiveCytoscapePlotter:
 
             # Add population pie chart data if available
             if not is_median and hap and population_colors:
+                # Try to get population counts from haplotype first
                 pop_counts = hap.get_frequency_by_population()
+
+                # If haplotype doesn't have population data but we have a mapping,
+                # manually compute population counts from sample_ids
+                if (not pop_counts or pop_counts.get('Unassigned')) and population_mapping and hap.sample_ids:
+                    pop_counts = {}
+                    for sample_id in hap.sample_ids:
+                        if sample_id in population_mapping:
+                            pop = population_mapping[sample_id]
+                            pop_counts[pop] = pop_counts.get(pop, 0) + 1
+
                 if pop_counts and len(pop_counts) > 1:
                     # Multiple populations - prepare for pie chart display
                     total = sum(pop_counts.values())
@@ -232,10 +246,18 @@ class InteractiveCytoscapePlotter:
                 node_data['hover'] = f'{node} (Median Vector)'
             elif hap:
                 hover_lines = [f'{node}', f'Frequency: {hap.frequency}']
-                pop_counts = hap.get_frequency_by_population()
-                if pop_counts:
+                # Get population counts (using same logic as above)
+                hover_pop_counts = hap.get_frequency_by_population()
+                if (not hover_pop_counts or hover_pop_counts.get('Unassigned')) and population_mapping and hap.sample_ids:
+                    hover_pop_counts = {}
+                    for sample_id in hap.sample_ids:
+                        if sample_id in population_mapping:
+                            pop = population_mapping[sample_id]
+                            hover_pop_counts[pop] = hover_pop_counts.get(pop, 0) + 1
+
+                if hover_pop_counts:
                     hover_lines.append('Populations:')
-                    for pop, count in sorted(pop_counts.items()):
+                    for pop, count in sorted(hover_pop_counts.items()):
                         hover_lines.append(f'  {pop}: {count}')
                 node_data['hover'] = '\n'.join(hover_lines)
             else:
@@ -429,6 +451,7 @@ def create_cytoscape_network(
     network: HaplotypeNetwork,
     layout: Optional[Dict[str, Tuple[float, float]]] = None,
     population_colors: Optional[Dict[str, str]] = None,
+    population_mapping: Optional[Dict[str, str]] = None,
     node_size_scale: float = 20.0,
     show_labels: bool = True,
     show_edge_labels: bool = True,
@@ -446,6 +469,8 @@ def create_cytoscape_network(
         Pre-computed node positions {node_id: (x, y)}.
     population_colors :
         Color mapping for populations.
+    population_mapping :
+        Mapping of sample_id to population {sample_id: population}.
     node_size_scale :
         Scaling factor for node sizes.
     show_labels :
@@ -482,6 +507,7 @@ def create_cytoscape_network(
         layout=layout,
         node_size_scale=node_size_scale,
         population_colors=population_colors,
+        population_mapping=population_mapping,
         show_labels=show_labels,
         show_edge_labels=show_edge_labels,
         median_vector_color=median_vector_color,
