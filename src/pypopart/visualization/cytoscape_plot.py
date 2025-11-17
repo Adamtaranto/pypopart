@@ -187,7 +187,8 @@ class InteractiveCytoscapePlotter:
 
                 # If haplotype doesn't have population data but we have a mapping,
                 # manually compute population counts from sample_ids
-                if (not pop_counts or pop_counts.get('Unassigned')) and population_mapping and hap.sample_ids:
+                # Only recalculate if pop_counts is empty or only contains 'Unassigned'
+                if (not pop_counts or (len(pop_counts) == 1 and 'Unassigned' in pop_counts)) and population_mapping and hap.sample_ids:
                     pop_counts = {}
                     for sample_id in hap.sample_ids:
                         if sample_id in population_mapping:
@@ -248,7 +249,8 @@ class InteractiveCytoscapePlotter:
                 hover_lines = [f'{node}', f'Frequency: {hap.frequency}']
                 # Get population counts (using same logic as above)
                 hover_pop_counts = hap.get_frequency_by_population()
-                if (not hover_pop_counts or hover_pop_counts.get('Unassigned')) and population_mapping and hap.sample_ids:
+                # Only recalculate if hover_pop_counts is empty or only contains 'Unassigned'
+                if (not hover_pop_counts or (len(hover_pop_counts) == 1 and 'Unassigned' in hover_pop_counts)) and population_mapping and hap.sample_ids:
                     hover_pop_counts = {}
                     for sample_id in hap.sample_ids:
                         if sample_id in population_mapping:
