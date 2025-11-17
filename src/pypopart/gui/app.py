@@ -340,6 +340,10 @@ class PyPopARTApp:
                                     'value': 'spring',
                                 },
                                 {
+                                    'label': 'Spring - Proportional Edge Length',
+                                    'value': 'spring_proportional',
+                                },
+                                {
                                     'label': 'Spectral (Fast, Large networks)',
                                     'value': 'spectral',
                                 },
@@ -348,6 +352,10 @@ class PyPopARTApp:
                                 {
                                     'label': 'Kamada-Kawai (High quality, slow)',
                                     'value': 'kamada_kawai',
+                                },
+                                {
+                                    'label': 'Kamada-Kawai - Proportional Edge Length',
+                                    'value': 'kamada_kawai_proportional',
                                 },
                                 #                                {
                                 #'label': 'Geographic (requires coordinates)',
@@ -434,18 +442,6 @@ class PyPopARTApp:
                             value=3,
                             marks={1: '1', 3: '3', 6: '6', 10: '10'},
                             tooltip={'placement': 'bottom', 'always_visible': False},
-                        ),
-                        html.Br(),
-                        dbc.Checklist(
-                            options=[
-                                {
-                                    'label': 'Edge length proportional to mutations',
-                                    'value': 'proportional_edges',
-                                }
-                            ],
-                            value=[],
-                            id='edge-length-proportional',
-                            switch=True,
                         ),
                         html.Br(),
                         dbc.Button(
@@ -1172,7 +1168,10 @@ class PyPopARTApp:
                         {
                             'source': u,
                             'target': v,
-                            'weight': network.graph[u][v].get('weight', 1),
+                            # Distance contains mutation count (from original graph data)
+                            'distance': network.graph[u][v].get('distance', network.graph[u][v].get('weight', 1)),
+                            # Weight is always 1.0 for uniform edge weights
+                            'weight': 1.0,
                         }
                         for u, v in network.graph.edges()
                     ],
@@ -1248,29 +1247,81 @@ class PyPopARTApp:
                 # Reconstruct network
                 network = HaplotypeNetwork.from_serialized(network_data)
 
-                # Apply layout
-                if layout_method == 'geographic':
-                    # Geographic layout requires metadata with coordinates
-                    if not metadata_data or not metadata_data.get('coordinates'):
-                        # Fall back to spring layout if no coordinates
-                        layout_manager = LayoutManager(network)
-                        positions = layout_manager.compute_layout('spring')
-                    else:
-                        geo_layout = GeographicLayout(network)
-                        positions = geo_layout.compute(
-                            coordinates=metadata_data['coordinates'],
-                            projection=projection or 'mercator',
-                        )
-                else:
-                    layout_manager = LayoutManager(network)
-                    positions = layout_manager.compute_layout(layout_method)
+                # Check if this is a proportional edge layout
+                use_proportional_edges = layout_method in [
+                    'spring_proportional',
+                    'kamada_kawai_proportional',
+                ]
 
-                # Apply spacing factor to expand/contract the layout
-                if spacing_factor and spacing_factor != 1.0:
-                    positions = {
-                        node: (pos[0] * spacing_factor, pos[1] * spacing_factor)
-                        for node, pos in positions.items()
-                    }
+                # Apply proportional edge length layouts
+                if use_proportional_edges:
+                    import networkx as nx
+
+                    # Create a copy of the graph
+                    G = network.graph.copy()
+
+                    # Set edge length proportional to mutation count (stored in distance)
+                    for u, v in G.edges():
+                        mutations = G[u][v].get('distance', 1)
+
+                        # Scale mutation count to pixel distance
+                        # Base length of 100px + 50px per mutation
+                        # e.g., 1 mutation = 150px, 7 mutations = 450px
+                        G[u][v]['ideal_length'] = 100 + (mutations * 50)
+
+                    self.logger.info(
+                        f'Applying {layout_method} layout with proportional edge lengths'
+                    )
+
+                    if layout_method == 'spring_proportional':
+                        # Spring layout with edge lengths
+                        # NetworkX spring_layout uses 'weight' inversely
+                        # We need to invert our ideal_length
+                        for u, v in G.edges():
+                            ideal_len = G[u][v]['ideal_length']
+                            # Invert: short edges (low mutations) get high weight (attract more)
+                            # long edges (high mutations) get low weight (attract less)
+                            G[u][v]['spring_weight'] = 1.0 / ideal_len
+
+                        positions = nx.spring_layout(
+                            G,
+                            weight='spring_weight',
+                            k=0.5,  # Optimal distance scaling factor
+                            iterations=100,  # More iterations for better convergence
+                            scale=spacing_factor * 500,
+                        )
+
+                    elif layout_method == 'kamada_kawai_proportional':
+                        # Kamada-Kawai layout respects edge distances directly
+                        # Use ideal_length as the weight (desired distance)
+                        positions = nx.kamada_kawai_layout(
+                            G, weight='ideal_length', scale=spacing_factor * 500
+                        )
+
+                # Apply standard layouts (non-proportional)
+                else:
+                    if layout_method == 'geographic':
+                        # Geographic layout requires metadata with coordinates
+                        if not metadata_data or not metadata_data.get('coordinates'):
+                            # Fall back to spring layout if no coordinates
+                            layout_manager = LayoutManager(network)
+                            positions = layout_manager.compute_layout('spring')
+                        else:
+                            geo_layout = GeographicLayout(network)
+                            positions = geo_layout.compute(
+                                coordinates=metadata_data['coordinates'],
+                                projection=projection or 'mercator',
+                            )
+                    else:
+                        layout_manager = LayoutManager(network)
+                        positions = layout_manager.compute_layout(layout_method)
+
+                    # Apply spacing factor to expand/contract the layout
+                    if spacing_factor and spacing_factor != 1.0:
+                        positions = {
+                            node: (pos[0] * spacing_factor, pos[1] * spacing_factor)
+                            for node, pos in positions.items()
+                        }
 
                 # Convert to serializable format
                 layout_data = {node: list(pos) for node, pos in positions.items()}
@@ -2437,7 +2488,6 @@ class PyPopARTApp:
             [
                 Input('node-size-slider', 'value'),
                 Input('edge-width-slider', 'value'),
-                Input('edge-length-proportional', 'value'),
             ],
             State('network-graph', 'stylesheet'),
             prevent_initial_call=True,
@@ -2445,15 +2495,11 @@ class PyPopARTApp:
         def update_node_edge_sizes(
             node_size: int,
             edge_width: float,
-            proportional_edges: List[str],
             current_stylesheet: List[Dict],
         ) -> List[Dict]:
             """Update node size and edge width in stylesheet."""
             if not current_stylesheet:
                 raise PreventUpdate
-
-            # Determine if edges should be proportional to mutations
-            use_proportional_edges = 'proportional_edges' in (proportional_edges or [])
 
             # Create a copy of the stylesheet
             new_stylesheet = []
@@ -2477,27 +2523,12 @@ class PyPopARTApp:
                         f'mapData(size, 0, 100, 0, {100 * scale_factor})'
                     )
 
-                # Update edge width and optionally edge length
+                # Update edge width
                 elif style.get('selector') == 'edge':
                     if 'style' not in new_style:
                         new_style['style'] = {}
                     new_style['style'] = {**new_style['style']}
                     new_style['style']['width'] = edge_width
-
-                    # If proportional edges enabled, map edge length to weight (mutations)
-                    if use_proportional_edges:
-                        # Use unbundled-bezier to allow variable edge lengths
-                        new_style['style']['curve-style'] = 'unbundled-bezier'
-                        # Edge distance is proportional to weight
-                        # Map weight 1-10 to distance multiplier 50-500
-                        new_style['style']['edge-distances'] = 'node-position'
-                        new_style['style']['control-point-distances'] = (
-                            'mapData(weight, 1, 10, 50, 500)'
-                        )
-                        new_style['style']['control-point-weights'] = '0.5'
-                    else:
-                        # Use regular bezier curve
-                        new_style['style']['curve-style'] = 'bezier'
 
                 new_stylesheet.append(new_style)
 
