@@ -194,9 +194,13 @@ class InteractiveCytoscapePlotter:
                         if sample_id in population_mapping:
                             pop = population_mapping[sample_id]
                             pop_counts[pop] = pop_counts.get(pop, 0) + 1
+                        else:
+                            # Track unassigned samples
+                            pop_counts['Unassigned'] = pop_counts.get('Unassigned', 0) + 1
 
-                if pop_counts and len(pop_counts) > 1:
-                    # Multiple populations - prepare for pie chart display
+                # Generate pie chart for all nodes with population data (including single population)
+                if pop_counts and len(pop_counts) >= 1:
+                    # Prepare pie chart display for all nodes with populations
                     total = sum(pop_counts.values())
                     pie_data = []
                     pie_colors = []
@@ -205,15 +209,21 @@ class InteractiveCytoscapePlotter:
                     for pop, count in sorted(pop_counts.items()):
                         if count > 0:
                             percent = (count / total) * 100
+                            # Use light grey (#D3D3D3) for Unassigned, otherwise use population color
+                            if pop == 'Unassigned':
+                                color = '#D3D3D3'  # Light grey for unassigned
+                            else:
+                                color = population_colors.get(pop, '#cccccc')
+
                             pie_data.append(
                                 {
                                     'population': pop,
                                     'value': count,
                                     'percent': percent,
-                                    'color': population_colors.get(pop, '#cccccc'),
+                                    'color': color,
                                 }
                             )
-                            pie_colors.append(population_colors.get(pop, '#cccccc'))
+                            pie_colors.append(color)
                             pie_sizes.append(percent)
 
                     # Store pie chart data for custom rendering
@@ -227,11 +237,6 @@ class InteractiveCytoscapePlotter:
 
                     # Use transparent background to show pie chart
                     node_data['color'] = 'transparent'
-                elif pop_counts:
-                    # Single population
-                    node_data['has_pie'] = False
-                    pop = list(pop_counts.keys())[0]
-                    node_data['color'] = population_colors.get(pop, '#87CEEB')
                 else:
                     node_data['has_pie'] = False
                     node_data['color'] = '#87CEEB'
@@ -256,6 +261,9 @@ class InteractiveCytoscapePlotter:
                         if sample_id in population_mapping:
                             pop = population_mapping[sample_id]
                             hover_pop_counts[pop] = hover_pop_counts.get(pop, 0) + 1
+                        else:
+                            # Track unassigned samples in hover text too
+                            hover_pop_counts['Unassigned'] = hover_pop_counts.get('Unassigned', 0) + 1
 
                 if hover_pop_counts:
                     hover_lines.append('Populations:')
