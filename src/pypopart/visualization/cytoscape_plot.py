@@ -380,6 +380,7 @@ class InteractiveCytoscapePlotter:
                 'selector': 'node[pie_svg]',
                 'style': {
                     'background-color': 'transparent',
+                    'background-opacity': 0.1,
                     'background-image': 'data(pie_svg)',
                     'background-fit': 'contain',
                     'background-clip': 'node',
