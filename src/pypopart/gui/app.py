@@ -2451,12 +2451,16 @@ class PyPopARTApp:
 
         # Use clientside callback for tooltip positioning
         # This gets the actual rendered position from Cytoscape
-        # The callback hides tooltip when mouse moves away by checking for null/undefined hover data
+        # Combined approach: handles mouseout events and background clicks
         self.app.clientside_callback(
             """
-            function(hoverData, edgeHoverData) {
-                // Hide tooltip if no node data or if hovering over edge instead of node
-                if (!hoverData || (edgeHoverData && !hoverData)) {
+            function(hoverData, mouseoutData, edgeHoverData, tapData) {
+                // Hide tooltip if:
+                // 1. Mouse moved out of a node
+                // 2. Clicked on background (tapData is null)
+                // 3. No hover data
+                // 4. Hovering over edge instead of node
+                if (mouseoutData || !tapData || !hoverData || (edgeHoverData && !hoverData)) {
                     return {display: 'none'};
                 }
 
@@ -2507,7 +2511,9 @@ class PyPopARTApp:
             Output('node-tooltip', 'style'),
             [
                 Input('network-graph', 'mouseoverNodeData'),
+                Input('network-graph', 'mouseoutNodeData'),
                 Input('network-graph', 'mouseoverEdgeData'),
+                Input('network-graph', 'tapData'),
             ],
         )
 
@@ -2804,23 +2810,6 @@ class PyPopARTApp:
             """,
             Output('network-graph', 'zoom'),
             [Input('network-graph', 'elements'), Input('manual-edit-flag', 'data')],
-        )
-
-        # Clientside callback to hide tooltip when clicking on background
-        self.app.clientside_callback(
-            """
-            function(tapData) {
-                // If tap is not on a node (tapData is null or undefined), hide tooltip
-                if (!tapData) {
-                    return {display: 'none'};
-                }
-                // Otherwise, don't update (let hover handler manage tooltip)
-                return window.dash_clientside.no_update;
-            }
-            """,
-            Output('node-tooltip', 'style', allow_duplicate=True),
-            Input('network-graph', 'tapData'),
-            prevent_initial_call=True,
         )
 
         # Clientside callback to handle window resize and adjust network layout
