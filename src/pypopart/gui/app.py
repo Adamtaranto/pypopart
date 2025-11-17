@@ -349,10 +349,10 @@ class PyPopARTApp:
                                     'label': 'Kamada-Kawai (High quality, slow)',
                                     'value': 'kamada_kawai',
                                 },
-                                {
-                                    'label': 'Geographic (requires coordinates)',
-                                    'value': 'geographic',
-                                },
+                                #                                {
+                                #'label': 'Geographic (requires coordinates)',
+                                #'value': 'geographic',
+                                #                                },
                             ],
                             value='hierarchical',
                             style={'whiteSpace': 'nowrap'},
