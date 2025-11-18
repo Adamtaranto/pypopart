@@ -396,7 +396,7 @@ Topics covered:
 
 ## Citation
 
-If you use PyPopART in your research, please cite the original PopART paper as well as this repository:
+If you use PyPopART in your research, please cite the original [PopART paper](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12410) as well as this repository:
 
 ```text
 Leigh, J.W., Bryant, D. and Nakagawa, S., 2015. POPART: full-feature software for haplotype network construction. Methods in Ecology & Evolution, 6(9).
@@ -435,7 +435,6 @@ pre-commit install
 ## Related Projects
 
 - [PopART](https://github.com/jessicawleigh/popart-current) - Original PopART software
-- [pegas](https://cran.r-project.org/package=pegas) - R package for population genetics
 
 ## Acknowledgments
 
