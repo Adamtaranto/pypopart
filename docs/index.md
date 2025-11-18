@@ -6,11 +6,12 @@ Welcome to **PyPopART** - a pure Python implementation of PopART (Population Ana
 
 PyPopART provides a complete toolkit for:
 
-- **Network Construction**: Four algorithms (MST, MSN, TCS, MJN)
+- **Network Construction**: Six algorithms (MST, MSN, TCS, MJN, PN, TSW)
 - **Distance Calculation**: Multiple evolutionary models
 - **Network Analysis**: Comprehensive statistics and topology analysis
-- **Visualization**: Static and interactive network plots
+- **Visualization**: Static, interactive, and web-based network plots
 - **Population Genetics**: Diversity measures, FST, Tajima's D, and more
+- **Dual Interface**: Command-line tools and web-based GUI
 
 ## Key Features
 
@@ -20,6 +21,8 @@ PyPopART provides a complete toolkit for:
 - **MSN** (Minimum Spanning Network): Shows alternative connections
 - **TCS** (Statistical Parsimony): Statistically justified connections
 - **MJN** (Median-Joining): Infers ancestral haplotypes
+- **PN** (Parsimony Network): Consensus from multiple trees
+- **TSW** (Tight Span Walker): Metric-preserving network construction
 
 ### 📏 Distance Metrics
 
@@ -48,15 +51,65 @@ PyPopART provides a complete toolkit for:
 - Output: GraphML, GML, JSON, NEXUS
 - Metadata support (populations, traits, locations)
 
-## Quick Example
+## Entry Points
 
-### Command Line
+PyPopART offers two interfaces for different workflows:
+
+### Command-Line Interface (CLI)
+
+For automation, scripting, and batch processing:
 
 ```bash
+# Get help
+pypopart --help
+
+# List available algorithms
+pypopart info --list-algorithms
+
 # Construct a median-joining network
 pypopart network sequences.fasta -o network.graphml
 
 # Visualize the network
+pypopart visualize network.graphml -o network.png
+```
+
+### Web-based GUI
+
+For interactive analysis and exploration:
+
+```bash
+# Start the GUI application
+pypopart-gui
+
+# Opens web interface at http://localhost:8050
+# or specify custom port:
+pypopart-gui --port 8080
+```
+
+The GUI provides:
+- Drag-and-drop file upload
+- Interactive network visualization (zoom, pan, drag nodes)
+- Real-time algorithm parameter adjustment
+- Population-based coloring with pie charts
+- Multiple layout algorithms
+- Network statistics and haplotype summaries
+- Export to various formats
+
+## Quick Examples
+
+### Command Line Workflow
+
+```bash
+# Load and validate sequences
+pypopart load sequences.fasta
+
+# Construct network with TCS algorithm
+pypopart network sequences.fasta -a tcs -o network.graphml
+
+# Analyze network statistics
+pypopart analyze network.graphml --stats
+
+# Create visualization
 pypopart visualize network.graphml -o network.png
 ```
 

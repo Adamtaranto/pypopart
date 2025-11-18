@@ -7,12 +7,13 @@
 
 ## Features
 
-- **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), Median-Joining (MJN), TSW (Parsimony Network), and Parsimony Network (PN)
+- **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), Median-Joining (MJN), Parsimony Network (PN), and Tight Span Walker (TSW)
 - **Distance Metrics**: Hamming, Jukes-Cantor, Kimura 2-parameter, Tamura-Nei
 - **Comprehensive Analysis**: Network statistics, topology analysis, population genetics measures
-- **Rich Visualization**: Static (matplotlib) and interactive (Plotly) network plots
+- **Rich Visualization**: Static (matplotlib) and interactive (Plotly, Dash Cytoscape) network plots
 - **Flexible I/O**: Support for FASTA, NEXUS, PHYLIP, GenBank formats
 - **Command-Line Interface**: Easy-to-use CLI for all operations
+- **Web-based GUI**: Interactive Dash application for network construction and visualization
 - **Python API**: Programmatic access for custom workflows
 
 ## Installation
@@ -31,6 +32,21 @@ pip install -e ".[dev]"
 - Dependencies: biopython, click, matplotlib, networkx, numpy, pandas, plotly, scipy, scikit-learn, numba
 
 ## Quick Start
+
+### Entry Points
+
+PyPopART provides two main interfaces:
+
+**1. Command-Line Interface (CLI)** - For scripting and batch processing:
+```bash
+pypopart --help
+```
+
+**2. Web-based GUI** - For interactive analysis:
+```bash
+pypopart-gui
+# Opens web interface at http://localhost:8050
+```
 
 ### Command-Line Interface
 
@@ -105,12 +121,52 @@ pypopart visualize network.graphml -o network.html --interactive
 # List available algorithms
 pypopart info --list-algorithms
 
+# Output:
+# Available Network Construction Algorithms:
+#   mst - Minimum Spanning Tree
+#   msn - Minimum Spanning Network
+#   tcs - Statistical Parsimony (TCS)
+#   mjn - Median-Joining Network
+#   pn  - Parsimony Network (consensus from multiple trees)
+#   tsw - Tight Span Walker (metric-preserving network)
+
 # List distance metrics
 pypopart info --list-distances
 
 # List supported formats
 pypopart info --list-formats
 ```
+
+### Web-based GUI
+
+Launch the interactive Dash application:
+
+```bash
+# Start GUI on default port 8050
+pypopart-gui
+
+# Start on custom port
+pypopart-gui --port 8080
+
+# Enable debug mode
+pypopart-gui --debug
+```
+
+Once started, open your browser to `http://localhost:8050` and follow the workflow:
+
+1. **Upload Data**: Load sequence alignment (FASTA, NEXUS, or PHYLIP) and optional metadata (CSV)
+2. **Configure Algorithm**: Choose network algorithm (MST, MSN, TCS, MJN, PN, TSW) and parameters
+3. **Compute Network**: Build the haplotype network
+4. **Customize Layout**: Adjust node positions, sizes, spacing, and layout algorithms
+5. **Export Results**: Download network (GraphML, GML, JSON) or images (PNG, SVG)
+
+**Features:**
+- Interactive network visualization with zoom and pan
+- Drag-and-drop node repositioning
+- Population-based coloring (pie charts for mixed nodes)
+- Search and highlight specific haplotypes
+- Real-time statistics and haplotype summary
+- Multiple layout algorithms (Spring, Hierarchical, Kamada-Kawai, etc.)
 
 ### Python API
 
@@ -150,7 +206,9 @@ Creates a tree connecting all haplotypes with minimum total distance.
 pypopart network sequences.fasta -a mst -o network.graphml
 ```
 
-**Use when**: You want the simplest possible network structure.
+**Use when**: You want the simplest possible network structure without reticulation.
+
+**Properties**: Always produces a tree (no cycles), guaranteed minimum total edge weight.
 
 ### Minimum Spanning Network (MSN)
 
@@ -162,6 +220,8 @@ pypopart network sequences.fasta -a msn -o network.graphml
 
 **Use when**: You want to show alternative evolutionary pathways at the same genetic distance.
 
+**Properties**: Includes all edges tied for minimum distance, may contain reticulations.
+
 ### TCS (Statistical Parsimony)
 
 Connects haplotypes within a parsimony probability limit (default 95%).
@@ -172,6 +232,8 @@ pypopart network sequences.fasta -a tcs -p 0.95 -o network.graphml
 
 **Use when**: You want statistically justified connections based on parsimony.
 
+**Properties**: Uses connection limits based on parsimony probability, good for intraspecific data.
+
 ### Median-Joining Network (MJN)
 
 Infers ancestral/median sequences and creates a reticulate network.
@@ -180,7 +242,13 @@ Infers ancestral/median sequences and creates a reticulate network.
 pypopart network sequences.fasta -a mjn -e 0 -o network.graphml
 ```
 
-**Use when**: You want to infer ancestral haplotypes and show complex evolutionary relationships. The epsilon parameter controls network complexity (0 = maximum simplification).
+**Use when**: You want to infer ancestral haplotypes and show complex evolutionary relationships.
+
+**Properties**: 
+- Infers median vectors (ancestral nodes)
+- Epsilon parameter controls complexity (0 = maximum simplification)
+- Handles reticulation and homoplasy
+- Good for closely related sequences
 
 ### Parsimony Network (PN)
 
@@ -190,16 +258,16 @@ Creates a consensus network by sampling edges from multiple random parsimony tre
 pypopart network sequences.fasta -a pn -o network.graphml
 ```
 
-**Use when**: You want a consensus approach that captures phylogenetic uncertainty across multiple tree topologies. This method samples 100 random parsimony trees by default and includes edges that appear frequently.
+**Use when**: You want a consensus approach that captures phylogenetic uncertainty across multiple tree topologies.
 
-**Features**:
-
-- Captures phylogenetic uncertainty through tree sampling
-- Can represent reticulation events where multiple edges have similar frequencies
+**Properties**:
+- Samples 100 random parsimony trees by default
+- Includes edges that appear frequently across trees
+- Can represent reticulation where multiple edges have similar frequencies
 - Automatically infers median vertices for multi-mutation edges
-- Handles sequences with gaps by treating length differences as mutations
+- Good for datasets with phylogenetic uncertainty
 
-### Tight Span Walker (TSW) - Parsimony Network
+### Tight Span Walker (TSW)
 
 Constructs networks using the tight span of the distance matrix, preserving all metric properties.
 
@@ -207,7 +275,14 @@ Constructs networks using the tight span of the distance matrix, preserving all 
 pypopart network sequences.fasta -a tsw -o network.graphml
 ```
 
-**Use when**: You need accurate metric-preserving networks for complex evolutionary relationships with reticulation. Best for small to medium datasets (n < 100). Automatically infers ancestral/median sequences.
+**Use when**: You need accurate metric-preserving networks for complex evolutionary relationships with reticulation.
+
+**Properties**:
+- Preserves all metric properties of the distance matrix
+- Automatically infers ancestral/median sequences
+- Best for small to medium datasets (n < 100)
+- Computationally intensive but highly accurate
+- Handles reticulation and complex evolutionary patterns
 
 ## Distance Metrics
 
