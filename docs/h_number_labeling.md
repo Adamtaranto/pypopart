@@ -123,7 +123,7 @@ The system performs the following validations:
 
 ## Persistence
 
-- Custom labels persist across layout changes (e.g., switching from hierarchical to geographic)
+- Custom labels persist across layout changes (e.g., switching from hierarchical to spring)
 - Custom labels are **not** saved with the network export (they're display-only)
 - To reset to default labels, compute a new network or reload the page
 - To update labels, download a fresh template and upload a new mapping

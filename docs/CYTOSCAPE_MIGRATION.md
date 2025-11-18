@@ -80,7 +80,7 @@ Available layout algorithms:
 - **Radial:** Radial tree layout
 - **Hierarchical:** Hierarchical tree structure
 - **Kamada-Kawai:** Force-directed with minimum energy
-- **Geographic:** Position based on geographic coordinates (requires metadata)
+- **Spring/KK Proportional:** Edge lengths proportional to mutation distances
 
 ### Color Generation
 
