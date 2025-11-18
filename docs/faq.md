@@ -281,7 +281,7 @@ save_network(net, 'network.json', format='json')
 
 ### How can I contribute?
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+See the [Contributing Guide](contributing.md) for guidelines.
 
 ### Where should I report bugs?
 
