@@ -190,10 +190,10 @@ class TestPyPopARTApp:
 
     def test_stylesheet_has_selected_pseudo_selector(self):
         """Test that stylesheet includes :selected pseudo-selector for node click highlighting."""
-        from pypopart.visualization.cytoscape_plot import InteractiveCytoscapePlotter
         from pypopart.core.graph import HaplotypeNetwork
         from pypopart.core.haplotype import Haplotype
         from pypopart.core.sequence import Sequence
+        from pypopart.visualization.cytoscape_plot import InteractiveCytoscapePlotter
 
         # Create a simple test network
         network = HaplotypeNetwork()
@@ -206,8 +206,12 @@ class TestPyPopARTApp:
         stylesheet = plotter.create_stylesheet()
 
         # Check that :selected pseudo-selector exists in stylesheet
-        selected_styles = [s for s in stylesheet if s.get('selector') == 'node:selected']
-        assert len(selected_styles) == 1, 'Stylesheet should have exactly one node:selected style'
+        selected_styles = [
+            s for s in stylesheet if s.get('selector') == 'node:selected'
+        ]
+        assert len(selected_styles) == 1, (
+            'Stylesheet should have exactly one node:selected style'
+        )
 
         # Verify the selected style has proper red border
         selected_style = selected_styles[0]

@@ -2,9 +2,9 @@
 
 import pytest
 
+from pypopart.algorithms.mst import MinimumSpanningTree
 from pypopart.core.alignment import Alignment
 from pypopart.core.sequence import Sequence
-from pypopart.algorithms.mst import MinimumSpanningTree
 from pypopart.visualization.cytoscape_plot import (
     InteractiveCytoscapePlotter,
     create_cytoscape_network,
@@ -147,7 +147,10 @@ class TestPopulationMapping:
 
         # Find nodes with single population
         single_pop_nodes = [
-            n for n in nodes if not n['data'].get('has_pie', False) and not n['data'].get('is_median', False)
+            n
+            for n in nodes
+            if not n['data'].get('has_pie', False)
+            and not n['data'].get('is_median', False)
         ]
 
         # At least one node should have single population
@@ -203,7 +206,8 @@ class TestPopulationMapping:
         nodes = [
             e
             for e in elements
-            if 'source' not in e.get('data', {}) and not e['data'].get('is_median', False)
+            if 'source' not in e.get('data', {})
+            and not e['data'].get('is_median', False)
         ]
 
         # Check that hover text exists and contains population info

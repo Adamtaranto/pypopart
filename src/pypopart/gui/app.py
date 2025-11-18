@@ -37,7 +37,7 @@ from pypopart.core.graph import HaplotypeNetwork
 from pypopart.io import FastaReader, NexusReader, PhylipReader
 from pypopart.io.metadata import MetadataReader, extract_coordinates
 from pypopart.io.network_export import GMLExporter, GraphMLExporter, JSONExporter
-from pypopart.layout.algorithms import GeographicLayout, LayoutManager
+from pypopart.layout.algorithms import LayoutManager
 from pypopart.stats import (
     calculate_diversity_metrics,
     calculate_network_metrics,
@@ -2108,7 +2108,8 @@ class PyPopARTApp:
                         s.get('selector', '').startswith('node[id = "')
                         and 'border-color' in s.get('style', {})
                         and s.get('style', {}).get('border-color') == '#FF0000'
-                        and s.get('style', {}).get('border-width') == '5px'  # Only remove search highlights (5px)
+                        and s.get('style', {}).get('border-width')
+                        == '5px'  # Only remove search highlights (5px)
                     )
                 ]
 
@@ -2117,7 +2118,8 @@ class PyPopARTApp:
                     s.get('selector') == 'node:selected' for s in base_stylesheet
                 )
                 has_pie_selected_style = any(
-                    s.get('selector') == 'node[pie_svg]:selected' for s in base_stylesheet
+                    s.get('selector') == 'node[pie_svg]:selected'
+                    for s in base_stylesheet
                 )
 
                 if not has_selected_style:
