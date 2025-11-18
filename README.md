@@ -10,7 +10,7 @@
 - **Multiple Network Algorithms**: MST, MSN, TCS (Statistical Parsimony), Median-Joining (MJN), Parsimony Network (PN), and Tight Span Walker (TSW)
 - **Distance Metrics**: Hamming, Jukes-Cantor, Kimura 2-parameter, Tamura-Nei
 - **Comprehensive Analysis**: Network statistics, topology analysis, population genetics measures
-- **Rich Visualization**: Static (matplotlib) and interactive (Plotly, Dash Cytoscape) network plots
+- **Rich Visualization**: Static (matplotlib) and interactive (Dash Cytoscape) network plots
 - **Flexible I/O**: Support for FASTA, NEXUS, PHYLIP, GenBank formats
 - **Command-Line Interface**: Easy-to-use CLI for all operations
 - **Web-based GUI**: Interactive Dash application for network construction and visualization
@@ -38,11 +38,13 @@ pip install -e ".[dev]"
 PyPopART provides two main interfaces:
 
 **1. Command-Line Interface (CLI)** - For scripting and batch processing:
+
 ```bash
 pypopart --help
 ```
 
 **2. Web-based GUI** - For interactive analysis:
+
 ```bash
 pypopart-gui
 # Opens web interface at http://localhost:8050
@@ -161,6 +163,7 @@ Once started, open your browser to `http://localhost:8050` and follow the workfl
 5. **Export Results**: Download network (GraphML, GML, JSON) or images (PNG, SVG)
 
 **Features:**
+
 - Interactive network visualization with zoom and pan
 - Drag-and-drop node repositioning
 - Population-based coloring (pie charts for mixed nodes)
@@ -244,7 +247,8 @@ pypopart network sequences.fasta -a mjn -e 0 -o network.graphml
 
 **Use when**: You want to infer ancestral haplotypes and show complex evolutionary relationships.
 
-**Properties**: 
+**Properties**:
+
 - Infers median vectors (ancestral nodes)
 - Epsilon parameter controls complexity (0 = maximum simplification)
 - Handles reticulation and homoplasy
@@ -261,6 +265,7 @@ pypopart network sequences.fasta -a pn -o network.graphml
 **Use when**: You want a consensus approach that captures phylogenetic uncertainty across multiple tree topologies.
 
 **Properties**:
+
 - Samples 100 random parsimony trees by default
 - Includes edges that appear frequently across trees
 - Can represent reticulation where multiple edges have similar frequencies
@@ -278,6 +283,7 @@ pypopart network sequences.fasta -a tsw -o network.graphml
 **Use when**: You need accurate metric-preserving networks for complex evolutionary relationships with reticulation.
 
 **Properties**:
+
 - Preserves all metric properties of the distance matrix
 - Automatically infers ancestral/median sequences
 - Best for small to medium datasets (n < 100)
@@ -310,13 +316,8 @@ pypopart network sequences.fasta -d k2p -o network.graphml
 - **GML** (`.gml`)
 - **JSON** (`.json`)
 - **NEXUS** (`.nexus`, `.nex`)
-
-### Visualization Formats
-
 - **PNG** (`.png`) - Raster image
-- **PDF** (`.pdf`) - Vector, publication-ready
 - **SVG** (`.svg`) - Vector, web-friendly
-- **HTML** (`.html`) - Interactive
 
 ## Advanced Usage
 
@@ -333,10 +334,10 @@ pypopart visualize network.graphml -o network.png --color-by population
 Metadata CSV format:
 
 ```csv
-id,population,location
-Hap1,PopA,Site1
-Hap2,PopA,Site1
-Hap3,PopB,Site2
+id,population,latitude,longitude,color,notes
+Hap1,PopA,,,,,
+Hap2,PopA,,,,,
+Hap3,PopB,,,,,
 ```
 
 ### Network Analysis
@@ -378,8 +379,6 @@ Example data and Jupyter notebooks can be found in the `examples/` directory:
 - `01_basic_workflow.ipynb` - Complete workflow from sequences to network
 - `02_algorithm_comparison.ipynb` - Comparing different network algorithms
 - `03_visualization_options.ipynb` - Customizing network plots
-- `04_population_genetics.ipynb` - Population genetics analysis
-- `05_real_world_example.ipynb` - Case study with real data
 
 ## Documentation
 
@@ -394,13 +393,14 @@ Topics covered:
 - Population genetics measures
 - File format specifications
 - Troubleshooting guide
-- Contributing guidelines
 
 ## Citation
 
-If you use PyPopART in your research, please cite:
+If you use PyPopART in your research, please cite the original PopART paper as well as this repository:
 
 ```text
+Leigh, J.W., Bryant, D. and Nakagawa, S., 2015. POPART: full-feature software for haplotype network construction. Methods in Ecology & Evolution, 6(9).
+
 Taranto, A. (2025). PyPopART: Pure Python implementation of haplotype network analysis.
 GitHub repository: https://github.com/adamtaranto/pypopart
 ```
@@ -423,7 +423,6 @@ PyPopART implements algorithms from the following publications:
 
 PyPopART is licensed under the GNU General Public License v3.0 or later. See [LICENSE](LICENSE) for details.
 
-
 ### Development Setup
 
 ```bash
@@ -435,20 +434,12 @@ pre-commit install
 
 ## Related Projects
 
-- [PopART](http://popart.otago.ac.nz/) - Original PopART software (Leigh & Bryant, 2015)
+- [PopART](https://github.com/jessicawleigh/popart-current) - Original PopART software
 - [pegas](https://cran.r-project.org/package=pegas) - R package for population genetics
-- [popart-networks](https://github.com/jessicawleigh/popart-current) - PopART source code
 
 ## Acknowledgments
 
 PyPopART is a python port of the original PopART software developed by Jessica Leigh.
-
-## Citing
-
-If you use this software, please cite the original PopART paper as well as this repository:
-
-Leigh, J.W., Bryant, D. and Nakagawa, S., 2015. POPART: full-feature software for haplotype network construction. Methods in Ecology & Evolution, 6(9).
-
 
 ## Contact
 
