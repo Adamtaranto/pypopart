@@ -1423,11 +1423,17 @@ class PyPopARTApp:
                             list(populations)
                         )
 
+                # Extract population mapping from metadata if available
+                population_mapping = None
+                if metadata_data and metadata_data.get('populations'):
+                    population_mapping = metadata_data['populations']
+
                 # Create Cytoscape elements and stylesheet
                 elements, stylesheet = create_cytoscape_network(
                     network,
                     layout=positions,
                     population_colors=population_colors,
+                    population_mapping=population_mapping,
                     show_labels=True,
                     show_edge_labels=True,
                     node_labels=node_labels,
@@ -2732,16 +2738,19 @@ class PyPopARTApp:
                 # If validation passed, update the graph with new labels
                 positions = {node: tuple(pos) for node, pos in layout_data.items()}
 
-                # Extract population colors from metadata if available
+                # Extract population colors and mapping from metadata if available
                 population_colors = None
+                population_mapping = None
                 if metadata_data and metadata_data.get('populations'):
                     population_colors = metadata_data.get('population_colors', {})
+                    population_mapping = metadata_data['populations']
 
                 # Create Cytoscape elements with custom labels
                 elements, _ = create_cytoscape_network(
                     network,
                     layout=positions,
                     population_colors=population_colors,
+                    population_mapping=population_mapping,
                     show_labels=True,
                     show_edge_labels=True,
                     node_labels=new_mapping,
