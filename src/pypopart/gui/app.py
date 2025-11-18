@@ -2116,7 +2116,7 @@ class PyPopARTApp:
                 has_selected_style = any(
                     s.get('selector') == 'node:selected' for s in base_stylesheet
                 )
-                
+
                 if not has_selected_style:
                     # Re-add the :selected style if it was somehow removed
                     base_stylesheet.append(
