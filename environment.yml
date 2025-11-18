@@ -4,23 +4,23 @@ channels:
   - bioconda
 dependencies:
   - python=3.11
-  - click
-  - isort
-  - numpy
-  - scipy
-  - pandas
-  - networkx
   - biopython
-  - plotly
+  - click
   - dash
   - dash-bootstrap-components
-  - numba
-  - scikit-learn
-  - pytest
-  - pytest-cov
-  - pytest-benchmark
-  - mypy
-  - ruff
   - ipython
+  - isort
   - jupyter
+  - mypy
+  - networkx
   - notebook
+  - numba
+  - numpy
+  - pandas
+  - plotly
+  - pytest
+  - pytest-benchmark
+  - pytest-cov
+  - ruff
+  - scikit-learn
+  - scipy
