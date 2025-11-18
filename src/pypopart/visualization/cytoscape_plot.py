@@ -188,7 +188,14 @@ class InteractiveCytoscapePlotter:
                 # If haplotype doesn't have population data but we have a mapping,
                 # manually compute population counts from sample_ids
                 # Only recalculate if pop_counts is empty or only contains 'Unassigned'
-                if (not pop_counts or (len(pop_counts) == 1 and 'Unassigned' in pop_counts)) and population_mapping and hap.sample_ids:
+                if (
+                    (
+                        not pop_counts
+                        or (len(pop_counts) == 1 and 'Unassigned' in pop_counts)
+                    )
+                    and population_mapping
+                    and hap.sample_ids
+                ):
                     pop_counts = {}
                     for sample_id in hap.sample_ids:
                         if sample_id in population_mapping:
@@ -196,7 +203,9 @@ class InteractiveCytoscapePlotter:
                             pop_counts[pop] = pop_counts.get(pop, 0) + 1
                         else:
                             # Track unassigned samples
-                            pop_counts['Unassigned'] = pop_counts.get('Unassigned', 0) + 1
+                            pop_counts['Unassigned'] = (
+                                pop_counts.get('Unassigned', 0) + 1
+                            )
 
                 # Generate pie chart for all nodes with population data (including single population)
                 if pop_counts and len(pop_counts) >= 1:
@@ -255,7 +264,17 @@ class InteractiveCytoscapePlotter:
                 # Get population counts (using same logic as above)
                 hover_pop_counts = hap.get_frequency_by_population()
                 # Only recalculate if hover_pop_counts is empty or only contains 'Unassigned'
-                if (not hover_pop_counts or (len(hover_pop_counts) == 1 and 'Unassigned' in hover_pop_counts)) and population_mapping and hap.sample_ids:
+                if (
+                    (
+                        not hover_pop_counts
+                        or (
+                            len(hover_pop_counts) == 1
+                            and 'Unassigned' in hover_pop_counts
+                        )
+                    )
+                    and population_mapping
+                    and hap.sample_ids
+                ):
                     hover_pop_counts = {}
                     for sample_id in hap.sample_ids:
                         if sample_id in population_mapping:
@@ -263,7 +282,9 @@ class InteractiveCytoscapePlotter:
                             hover_pop_counts[pop] = hover_pop_counts.get(pop, 0) + 1
                         else:
                             # Track unassigned samples in hover text too
-                            hover_pop_counts['Unassigned'] = hover_pop_counts.get('Unassigned', 0) + 1
+                            hover_pop_counts['Unassigned'] = (
+                                hover_pop_counts.get('Unassigned', 0) + 1
+                            )
 
                 if hover_pop_counts:
                     hover_lines.append('Populations:')
@@ -384,6 +405,7 @@ class InteractiveCytoscapePlotter:
                 'style': {
                     'border-width': 4,
                     'border-color': '#ff0000',
+                    'z-index': 999,  # Bring to front
                 },
             },
         ]
@@ -418,6 +440,19 @@ class InteractiveCytoscapePlotter:
                     'background-clip': 'node',
                     'border-width': 2,
                     'border-color': '#000000',
+                },
+            }
+        )
+
+        # Override border for selected pie chart nodes
+        # This must come AFTER the node[pie_svg] style to have higher specificity
+        pie_styles.append(
+            {
+                'selector': 'node[pie_svg]:selected',
+                'style': {
+                    'border-width': 4,
+                    'border-color': '#ff0000',
+                    'z-index': 999,
                 },
             }
         )
