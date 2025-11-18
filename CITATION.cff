@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "PyPopART"
 version: 0.1.0
-date-released: 2025-11-18
+date-released: 2025-11-19
 authors:
   - family-names: Taranto
     given-names: Adam
