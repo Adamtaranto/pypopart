@@ -4,12 +4,14 @@ This document provides examples of how to use the different network construction
 
 ## Overview
 
-PyPopART provides four main network construction algorithms:
+PyPopART provides six network construction algorithms:
 
 1. **MST (Minimum Spanning Tree)** - Creates a simple tree connecting all haplotypes with minimum total distance
 2. **MSN (Minimum Spanning Network)** - Extends MST by adding alternative connections at equal distances
-3. **TCS (Statistical Parsimony)** - Connects haplotypes based on 95% parsimony criterion
+3. **TCS (Statistical Parsimony)** - Connects haplotypes based on parsimony probability limit
 4. **MJN (Median-Joining Network)** - Infers median vectors (ancestral sequences) to simplify networks
+5. **PN (Parsimony Network)** - Builds consensus network by sampling multiple parsimony trees
+6. **TSW (Tight Span Walker)** - Constructs metric-preserving networks using tight span computation
 
 ## Basic Usage
 
@@ -20,7 +22,9 @@ from pypopart.algorithms import (
     MinimumSpanningTree,
     MinimumSpanningNetwork,
     TCS,
-    MedianJoiningNetwork
+    MedianJoiningNetwork,
+    ParsimonyNetwork,
+    TightSpanWalker
 )
 
 # Create alignment
@@ -48,9 +52,19 @@ network_tcs = tcs.construct_network(alignment)
 print(f"TCS: {len(network_tcs.haplotypes)} haplotypes, {len(network_tcs.edges)} edges")
 
 # 4. Median-Joining Network
-mjn = MedianJoiningNetwork(distance_method="hamming", simplify=True)
-network_mjn = mjn.construct_network(alignment)
-print(f"MJN: {len(network_mjn.haplotypes)} haplotypes, {len(network_mjn.edges)} edges")
+mjn = MedianJoiningNetwork(distance_method="hamming", epsilon=0)
+network_mjn = mjn.build_network(alignment)
+print(f"MJN: {len(network_mjn.graph.nodes)} nodes, {len(network_mjn.graph.edges)} edges")
+
+# 5. Parsimony Network
+pn = ParsimonyNetwork(distance_method="hamming", n_trees=100)
+network_pn = pn.build_network(alignment)
+print(f"PN: {len(network_pn.graph.nodes)} nodes, {len(network_pn.graph.edges)} edges")
+
+# 6. Tight Span Walker
+tsw = TightSpanWalker(distance_method="hamming")
+network_tsw = tsw.build_network(alignment)
+print(f"TSW: {len(network_tsw.graph.nodes)} nodes, {len(network_tsw.graph.edges)} edges")
 ```
 
 ## Algorithm-Specific Parameters
@@ -108,9 +122,7 @@ tcs = TCS(
 ```python
 mjn = MedianJoiningNetwork(
     distance_method="hamming",
-    epsilon=0.0,              # Complexity control parameter
-    max_median_vectors=None,  # Limit number of inferred nodes
-    simplify=True             # Remove unnecessary median vectors
+    epsilon=0                 # Complexity control parameter (0 = maximum simplification)
 )
 ```
 
@@ -120,6 +132,42 @@ mjn = MedianJoiningNetwork(
 - Complex reticulation patterns
 - Want to infer ancestral sequences
 - Need most parsimonious representation
+
+### Parsimony Network (PN)
+
+```python
+pn = ParsimonyNetwork(
+    distance_method="hamming",
+    n_trees=100,              # Number of random parsimony trees to sample
+    min_edge_frequency=0.05   # Minimum frequency for edge inclusion
+)
+```
+
+**When to use:**
+
+- Want consensus approach across multiple trees
+- Need to capture phylogenetic uncertainty
+- Data has ambiguous relationships
+- Want robust network representing alternative topologies
+
+### Tight Span Walker (TSW)
+
+```python
+tsw = TightSpanWalker(
+    distance_method="hamming",
+    epsilon=1e-6              # Tolerance for metric comparisons
+)
+```
+
+**When to use:**
+
+- Need accurate metric preservation
+- Want mathematically rigorous network
+- Small to medium datasets (n < 100)
+- Complex evolutionary relationships with reticulation
+- Ancestral sequence inference desired
+
+**Note:** TSW is computationally intensive and best for smaller datasets.
 
 ## Distance Methods
 

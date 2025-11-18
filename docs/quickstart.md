@@ -7,7 +7,32 @@ Get started with PyPopART in minutes! This guide walks you through creating your
 - PyPopART installed (see [Installation](installation.md))
 - A sequence alignment file (FASTA, NEXUS, PHYLIP, or GenBank format)
 
-## Your First Network in 3 Steps
+## Choosing Your Interface
+
+PyPopART offers two ways to work with haplotype networks:
+
+### Option 1: Web-based GUI (Recommended for Beginners)
+
+Launch the interactive interface:
+
+```bash
+pypopart-gui
+```
+
+Open your browser to `http://localhost:8050` and follow the visual workflow:
+1. Upload sequence file
+2. Configure algorithm
+3. Compute network
+4. Customize layout
+5. Export results
+
+**Advantages**: Visual, interactive, no command-line knowledge needed.
+
+### Option 2: Command-Line Interface
+
+For automation and scripting, use the CLI as shown below.
+
+## Your First Network in 3 Steps (CLI)
 
 ### Step 1: Prepare Your Data
 
@@ -76,10 +101,10 @@ pypopart visualize mynetwork.graphml -o mynetwork.html --interactive
 
 ### Try Different Algorithms
 
-PyPopART offers four network construction algorithms:
+PyPopART offers six network construction algorithms:
 
 ```bash
-# Minimum Spanning Tree (simplest)
+# Minimum Spanning Tree (simplest tree)
 pypopart network mysequences.fasta -a mst -o network_mst.graphml
 
 # Minimum Spanning Network (shows alternatives)
@@ -90,7 +115,21 @@ pypopart network mysequences.fasta -a tcs -o network_tcs.graphml
 
 # Median-Joining (default, infers ancestors)
 pypopart network mysequences.fasta -a mjn -o network_mjn.graphml
+
+# Parsimony Network (consensus from multiple trees)
+pypopart network mysequences.fasta -a pn -o network_pn.graphml
+
+# Tight Span Walker (metric-preserving, for small datasets)
+pypopart network mysequences.fasta -a tsw -o network_tsw.graphml
 ```
+
+**Algorithm Comparison:**
+- **MST**: Fastest, simplest tree
+- **MSN**: Adds alternative equal-distance connections
+- **TCS**: Best for closely related sequences
+- **MJN**: Infers ancestral sequences, handles reticulation
+- **PN**: Consensus approach, captures uncertainty
+- **TSW**: Most accurate metric preservation (slower)
 
 ### Use Different Distance Metrics
 
@@ -206,13 +245,29 @@ pypopart visualize network.graphml -o network.png
 
 ```bash
 # Try all algorithms
-for algo in mst msn tcs mjn; do
+for algo in mst msn tcs mjn pn tsw; do
     pypopart network mysequences.fasta -a $algo -o network_${algo}.graphml
     pypopart visualize network_${algo}.graphml -o network_${algo}.png
 done
 ```
 
-### Workflow 3: With Metadata
+### Workflow 3: GUI-based Analysis
+
+For an interactive workflow:
+
+```bash
+# Launch GUI
+pypopart-gui
+
+# Then use the web interface to:
+# 1. Upload sequences and optional metadata
+# 2. Try different algorithms with real-time parameter adjustment
+# 3. Visualize with multiple layout options
+# 4. Drag nodes to reposition
+# 5. Export in various formats
+```
+
+### Workflow 4: With Metadata
 
 If you have population or location data:
 
