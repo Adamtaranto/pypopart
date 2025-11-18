@@ -187,3 +187,31 @@ class TestPyPopARTApp:
         assert 'upload-h-number-mapping' in component_ids
         assert 'h-number-mapping-store' in component_ids
         assert 'h-number-feedback' in component_ids
+
+    def test_stylesheet_has_selected_pseudo_selector(self):
+        """Test that stylesheet includes :selected pseudo-selector for node click highlighting."""
+        from pypopart.visualization.cytoscape_plot import InteractiveCytoscapePlotter
+        from pypopart.core.graph import HaplotypeNetwork
+        from pypopart.core.haplotype import Haplotype
+        from pypopart.core.sequence import Sequence
+
+        # Create a simple test network
+        network = HaplotypeNetwork()
+        seq1 = Sequence('hap1', 'ATCG')
+        hap1 = Haplotype(seq1, sample_ids=['seq1'])
+        network.add_haplotype(hap1)
+
+        # Create plotter and stylesheet
+        plotter = InteractiveCytoscapePlotter(network)
+        stylesheet = plotter.create_stylesheet()
+
+        # Check that :selected pseudo-selector exists in stylesheet
+        selected_styles = [s for s in stylesheet if s.get('selector') == 'node:selected']
+        assert len(selected_styles) == 1, 'Stylesheet should have exactly one node:selected style'
+
+        # Verify the selected style has proper red border
+        selected_style = selected_styles[0]
+        assert 'style' in selected_style
+        assert selected_style['style']['border-color'] == '#ff0000'
+        assert selected_style['style']['border-width'] == 4
+        assert selected_style['style']['z-index'] == 999
