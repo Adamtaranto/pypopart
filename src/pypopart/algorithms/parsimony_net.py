@@ -20,8 +20,8 @@ References
        alcohol dehydrogenase activity in Drosophila. Genetics, 117(2), 343-351.
 """
 
-import random
 from collections import defaultdict
+import random
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np

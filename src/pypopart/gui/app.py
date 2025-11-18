@@ -2464,7 +2464,7 @@ class PyPopARTApp:
                     try {
                         const cy = document.getElementById('network-graph')._cyreg.cy;
                         const tooltip = document.getElementById('node-tooltip');
-                        
+
                         if (!cy || !tooltip) {
                             console.log('Could not find cytoscape or tooltip element');
                             return;
@@ -2486,7 +2486,7 @@ class PyPopARTApp:
                         cy.on('mouseover', 'node', function(evt) {
                             const node = evt.target;
                             const renderedPos = node.renderedPosition();
-                            
+
                             tooltip.style.display = 'block';
                             tooltip.style.left = (renderedPos.x + 15) + 'px';
                             tooltip.style.top = (renderedPos.y - 40) + 'px';

@@ -393,7 +393,7 @@ class TCS(NetworkAlgorithm):
         # Check if path already exists
         try:
             existing_path_length = network.get_shortest_path_length(int_u, int_v)
-        except:
+        except Exception:
             existing_path_length = float('inf')
 
         # Only add new path if it's shorter or doesn't exist
@@ -457,7 +457,7 @@ class TCS(NetworkAlgorithm):
             # Check if connected to u
             try:
                 path_ui = network.get_shortest_path_length(u_id, i_id)
-            except:
+            except Exception:
                 continue
 
             if path_ui >= dist:
@@ -474,7 +474,7 @@ class TCS(NetworkAlgorithm):
                 # Check if connected to v
                 try:
                     path_vj = network.get_shortest_path_length(v_id, j_id)
-                except:
+                except Exception:
                     continue
 
                 if path_vj + path_ui >= dist:
@@ -555,7 +555,7 @@ class TCS(NetworkAlgorithm):
                     path_ui = network.get_shortest_path_length(u_id, i_id)
                     path_vj = network.get_shortest_path_length(v_id, j_id)
                     total_path = dP + path_ui + path_vj
-                except:
+                except Exception:
                     continue
 
                 # Get original distance
@@ -681,7 +681,7 @@ class TCS(NetworkAlgorithm):
                 try:
                     w1 = network.get_edge_distance(hap_id, n1)
                     w2 = network.get_edge_distance(hap_id, n2)
-                except:
+                except Exception:
                     continue
 
                 # Only collapse intermediates (not original haplotypes)
