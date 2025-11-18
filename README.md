@@ -366,7 +366,14 @@ pre-commit install
 
 ## Acknowledgments
 
-PyPopART is inspired by the original PopART software developed by Jessica Leigh and David Bryant.
+PyPopART is a python port of the original PopART software developed by Jessica Leigh.
+
+## Citing
+
+If you use this software, please cite the original PopART paper as well as this repository:
+
+Leigh, J.W., Bryant, D. and Nakagawa, S., 2015. POPART: full-feature software for haplotype network construction. Methods in Ecology & Evolution, 6(9).
+
 
 ## Contact
 
