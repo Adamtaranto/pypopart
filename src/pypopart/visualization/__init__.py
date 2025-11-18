@@ -9,7 +9,7 @@ from .cytoscape_plot import (
     InteractiveCytoscapePlotter,
     create_cytoscape_network,
 )
-from .geo_visualization import GeoVisualizer, InteractiveGeoVisualizer
+
 from .interactive_plot import (
     InteractiveNetworkPlotter,
     create_interactive_figure,
