@@ -20,9 +20,9 @@ This guide helps you choose the best layout algorithm for your haplotype network
 | Fast preview | Hierarchical | Instant layout, tree structure |
 | Large datasets | Spectral | Maintains structure, very fast |
 | Highest quality | Kamada-Kawai | Slow but optimal for small networks |
-| Geographic data | Geographic | Requires latitude/longitude coordinates |
 | Highlight central node | Radial | Places important node at center |
 | Simple connectivity | Circular | Shows connection patterns clearly |
+| Proportional distances | Spring/KK Proportional | Edge length reflects mutation count |
 
 ## Algorithm Details
 
@@ -206,34 +206,41 @@ layout = manager.compute_layout(
 )
 ```
 
-### 7. Geographic Layout
+### 7. Proportional Edge Length Layouts
 
-**Best for**: Spatially-referenced data
+**Best for**: Showing mutation distances accurately
 
-**Speed**: ⚡⚡⚡⚡ Fast (depends on projection)
+**Speed**: ⚡⚡⚡ Moderate (similar to base algorithms)
 
-**Quality**: ⭐⭐⭐⭐ Accurate spatial representation
+**Quality**: ⭐⭐⭐⭐ Accurate distance representation
 
-**Description**: Positions nodes at their geographic coordinates (latitude/longitude).
+**Description**: Variations of spring and Kamada-Kawai layouts where edge lengths are proportional to the number of mutations between haplotypes.
 
 **Advantages**:
-- Shows true geographic distribution
-- Can overlay on maps
-- Reveals spatial patterns
+- Visually represents genetic distance
+- Helps identify distant vs. close relationships
+- Useful for understanding evolutionary distances
 
 **Disadvantages**:
-- Requires coordinate metadata
-- May not show network structure well if samples are clustered
+- Can produce larger, more spread-out layouts
+- May reduce aesthetic appeal for highly variable data
 
-**Requirements**: Metadata CSV with `latitude` and `longitude` columns
+**Available Variations**:
 
-**Parameters**:
+#### Spring Proportional
 ```python
 layout = manager.compute_layout(
-    'geographic',
-    coordinates=coords_dict,  # {node_id: (lat, lon)}
-    projection='mercator',    # 'mercator', 'platecarree', 'orthographic'
-    jitter_amount=0.0        # Add noise to separate overlapping points
+    'spring_proportional',
+    iterations=100,
+    seed=42
+)
+```
+
+#### Kamada-Kawai Proportional
+```python
+layout = manager.compute_layout(
+    'kamada_kawai_proportional',
+    scale=1.0
 )
 ```
 
@@ -399,6 +406,6 @@ If you're unsure which layout to use:
 1. Try **Hierarchical** first - it's instant and often good enough
 2. If that doesn't work well, try **Force-Directed** with default settings
 3. For large networks (>500 nodes), use **Spectral**
-4. For geographic data, use **Geographic** layout
+4. To show mutation distances accurately, try **Spring Proportional** or **Kamada-Kawai Proportional**
 
 For questions or issues, please see the main PyPopART documentation or open an issue on GitHub.

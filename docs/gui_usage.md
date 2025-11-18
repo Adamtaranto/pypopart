@@ -26,10 +26,25 @@ The GUI requires the following additional dependencies (automatically installed)
 
 ## Launching the GUI
 
+### From Command Line
+
+The easiest way to start the GUI:
+
+```bash
+# Start on default port 8050
+pypopart-gui
+
+# Start on custom port
+pypopart-gui --port 8080
+
+# Enable debug mode
+pypopart-gui --debug
+```
+
 ### From Python
 
 ```python
-from pypopart.gui import main
+from pypopart.gui.app import main
 
 # Launch with default settings (port 8050, debug=False)
 main()
@@ -38,42 +53,45 @@ main()
 main(debug=True, port=8080)
 ```
 
-### From Command Line
-
-```bash
-# Using the pypopart command (if CLI is implemented)
-pypopart gui --port 8050
-
-# Or directly with Python
-python -m pypopart.gui.app
-```
-
 The GUI will start a local web server. Open your browser to `http://localhost:8050` (or your specified port).
 
 ## Using the GUI
 
 ### 1. Upload Data
 
-- Click "Select File" in the Upload Data section
+#### Sequence File (Required)
+
+- Click "📁 Select Sequence File"
 - Supported formats:
   - FASTA (.fasta, .fa)
   - NEXUS (.nex, .nexus)
   - PHYLIP (.phy, .phylip)
 - After upload, you'll see a success message with sequence count and alignment length
 
+#### Metadata File (Optional)
+
+- Click "📊 Select Metadata File" 
+- Upload a CSV file with population, location, or trait data
+- Required columns: `id` (matching sequence IDs)
+- Optional columns: `population`, `latitude`, `longitude`, `color`, `notes`
+- Population data enables:
+  - Colored nodes by population
+  - Pie charts for nodes with mixed populations
+  - Population-based statistics
+
 ### 2. Configure Algorithm
 
-Choose from four network construction algorithms:
+Choose from six network construction algorithms:
 
 #### MST (Minimum Spanning Tree)
 
 - **Parameters**: Distance metric (Hamming, Jukes-Cantor, Kimura 2-parameter)
-- **Best for**: Simple, tree-like relationships
+- **Best for**: Simplest tree-like relationships without reticulation
 
 #### MSN (Minimum Spanning Network)
 
 - **Parameters**: Distance metric
-- **Best for**: Adding alternative connections at the same distance
+- **Best for**: Showing alternative connections at equal distance
 
 #### TCS (Statistical Parsimony)
 
@@ -86,51 +104,96 @@ Choose from four network construction algorithms:
 - **Parameters**: Epsilon value (0 = automatic)
 - **Best for**: Complex reticulate relationships, infers median vectors
 
-After selecting an algorithm and parameters, click **Compute Network**.
+#### PN (Parsimony Network)
+
+- **Parameters**: Number of trees to sample (10-500)
+- **Best for**: Consensus approach capturing phylogenetic uncertainty
+- **Default**: 100 trees
+
+#### TSW (Tight Span Walker)
+
+- **Parameters**: Distance metric
+- **Best for**: Metric-preserving networks, small to medium datasets
+- **Note**: Computationally intensive
+
+After selecting an algorithm and parameters, click **⚡ Compute Network**.
 
 ### 3. Layout Options
 
 Choose how to arrange nodes in the network visualization:
 
-- **Spring (Force-Directed)**: Physics-based layout, good for general use
+#### Available Layouts
+
+- **Hierarchical (Fast)**: Tree-like hierarchical arrangement, quick computation
+- **Spring (Force-directed)**: Physics-based layout, good for general use
+- **Spring - Proportional Edge Length**: Spring layout where edge length reflects mutation distance
+- **Spectral (Fast, Large networks)**: Eigenvalue-based layout, efficient for large networks
 - **Circular**: Nodes arranged in a circle
 - **Radial**: Concentric rings from center
-- **Hierarchical**: Tree-like hierarchical arrangement
-- **Kamada-Kawai**: Energy-minimization layout
+- **Kamada-Kawai (High quality, slow)**: Energy-minimization layout, best visual quality
+- **Kamada-Kawai - Proportional Edge Length**: KK layout where edge length reflects mutation distance
 
-**Snap to Grid**: Check this option to align nodes to a grid for cleaner appearance
+#### Customization Options
 
-Click **Apply Layout** to recompute node positions.
+- **Node Spacing**: Adjust spacing between nodes (0.5x - 3.0x)
+- **Node Size**: Adjust node size (10 - 100)
+- **Edge Width**: Adjust edge thickness (1 - 10)
+
+Click **🎨 Apply Layout** to recompute node positions with new settings.
 
 ### 4. Viewing Results
 
-The GUI provides three tabs:
+The GUI provides five tabs:
 
 #### Network Tab
 
-- **Interactive visualization** of the haplotype network
-- Node size: Proportional to haplotype frequency
-- Node color: By population (if metadata available)
-- Edge thickness: By distance
+- **Interactive visualization** with Dash Cytoscape
+- **Node styling**:
+  - Size: Proportional to haplotype frequency
+  - Color: Single population = solid color, mixed = pie chart
+  - Shape: Median vectors shown as gray circles
+  - Selection: Click to select (red border), search to highlight
+- **Edge styling**:
+  - Labels: Show mutation count
+  - Thickness: Adjustable via slider
 - **Interactions**:
-  - Zoom: Scroll or pinch
-  - Pan: Click and drag
-  - Hover: View node details
-  - Click legend items to show/hide populations
+  - Zoom: Scroll wheel
+  - Pan: Click and drag background
+  - Move nodes: Drag individual nodes to reposition
+  - Hover: View haplotype details in tooltip
+  - Search: Use dropdown to find and highlight specific haplotypes
+- **Legend**: Shows population colors and mixed population indicator
 
 #### Statistics Tab
 
 Displays comprehensive network metrics:
 
-- **Basic Metrics**: Nodes, edges, diameter, clustering, reticulation
+- **Basic Metrics**: Nodes, edges, diameter, clustering coefficient, reticulation index
 - **Diversity Metrics**: Haplotype diversity, Shannon index
-- **Central Haplotypes**: Degree, betweenness, and closeness centrality
+- **Central Haplotypes**: Degree, betweenness, and closeness centrality measures
+
+#### Haplotype Summary Tab
+
+- **Table view**: H number, type (observed/inferred), frequency, sample IDs, populations
+- **Export options**:
+  - Download haplotype summary as CSV
+  - Download H number label template
+  - Upload custom H number labels
+- Shows which sequences belong to each haplotype
+- Identifies inferred median nodes
+
+#### Metadata Tab
+
+- View uploaded metadata aligned with sequence IDs
+- Shows which IDs are in alignment vs. metadata
+- Displays population assignments and colors
+- Warns about mismatches or duplicates
 
 #### Alignment Tab
 
 - View the uploaded sequence alignment
-- Shows first 50 sequences in monospace font
-- ID and sequence data aligned for easy comparison
+- Polymorphic sites highlighted in color (A=green, C=blue, G=orange, T=red)
+- Shows first 50 sequences with ID and sequence data aligned
 
 ### 5. Export
 
