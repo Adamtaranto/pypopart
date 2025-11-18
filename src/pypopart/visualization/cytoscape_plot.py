@@ -444,6 +444,19 @@ class InteractiveCytoscapePlotter:
             }
         )
 
+        # Override border for selected pie chart nodes
+        # This must come AFTER the node[pie_svg] style to have higher specificity
+        pie_styles.append(
+            {
+                'selector': 'node[pie_svg]:selected',
+                'style': {
+                    'border-width': 4,
+                    'border-color': '#ff0000',
+                    'z-index': 999,
+                },
+            }
+        )
+
         return pie_styles
 
     def generate_population_colors(self, populations: List[str]) -> Dict[str, str]:

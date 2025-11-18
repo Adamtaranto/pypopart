@@ -2112,9 +2112,12 @@ class PyPopARTApp:
                     )
                 ]
 
-                # Ensure the :selected pseudo-selector style is always present for click selection
+                # Ensure the :selected pseudo-selector styles are always present for click selection
                 has_selected_style = any(
                     s.get('selector') == 'node:selected' for s in base_stylesheet
+                )
+                has_pie_selected_style = any(
+                    s.get('selector') == 'node[pie_svg]:selected' for s in base_stylesheet
                 )
 
                 if not has_selected_style:
@@ -2122,6 +2125,20 @@ class PyPopARTApp:
                     base_stylesheet.append(
                         {
                             'selector': 'node:selected',
+                            'style': {
+                                'border-width': 4,
+                                'border-color': '#ff0000',
+                                'z-index': 999,
+                            },
+                        }
+                    )
+
+                if not has_pie_selected_style:
+                    # Re-add the pie chart selected style if it was somehow removed
+                    # This is more specific than node:selected and overrides node[pie_svg] border
+                    base_stylesheet.append(
+                        {
+                            'selector': 'node[pie_svg]:selected',
                             'style': {
                                 'border-width': 4,
                                 'border-color': '#ff0000',
