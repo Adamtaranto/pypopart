@@ -2099,7 +2099,8 @@ class PyPopARTApp:
                 if not current_stylesheet:
                     current_stylesheet = []
 
-                # Remove ALL existing highlight styles (for any node)
+                # Remove ALL existing search highlight styles (for specific nodes)
+                # But preserve the :selected pseudo-selector style for click selection
                 base_stylesheet = [
                     s
                     for s in current_stylesheet
@@ -2107,8 +2108,27 @@ class PyPopARTApp:
                         s.get('selector', '').startswith('node[id = "')
                         and 'border-color' in s.get('style', {})
                         and s.get('style', {}).get('border-color') == '#FF0000'
+                        and s.get('style', {}).get('border-width') == '5px'  # Only remove search highlights (5px)
                     )
                 ]
+
+                # Ensure the :selected pseudo-selector style is always present for click selection
+                has_selected_style = any(
+                    s.get('selector') == 'node:selected' for s in base_stylesheet
+                )
+                
+                if not has_selected_style:
+                    # Re-add the :selected style if it was somehow removed
+                    base_stylesheet.append(
+                        {
+                            'selector': 'node:selected',
+                            'style': {
+                                'border-width': 4,
+                                'border-color': '#ff0000',
+                                'z-index': 999,
+                            },
+                        }
+                    )
 
                 # If nodes are selected, add highlight styles
                 if selected_h_list:
