@@ -2,38 +2,174 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pypopart.readthedocs.io/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
     </url>
     <url>
          <loc>https://pypopart.readthedocs.io/CYTOSCAPE_MIGRATION/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/changelog/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/concepts/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/contributing/</loc>
+         <lastmod>2025-11-19</lastmod>
     </url>
     <url>
          <loc>https://pypopart.readthedocs.io/faq/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
     </url>
     <url>
          <loc>https://pypopart.readthedocs.io/gui_usage/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
     </url>
     <url>
          <loc>https://pypopart.readthedocs.io/h_number_labeling/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
     </url>
     <url>
          <loc>https://pypopart.readthedocs.io/installation/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
     </url>
     <url>
          <loc>https://pypopart.readthedocs.io/layout_algorithms/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/license/</loc>
+         <lastmod>2025-11-19</lastmod>
     </url>
     <url>
          <loc>https://pypopart.readthedocs.io/quickstart/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
     </url>
     <url>
          <loc>https://pypopart.readthedocs.io/algorithms/tsw/</loc>
-         <lastmod>2025-11-18</lastmod>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/algorithms/base/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/algorithms/mjn/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/algorithms/msn/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/algorithms/mst/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/algorithms/tcs/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/core/alignment/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/core/distance/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/core/haplotype/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/core/network/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/core/sequence/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/io/metadata/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/io/readers/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/io/writers/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/stats/popgen/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/stats/statistics/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/stats/topology/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/visualization/interactive/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/visualization/layout/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/api/visualization/static/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/guide/algorithms/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/guide/analysis/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/guide/api/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/guide/cli/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/guide/distances/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/guide/loading_data/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/guide/visualization/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/tutorials/algorithm_comparison/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/tutorials/basic_workflow/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/tutorials/popgen/</loc>
+         <lastmod>2025-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://pypopart.readthedocs.io/tutorials/visualization/</loc>
+         <lastmod>2025-11-19</lastmod>
     </url>
 </urlset>
