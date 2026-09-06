@@ -5,6 +5,7 @@ Comprehensive population genetics analysis with PyPopART.
 ## Overview
 
 This tutorial demonstrates:
+
 - Diversity measures
 - Neutrality tests
 - Population structure analysis
@@ -175,7 +176,7 @@ for pop in populations:
     # Subset alignment
     pop_seqs = metadata[metadata['Population'] == pop]['sequence_id'].tolist()
     pop_aln = alignment.subset(pop_seqs)
-    
+
     # Calculate diversity
     pop_gen = PopulationGenetics(pop_aln)
     pop_results.append({
@@ -221,7 +222,7 @@ for year in years:
     year_seqs = metadata[metadata['Year'] == year]['sequence_id'].tolist()
     year_aln = alignment.subset(year_seqs)
     year_gen = PopulationGenetics(year_aln)
-    
+
     temporal_diversity.append({
         'Year': year,
         'Haplotype_Diversity': year_gen.haplotype_diversity(),
@@ -295,17 +296,20 @@ for category, values in report.items():
 ## Interpreting Results
 
 ### Tajima's D
+
 - **< -2**: Population expansion or purifying selection
 - **-2 to +2**: Neutral evolution
 - **> +2**: Balancing selection or bottleneck
 
 ### FST
+
 - **0.00-0.05**: Little differentiation
 - **0.05-0.15**: Moderate differentiation
 - **0.15-0.25**: Great differentiation
 - **> 0.25**: Very great differentiation
 
 ### Gene Flow (Nm)
+
 - **< 1**: Limited gene flow, drift dominates
 - **> 1**: Substantial gene flow
 - **> 4**: Panmixia

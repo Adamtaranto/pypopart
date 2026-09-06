@@ -9,7 +9,7 @@ The `sequence` module provides the `Sequence` class for representing individual 
 ## Classes
 
 ::: pypopart.core.sequence
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

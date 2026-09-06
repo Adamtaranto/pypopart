@@ -20,6 +20,7 @@ pypopart-gui
 ```
 
 Open your browser to `http://localhost:8050` and follow the visual workflow:
+
 1. Upload sequence file
 2. Configure algorithm
 3. Compute network
@@ -124,6 +125,7 @@ pypopart network mysequences.fasta -a tsw -o network_tsw.graphml
 ```
 
 **Algorithm Comparison:**
+
 - **MST**: Fastest, simplest tree
 - **MSN**: Adds alternative equal-distance connections
 - **TCS**: Best for closely related sequences
@@ -308,7 +310,7 @@ Now that you've created your first network, learn more:
 ## Tips
 
 !!! tip "Performance"
-    For large datasets (>1000 sequences), consider:
+For large datasets (>1000 sequences), consider:
 
 - Using MST or MSN instead of MJN for speed
 - Using Hamming distance instead of more complex models

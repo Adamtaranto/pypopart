@@ -39,15 +39,19 @@ A **haplotype** is a unique DNA sequence variant in your dataset. PyPopART:
 PyPopART calculates genetic distances using various evolutionary models:
 
 ### Hamming Distance
+
 Simple count of differing positions. Best for closely related sequences.
 
 ### Jukes-Cantor
+
 Corrects for multiple mutations at the same site. Assumes equal substitution rates.
 
 ### Kimura 2-Parameter (K2P)
+
 Distinguishes between transitions and transversions. More realistic for DNA evolution.
 
 ### Tamura-Nei
+
 Most sophisticated, accounts for different base frequencies and transition/transversion ratios.
 
 ## Network Algorithms
@@ -55,35 +59,41 @@ Most sophisticated, accounts for different base frequencies and transition/trans
 Different algorithms make different assumptions and are suited for different data types:
 
 ### MST (Minimum Spanning Tree)
+
 - Simplest algorithm
 - Always produces a tree (no reticulation)
 - Connects all haplotypes with minimum total distance
 - **Best for**: Initial exploration, small datasets
 
 ### MSN (Minimum Spanning Network)
+
 - Extends MST by adding alternative connections
 - Shows equally parsimonious paths
 - More informative than MST
 - **Best for**: Showing alternative evolutionary paths
 
 ### TCS (Statistical Parsimony)
+
 - Based on statistical limits of parsimony
 - Uses 95% confidence limit for connections
 - May produce disconnected networks
 - **Best for**: Within-species variation, recent divergence
 
 ### MJN (Median-Joining Network)
+
 - Infers ancestral/unobserved haplotypes (median vectors)
 - Most comprehensive but complex
 - Can show reticulation events
 - **Best for**: Complex evolutionary scenarios, larger datasets
 
 ### PN (Parsimony Network)
+
 - Consensus approach using multiple MSTs
 - Balances between MST simplicity and MJN complexity
 - **Best for**: General purpose analysis
 
 ### TSW (Tight Span Walker)
+
 - Metric-preserving network construction
 - Preserves distance relationships
 - **Best for**: When distance accuracy is critical
@@ -98,6 +108,7 @@ PyPopART supports associating metadata with sequences:
 - **Custom attributes**: Any categorical or numerical data
 
 Metadata can be used for:
+
 - Coloring nodes in visualizations
 - Population genetics analyses
 - Statistical comparisons
@@ -108,11 +119,13 @@ Metadata can be used for:
 PyPopART calculates various network properties:
 
 ### Topology Metrics
+
 - **Diameter**: Longest shortest path
 - **Clustering coefficient**: Network interconnectedness
 - **Centrality**: Important nodes in the network
 
 ### Population Genetics
+
 - **Diversity indices**: Nucleotide and haplotype diversity
 - **Tajima's D**: Test for neutral evolution
 - **Fu's Fs**: Another neutrality test
@@ -123,16 +136,19 @@ PyPopART calculates various network properties:
 Networks can be visualized in multiple ways:
 
 ### Static Plots
+
 - Publication-quality figures
 - PNG, PDF, SVG formats
 - Customizable colors, sizes, labels
 
 ### Interactive Plots
+
 - HTML-based exploration
 - Zoom, pan, hover for details
 - Export functionality
 
 ### GUI Dashboard
+
 - Real-time parameter adjustment
 - Multiple layout algorithms
 - Integrated analysis tools

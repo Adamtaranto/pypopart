@@ -11,6 +11,7 @@ The PyPopART Dash application now uses Dash Cytoscape for network visualization,
 **What it does:** Nodes can be dragged and repositioned manually using the mouse.
 
 **How to use:**
+
 - Click and hold on any node in the network
 - Drag it to a new position
 - Release to place the node
@@ -21,10 +22,13 @@ The PyPopART Dash application now uses Dash Cytoscape for network visualization,
 ### 2. Population Visualization
 
 #### Single Population Nodes
+
 Nodes containing samples from a single population are displayed with the population's assigned color.
 
 #### Mixed Population Nodes
+
 Nodes containing samples from multiple populations are displayed as **pie charts**:
+
 - Each segment represents a population, sized by its proportion
 - Segment colors match the population colors from the legend
 - Pie charts are generated as SVG and embedded as node backgrounds
@@ -33,6 +37,7 @@ Nodes containing samples from multiple populations are displayed as **pie charts
 ### 3. Legend Display
 
 The legend (top right corner) shows:
+
 - **Population colors:** Circle markers with population names
 - **Mixed populations indicator:** Pie icon (◕) indicating nodes with pie chart visualization
 - **Median vectors:** Gray square (■) for inferred median vector nodes
@@ -56,6 +61,7 @@ Edges display the number of mutations between connected haplotypes as numeric la
 ### Cytoscape Elements Structure
 
 Each node element contains:
+
 - `id`: Unique haplotype identifier (e.g., "H1", "H2")
 - `label`: Display label
 - `size`: Visual size based on frequency
@@ -66,6 +72,7 @@ Each node element contains:
 - `pie_svg`: SVG Data URI containing the pie chart visualization (for mixed nodes)
 
 Each edge element contains:
+
 - `id`: Unique edge identifier
 - `source`: Source node ID
 - `target`: Target node ID
@@ -75,6 +82,7 @@ Each edge element contains:
 ### Layout Algorithms
 
 Available layout algorithms:
+
 - **Spring (Force-directed):** Physically-simulated layout
 - **Circular:** Nodes arranged in a circle
 - **Radial:** Radial tree layout
@@ -85,6 +93,7 @@ Available layout algorithms:
 ### Color Generation
 
 When population colors are not specified in metadata:
+
 - Colors are automatically generated using HSV color space
 - Evenly distributed hues for maximum distinction
 - High saturation and value for vivid colors
@@ -167,6 +176,7 @@ fig = plotter.plot(layout=positions)
 ## Testing
 
 Comprehensive test suite in `tests/unit/test_cytoscape_plot.py`:
+
 - Element creation and structure
 - Node sizing and coloring
 - Population data handling
@@ -175,6 +185,7 @@ Comprehensive test suite in `tests/unit/test_cytoscape_plot.py`:
 - Empty and edge cases
 
 Run tests:
+
 ```bash
 pytest tests/unit/test_cytoscape_plot.py -v
 ```
@@ -182,6 +193,7 @@ pytest tests/unit/test_cytoscape_plot.py -v
 ## Future Enhancements
 
 Potential improvements for future versions:
+
 - True pie chart rendering using custom Cytoscape.js extensions
 - Animation support for layout transitions
 - Advanced selection and filtering tools

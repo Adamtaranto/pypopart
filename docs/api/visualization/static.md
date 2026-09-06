@@ -7,6 +7,7 @@ Publication-quality static network plots.
 The `static_plot` module provides matplotlib-based plotting for creating high-quality figures.
 
 **Features:**
+
 - PNG, PDF, SVG export
 - Customizable layouts
 - Node/edge styling
@@ -16,7 +17,7 @@ The `static_plot` module provides matplotlib-based plotting for creating high-qu
 ## Modules
 
 ::: pypopart.visualization.static_plot
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

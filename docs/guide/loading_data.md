@@ -18,12 +18,14 @@ ATCGATCGATCGATTGATCG
 ```
 
 **Load in Python:**
+
 ```python
 from pypopart import Alignment
 alignment = Alignment.from_fasta("sequences.fasta")
 ```
 
 **CLI:**
+
 ```bash
 pypopart network sequences.fasta -a MST -o output
 ```
@@ -62,6 +64,7 @@ END;
 ```
 
 **Load in Python:**
+
 ```python
 alignment = Alignment.from_nexus("sequences.nex")
 metadata = alignment.get_metadata()
@@ -79,6 +82,7 @@ Seq3      ATCGATCGATCGATTGATCG
 ```
 
 **Load in Python:**
+
 ```python
 alignment = Alignment.from_phylip("sequences.phy")
 ```
@@ -98,6 +102,7 @@ alignment = Alignment.from_genbank("sequences.gb")
 Metadata can encode population, location, time, or custom traits:
 
 **Method 1: NEXUS Traits Block**
+
 ```python
 # Automatically loaded from NEXUS file
 alignment = Alignment.from_nexus("sequences_with_traits.nex")
@@ -105,6 +110,7 @@ print(alignment.metadata)
 ```
 
 **Method 2: Add Programmatically**
+
 ```python
 import pandas as pd
 
@@ -123,6 +129,7 @@ alignment.set_metadata(metadata)
 ```
 
 **Method 3: Parse from Sequence Names**
+
 ```python
 # If names are like: "Sample1_PopA_Site1"
 alignment = Alignment.from_fasta("sequences.fasta")
@@ -161,7 +168,7 @@ print(f"Valid alignment: {alignment.is_valid()}")
 # Check for gaps
 if alignment.has_gaps():
     print("Warning: Alignment contains gaps")
-    
+
 # Check for ambiguous bases
 if alignment.has_ambiguous():
     print("Warning: Alignment contains ambiguous bases")
@@ -280,18 +287,22 @@ path = load_example("woodmouse", return_path=True)
 ### Common Errors
 
 **"Sequences not aligned"**
+
 - All sequences must be same length
 - Align sequences before loading
 
 **"Invalid NEXUS format"**
+
 - Check NEXUS syntax
 - Ensure all blocks are properly closed
 
 **"Cannot parse metadata"**
+
 - Check trait names match sequence IDs
 - Verify separator (comma, tab, space)
 
 **"Memory error"**
+
 - File too large
 - Use streaming or chunking
 - Filter data first

@@ -11,6 +11,7 @@ Simple count of differing positions between sequences.
 **Formula:** Number of sites where sequences differ
 
 **Example:**
+
 ```
 Seq1: ATCGATCG
 Seq2: ATCGTTCG
@@ -19,11 +20,13 @@ Distance: 1
 ```
 
 **When to use:**
+
 - Very similar sequences (< 5% divergence)
 - Initial exploration
 - No model assumptions needed
 
 **Python:**
+
 ```python
 from pypopart.core.distance import DistanceCalculator
 
@@ -32,6 +35,7 @@ distances = calc.calculate(alignment)
 ```
 
 **CLI:**
+
 ```bash
 pypopart distance sequences.fasta -m hamming -o distances.csv
 ```
@@ -40,29 +44,35 @@ pypopart distance sequences.fasta -m hamming -o distances.csv
 
 Corrects for multiple mutations at the same site.
 
-**Formula:** 
+**Formula:**
+
 ```
 d = -3/4 * ln(1 - 4p/3)
 ```
+
 where p is the proportion of different sites
 
 **Assumptions:**
+
 - Equal base frequencies (25% each)
 - Equal substitution rates
 - No rate variation
 
 **When to use:**
+
 - Moderate divergence (5-20%)
 - Need model-based correction
 - Simple correction sufficient
 
 **Python:**
+
 ```python
 calc = DistanceCalculator(metric="jukes-cantor")
 distances = calc.calculate(alignment)
 ```
 
 **CLI:**
+
 ```bash
 pypopart distance sequences.fasta -m jukes-cantor -o distances.csv
 ```
@@ -72,30 +82,37 @@ pypopart distance sequences.fasta -m jukes-cantor -o distances.csv
 Distinguishes between transitions and transversions.
 
 **Formula:**
+
 ```
 d = -1/2 * ln((1-2P-Q) * sqrt(1-2Q))
 ```
+
 where:
+
 - P = transition frequency
 - Q = transversion frequency
 
 **Assumptions:**
+
 - Equal base frequencies
 - Different rates for transitions vs transversions
 - No rate variation
 
 **When to use:**
+
 - Moderate to high divergence (up to 50%)
 - Transitions more common than transversions (typical for DNA)
 - More realistic than Jukes-Cantor
 
 **Python:**
+
 ```python
 calc = DistanceCalculator(metric="k2p")
 distances = calc.calculate(alignment)
 ```
 
 **CLI:**
+
 ```bash
 pypopart distance sequences.fasta -m k2p -o distances.csv
 ```
@@ -105,29 +122,34 @@ pypopart distance sequences.fasta -m k2p -o distances.csv
 Most sophisticated model with unequal base frequencies.
 
 **Formula:** Accounts for:
+
 - Unequal base frequencies
 - Different transition rates
 - Transition/transversion ratio
 - GC content bias
 
 **Assumptions:**
+
 - Variable base frequencies
 - Different rates for transitions vs transversions
 - Rate variation across sites
 
 **When to use:**
+
 - High divergence (> 20%)
 - Biased base composition
 - Most accurate correction needed
 - Sufficient data for parameter estimation
 
 **Python:**
+
 ```python
 calc = DistanceCalculator(metric="tamura-nei")
 distances = calc.calculate(alignment)
 ```
 
 **CLI:**
+
 ```bash
 pypopart distance sequences.fasta -m tamura-nei -o distances.csv
 ```
@@ -154,22 +176,22 @@ Is there GC bias?
 
 ### By Divergence Level
 
-| Divergence | Recommended Metric | Reason |
-|-----------|-------------------|---------|
-| 0-5%      | Hamming           | Simple, no saturation |
-| 5-20%     | Jukes-Cantor / K2P| Model-based correction |
-| 20-50%    | K2P / Tamura-Nei  | Accounts for saturation |
-| > 50%     | Tamura-Nei        | Most sophisticated |
+| Divergence | Recommended Metric | Reason                  |
+| ---------- | ------------------ | ----------------------- |
+| 0-5%       | Hamming            | Simple, no saturation   |
+| 5-20%      | Jukes-Cantor / K2P | Model-based correction  |
+| 20-50%     | K2P / Tamura-Nei   | Accounts for saturation |
+| > 50%      | Tamura-Nei         | Most sophisticated      |
 
 ### By Data Type
 
-| Data Type | Recommended | Notes |
-|-----------|-------------|-------|
-| Mitochondrial DNA | K2P | High transition bias |
-| Nuclear DNA | K2P or Tamura-Nei | Variable composition |
-| Coding regions | K2P | Consider codon position |
-| Non-coding | Tamura-Nei | Often GC-biased |
-| Microsatellites | Hamming | Step-wise mutation |
+| Data Type         | Recommended       | Notes                   |
+| ----------------- | ----------------- | ----------------------- |
+| Mitochondrial DNA | K2P               | High transition bias    |
+| Nuclear DNA       | K2P or Tamura-Nei | Variable composition    |
+| Coding regions    | K2P               | Consider codon position |
+| Non-coding        | Tamura-Nei        | Often GC-biased         |
+| Microsatellites   | Hamming           | Step-wise mutation      |
 
 ## Working with Distance Matrices
 
@@ -239,7 +261,7 @@ class CustomDistance(BaseDistance):
         diff = sum(a != b for a, b in zip(seq1, seq2))
         # Apply custom correction
         return diff * custom_factor
-        
+
 # Use custom metric
 calc = DistanceCalculator(metric=CustomDistance())
 distances = calc.calculate(alignment)
@@ -257,6 +279,7 @@ calc = DistanceCalculator(
 ```
 
 Options:
+
 - `pairwise`: Remove gap positions for each pair
 - `complete`: Remove all sites with any gaps
 - `ignore`: Treat gaps as fifth character
@@ -301,7 +324,7 @@ for metric in metrics:
     calc = DistanceCalculator(metric=metric)
     dist = calc.calculate(alignment)
     results[metric] = dist.mean()
-    
+
 print("Mean distances by metric:")
 for metric, mean_dist in results.items():
     print(f"  {metric}: {mean_dist:.4f}")
@@ -311,12 +334,12 @@ for metric, mean_dist in results.items():
 
 ### Speed vs Accuracy
 
-| Metric | Speed | Accuracy | Use Case |
-|--------|-------|----------|----------|
-| Hamming | Fastest | Basic | Exploration, low divergence |
-| Jukes-Cantor | Fast | Good | Moderate divergence |
-| K2P | Moderate | Better | General purpose |
-| Tamura-Nei | Slower | Best | High divergence, final analysis |
+| Metric       | Speed    | Accuracy | Use Case                        |
+| ------------ | -------- | -------- | ------------------------------- |
+| Hamming      | Fastest  | Basic    | Exploration, low divergence     |
+| Jukes-Cantor | Fast     | Good     | Moderate divergence             |
+| K2P          | Moderate | Better   | General purpose                 |
+| Tamura-Nei   | Slower   | Best     | High divergence, final analysis |
 
 ### Optimization Tips
 
@@ -337,6 +360,7 @@ calc.calculate(alignment, cache=True)
 ### "Distance > 1.0"
 
 Some corrected distances can exceed 1.0 for highly divergent sequences:
+
 - Expected for K2P and Tamura-Nei
 - Indicates high divergence
 - Consider if sequences are too divergent for network analysis
@@ -344,6 +368,7 @@ Some corrected distances can exceed 1.0 for highly divergent sequences:
 ### "Negative distance"
 
 Rare numerical issue with some corrections:
+
 - Check for data quality issues
 - Try simpler metric
 - May indicate sequences are too divergent
@@ -351,6 +376,7 @@ Rare numerical issue with some corrections:
 ### "NaN values"
 
 Usually caused by:
+
 - All gaps in pairwise comparison
 - Identical sequences (distance = 0)
 - Numerical underflow in calculations

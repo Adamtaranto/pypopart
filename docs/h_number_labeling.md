@@ -29,6 +29,7 @@ The network will be displayed with default labels (H1, H2, H3, etc.)
 3. Save the CSV file (default name: `h_number_mapping_template.csv`)
 
 The template CSV contains two columns:
+
 - `current_h_number`: The current H number (H1, H2, H3, etc.)
 - `new_label`: Initially set to the same as current_h_number (for you to edit)
 
@@ -55,6 +56,7 @@ H4,Rare_variant
 ```
 
 **Important Guidelines:**
+
 - Keep the `current_h_number` column unchanged
 - Do not use duplicate values in the `new_label` column
 - Avoid special characters that might cause issues in visualization
@@ -69,6 +71,7 @@ H4,Rare_variant
 4. The system will validate your mapping
 
 **If successful:**
+
 - A green success message appears
 - The network graph updates with your custom labels
 - The haplotype summary table shows your custom labels
@@ -76,6 +79,7 @@ H4,Rare_variant
 - Tooltips display your custom labels
 
 **If errors are detected:**
+
 - A red error message appears with specific issues
 - Fix the errors in your CSV and try uploading again
 
@@ -84,22 +88,27 @@ H4,Rare_variant
 The system performs the following validations:
 
 ### 1. Column Format
+
 - CSV must have exactly two columns: `current_h_number` and `new_label`
 - Column headers must match exactly (case-sensitive)
 
 ### 2. Unknown H Numbers
+
 - All `current_h_number` values must exist in the current network
-- Error example: *"Row 5: Unknown H number 'H99'"*
+- Error example: _"Row 5: Unknown H number 'H99'"_
 
 ### 3. Duplicate Labels
+
 - Each `new_label` must be unique
-- Error example: *"Duplicate label 'Central' for node1 and node2"*
+- Error example: _"Duplicate label 'Central' for node1 and node2"_
 
 ### 4. Missing Values
+
 - Both columns must have values for each row
-- Error example: *"Row 3: Missing new_label for H2"*
+- Error example: _"Row 3: Missing new_label for H2"_
 
 ### 5. Whitespace
+
 - Leading and trailing whitespace is automatically trimmed
 - Labels like `" Central "` become `"Central"`
 
@@ -138,29 +147,36 @@ The system performs the following validations:
 ## Troubleshooting
 
 **Problem**: Upload button doesn't respond
+
 - **Solution**: Ensure you've computed a network first
 
 **Problem**: Template download is empty
+
 - **Solution**: Compute a network before downloading the template
 
 **Problem**: Custom labels don't appear after upload
+
 - **Solution**: Check the feedback message for validation errors
 
 **Problem**: Labels are too long and overlap in the plot
+
 - **Solution**: Use shorter labels or increase network spacing
 
 **Problem**: Need to start over
+
 - **Solution**: Refresh the page or compute a new network to reset labels
 
 ## API Reference
 
 For programmatic access, see the callback documentation in `src/pypopart/gui/app.py`:
+
 - `download_h_number_template()`: Generates template CSV
 - `upload_h_number_mapping()`: Processes uploaded mapping
 
 ## Example Mappings
 
 ### Geographic Labeling
+
 ```csv
 current_h_number,new_label
 H1,Pacific_Core
@@ -170,6 +186,7 @@ H4,Mediterranean
 ```
 
 ### Functional Labeling
+
 ```csv
 current_h_number,new_label
 H1,Wildtype
@@ -179,6 +196,7 @@ H4,Susceptible
 ```
 
 ### Alphanumeric Labeling
+
 ```csv
 current_h_number,new_label
 H1,A

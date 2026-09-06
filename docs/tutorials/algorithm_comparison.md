@@ -104,7 +104,7 @@ def recommend_algorithm(alignment):
     """Suggest best algorithm based on data characteristics."""
     n_seqs = len(alignment)
     diversity = alignment.pairwise_diversity()
-    
+
     if n_seqs < 20:
         return "MST - Small dataset, start simple"
     elif diversity < 0.01:
@@ -171,7 +171,7 @@ for name, algorithm in algorithms.items():
     start = time.time()
     networks[name] = algorithm.build_network(alignment)
     times[name] = time.time() - start
-    
+
     stats = NetworkStatistics(networks[name])
     results.append({
         "Algorithm": name,
@@ -200,24 +200,28 @@ print("Comparison complete!")
 ## When to Use Each Algorithm
 
 ### MST
+
 - ✅ Quick exploration
 - ✅ Small datasets
 - ✅ Simple relationships
 - ❌ Ignores alternative paths
 
 ### MSN
+
 - ✅ Alternative connections
 - ✅ Medium datasets
 - ✅ Ambiguous relationships
 - ❌ Less complete than MJN
 
 ### TCS
+
 - ✅ Within-species data
 - ✅ Statistical justification
 - ✅ Population studies
 - ❌ May be disconnected
 
 ### MJN
+
 - ✅ Comprehensive analysis
 - ✅ Ancestral inference
 - ✅ Publication figures

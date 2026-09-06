@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Comprehensive documentation site with MkDocs
 - Interactive web-based GUI with Dash and Cytoscape
 - TSW (Tight Span Walker) algorithm implementation
@@ -17,12 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multiple export formats for networks
 
 ### Changed
+
 - Improved CLI interface with better error handling
 - Enhanced visualization options
 
 ## [0.1.0] - Initial Release
 
 ### Added
+
 - Core haplotype network algorithms (MST, MSN, TCS, MJN, PN)
 - Distance calculation with multiple evolutionary models
 - FASTA, NEXUS, PHYLIP, and GenBank file format support

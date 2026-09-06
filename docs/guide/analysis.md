@@ -337,10 +337,10 @@ results = []
 for dataset in datasets:
     alignment = Alignment.from_fasta(dataset)
     network = algorithm.build_network(alignment)
-    
+
     stats = NetworkStatistics(network)
     popgen = PopulationGenetics(alignment)
-    
+
     results.append({
         "dataset": dataset,
         "n_haplotypes": stats.number_of_nodes(),
@@ -392,15 +392,19 @@ print(f"Hub haplotypes: {topology.identify_hubs()}")
 ## Troubleshooting
 
 ### "Insufficient data for test"
+
 → Ensure adequate sample size (usually n > 20)
 
 ### "Test not significant"
+
 → May indicate true lack of signal or insufficient power
 
 ### "Negative diversity"
+
 → Check for sequencing errors or incorrect alignment
 
 ### "FST > 1 or < 0"
+
 → Calculation error; check population assignments
 
 ## Next Steps

@@ -7,6 +7,7 @@ Minimum Spanning Tree network construction.
 The MST (Minimum Spanning Tree) algorithm creates the simplest tree connecting all haplotypes with minimum total distance.
 
 **Characteristics:**
+
 - Always produces a tree (no cycles)
 - Deterministic result
 - Fast computation
@@ -15,7 +16,7 @@ The MST (Minimum Spanning Tree) algorithm creates the simplest tree connecting a
 ## Classes
 
 ::: pypopart.algorithms.mst
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

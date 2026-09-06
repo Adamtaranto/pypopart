@@ -44,6 +44,7 @@ H4,Outlier
 ### Example Use Cases
 
 #### Geographic Labels
+
 ```csv
 current_h_number,new_label
 H1,Pacific_Central
@@ -53,6 +54,7 @@ H4,Mediterranean
 ```
 
 #### Functional/Phenotypic Labels
+
 ```csv
 current_h_number,new_label
 H1,Wildtype
@@ -62,6 +64,7 @@ H4,Susceptible
 ```
 
 #### Simple Alphanumeric Labels
+
 ```csv
 current_h_number,new_label
 H1,A
@@ -88,6 +91,7 @@ The app performs automatic validation and will show specific error messages if:
 - Any values are missing
 
 Example error message:
+
 ```
 ❌ Validation Errors:
 • Row 3: Missing new_label for H2
@@ -106,6 +110,7 @@ Example error message:
 ### Getting Help
 
 For detailed documentation, see:
+
 - User Guide: `docs/h_number_labeling.md`
 - Implementation Details: `H_NUMBER_LABELING_IMPLEMENTATION.md`
 
@@ -115,6 +120,7 @@ This example shows the complete workflow:
 
 1. Start with a network of 4 haplotypes (H1-H4)
 2. Download template:
+
    ```csv
    current_h_number,new_label
    H1,H1
@@ -124,6 +130,7 @@ This example shows the complete workflow:
    ```
 
 3. Edit to meaningful names:
+
    ```csv
    current_h_number,new_label
    H1,Central

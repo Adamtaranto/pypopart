@@ -87,6 +87,7 @@ pypopart-gui --port 8080
 ```
 
 The GUI provides:
+
 - Drag-and-drop file upload
 - Interactive network visualization (zoom, pan, drag nodes)
 - Real-time algorithm parameter adjustment

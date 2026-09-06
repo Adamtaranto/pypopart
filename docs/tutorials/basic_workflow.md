@@ -5,6 +5,7 @@ This tutorial walks through a complete PyPopART analysis from start to finish.
 ## Overview
 
 We'll analyze a sample dataset of mitochondrial DNA sequences to:
+
 1. Load sequence data
 2. Build a haplotype network
 3. Calculate statistics

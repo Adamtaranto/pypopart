@@ -2,11 +2,9 @@ site_name: PyPopART Documentation
 site_description: Pure Python implementation of PopART haplotype network analysis
 site_author: Adam Taranto
 site_url: https://pypopart.readthedocs.io
-
 repo_name: Adamtaranto/pypopart
 repo_url: https://github.com/Adamtaranto/pypopart
 edit_uri: edit/main/docs/
-
 theme:
   name: material
   palette:
@@ -40,7 +38,6 @@ theme:
     - content.code.copy
   icon:
     repo: fontawesome/brands/github
-
 nav:
   - Home: index.md
   - Getting Started:
@@ -90,7 +87,6 @@ nav:
       - FAQ: faq.md
       - Changelog: changelog.md
       - License: license.md
-
 plugins:
   - search
   - mkdocstrings:
@@ -109,7 +105,6 @@ plugins:
   - mkdocs-jupyter:
       include_source: true
       execute: false
-
 markdown_extensions:
   - admonition
   - codehilite
@@ -142,7 +137,6 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
-
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -151,10 +145,8 @@ extra:
       link: https://pypi.org/project/pypopart/
   version:
     provider: mike
-
 extra_css:
   - stylesheets/extra.css
-
 extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6

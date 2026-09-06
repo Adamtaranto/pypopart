@@ -14,7 +14,7 @@ The `distance` module implements various distance metrics:
 ## Classes
 
 ::: pypopart.core.distance
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

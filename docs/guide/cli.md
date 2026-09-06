@@ -216,15 +216,18 @@ done
 ### Common Issues
 
 **"No such file or directory"**
+
 - Check file paths are correct
 - Use absolute paths if needed
 
 **"Invalid sequence format"**
+
 - Verify file format is supported
 - Check for file corruption
 - Ensure sequences are aligned
 
 **"Algorithm failed to converge"**
+
 - Try different algorithm
 - Check data quality
 - Adjust algorithm parameters

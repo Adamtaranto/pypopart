@@ -9,7 +9,7 @@ The `haplotype` module provides classes for identifying and working with unique 
 ## Classes
 
 ::: pypopart.core.haplotype
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

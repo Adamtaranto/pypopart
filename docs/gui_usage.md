@@ -70,7 +70,7 @@ The GUI will start a local web server. Open your browser to `http://localhost:80
 
 #### Metadata File (Optional)
 
-- Click "📊 Select Metadata File" 
+- Click "📊 Select Metadata File"
 - Upload a CSV file with population, location, or trait data
 - Required columns: `id` (matching sequence IDs)
 - Optional columns: `population`, `latitude`, `longitude`, `color`, `notes`

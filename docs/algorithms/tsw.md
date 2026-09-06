@@ -39,9 +39,9 @@ The Tight Span Walker (TSW) algorithm constructs haplotype networks using parsim
 
 ## When to Use TSW
 
-✓ Complex evolutionary relationships with reticulation  
-✓ Small to medium datasets (n < 100)  
-✓ Accurate metric representation needed  
+✓ Complex evolutionary relationships with reticulation
+✓ Small to medium datasets (n < 100)
+✓ Accurate metric representation needed
 ✓ Ancestral sequence inference desired
 
 ## Usage Example
