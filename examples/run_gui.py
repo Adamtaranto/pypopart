@@ -8,13 +8,13 @@ This script demonstrates how to start the PyPopART web interface.
 from pypopart.gui import main
 
 if __name__ == '__main__':
-    print("=" * 60)
-    print("PyPopART GUI - Haplotype Network Analysis")
-    print("=" * 60)
-    print("\nStarting web server...")
-    print("Once started, open your browser to: http://localhost:8050")
-    print("\nTo stop the server, press Ctrl+C in this terminal")
-    print("=" * 60)
+    print('=' * 60)
+    print('PyPopART GUI - Haplotype Network Analysis')
+    print('=' * 60)
+    print('\nStarting web server...')
+    print('Once started, open your browser to: http://localhost:8050')
+    print('\nTo stop the server, press Ctrl+C in this terminal')
+    print('=' * 60)
     print()
 
     # Launch the GUI

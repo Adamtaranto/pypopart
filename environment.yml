@@ -1,26 +1,8 @@
 name: pypopart
 channels:
   - conda-forge
-  - bioconda
 dependencies:
-  - python=3.11
-  - biopython
-  - click
-  - dash
-  - dash-bootstrap-components
-  - ipython
-  - isort
-  - jupyter
-  - mypy
-  - networkx
-  - notebook
-  - numba
-  - numpy
-  - pandas
-  - plotly
-  - pytest
-  - pytest-benchmark
-  - pytest-cov
-  - ruff
-  - scikit-learn
-  - scipy
+  - python=3.12
+  - pip
+  - pip:
+      - -e .[dev,gui,viz,speed]

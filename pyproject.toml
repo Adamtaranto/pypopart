@@ -7,7 +7,7 @@ name = "pypopart"
 dynamic = ["version"]
 description = "Pure Python implementation of PopART haplotype network analysis"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "Adam Taranto" }]
 
@@ -19,34 +19,35 @@ classifiers = [
 
 dependencies = [
     "biopython",
-    "cartopy",
     "click",
+    "networkx",
+    "numpy",
+]
+
+[project.optional-dependencies]
+gui = [
     "dash",
     "dash-bootstrap-components",
     "dash-cytoscape",
-    "folium",
-    "lxml",
-    "matplotlib",
-    "networkx",
-    "numba",
-    "numpy",
-    "pandas",
-    "plotly",
-    "scikit-learn",
-    "scipy",
 ]
-
-
-# Optional dependencies for testing
-[project.optional-dependencies]
+viz = [
+    "matplotlib",
+    "plotly",
+]
+speed = [
+    "numba",
+]
+all = [
+    "pypopart[gui,viz,speed]",
+]
 dev = [
     "hatch",
     "ipykernel",
-    "isort",
     "numpydoc-validation",
     "pre-commit",
-    "pytest-cov",
     "pytest",
+    "pytest-benchmark",
+    "pytest-cov",
     "ruff",
 ]
 
@@ -69,9 +70,10 @@ pypopart = "pypopart.cli:main"
 pypopart-gui = "pypopart.gui:main"
 
 [tool.hatch.build]
-source = "src"
-
 exclude = ["environment.yml", ".github", ".vscode"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pypopart"]
 
 [tool.hatch.version]
 source = "vcs"
@@ -84,12 +86,15 @@ fallback-version = "0.0.0"
 version-file = "src/pypopart/_version.py"
 
 [tool.pytest.ini_options]
-addopts = "-v --cov=pypopart --cov-branch --cov-report=xml --cov-report=term"
+addopts = "-v -m 'not benchmark'"
+markers = [
+    "benchmark: performance benchmarks (excluded from the default run)",
+]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 88
 fix = true
 
@@ -117,24 +122,6 @@ convention = "numpy"
 indent-style = "space"
 quote-style = "single"
 
-[tool.isort]
-profile = "black"
-known_third_party = [
-    "biopython",
-    "numpy",
-    "scipy",
-    "pandas",
-    "networkx",
-    "plotly",
-    "dash",
-    "dash_bootstrap_components",
-    "numba",
-    "sklearn",
-]
-known_first_party = ["pypopart"]
-default_section = "THIRDPARTY"
-force_sort_within_sections = true
-
 [tool.numpydoc_validation]
 checks = [
     "all",  # report on all checks
@@ -155,7 +142,7 @@ override_SS05 = [ # allow docstrings to start with these words
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

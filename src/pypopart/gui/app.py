@@ -18,6 +18,7 @@ import tempfile
 import traceback
 from typing import Dict, List, Optional, Tuple
 
+import click
 import dash
 from dash import Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
@@ -1317,21 +1318,12 @@ class PyPopARTApp:
 
                 # Apply standard layouts (non-proportional)
                 else:
-                    if layout_method == 'geographic':
-                        # Geographic layout requires metadata with coordinates
-                        if not metadata_data or not metadata_data.get('coordinates'):
-                            # Fall back to spring layout if no coordinates
-                            layout_manager = LayoutManager(network)
-                            positions = layout_manager.compute_layout('spring')
-                        else:
-                            geo_layout = GeographicLayout(network)
-                            positions = geo_layout.compute(
-                                coordinates=metadata_data['coordinates'],
-                                projection=projection or 'mercator',
-                            )
-                    else:
-                        layout_manager = LayoutManager(network)
-                        positions = layout_manager.compute_layout(layout_method)
+                    # Geographic layouts were removed with the geo feature;
+                    # fall back to spring for any stale 'geographic' value.
+                    layout_manager = LayoutManager(network)
+                    positions = layout_manager.compute_layout(
+                        'spring' if layout_method == 'geographic' else layout_method
+                    )
 
                     # Apply spacing factor to expand/contract the layout
                     if spacing_factor and spacing_factor != 1.0:
@@ -2914,54 +2906,30 @@ class PyPopARTApp:
         self.app.run(debug=self.debug, port=self.port)
 
 
+@click.command(name='pypopart-gui')
+@click.option('--debug', is_flag=True, help='Enable debug mode for development.')
+@click.option(
+    '--port',
+    type=int,
+    default=8050,
+    show_default=True,
+    help='Port number for web server.',
+)
 def main(debug: bool = False, port: int = 8050) -> None:
-    """
+    r"""
     Launch the PyPopART GUI application.
+
+    Once started, open your browser to http://localhost:PORT.
+    Press Ctrl+C to stop the server.
+    \f
 
     Parameters
     ----------
-    debug :
-        bool, default=False.
+    debug : bool, default=False
         Enable debug mode.
-    port :
-        int, default=8050.
+    port : int, default=8050
         Port number for web server.
     """
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description='PyPopART - Haplotype Network Analysis GUI',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  pypopart-gui                    # Start GUI on default port 8050
-  pypopart-gui --port 8080        # Start GUI on custom port
-  pypopart-gui --debug            # Start GUI in debug mode
-
-Once started, open your browser to http://localhost:8050
-Press Ctrl+C to stop the server.
-        """,
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug mode for development',
-    )
-    parser.add_argument(
-        '--port',
-        type=int,
-        default=8050,
-        help='Port number for web server (default: 8050)',
-    )
-
-    # Parse args only if running from command line
-    import sys
-
-    if len(sys.argv) > 1:
-        args = parser.parse_args()
-        debug = args.debug
-        port = args.port
-
     print('=' * 60)
     print('PyPopART GUI - Haplotype Network Analysis')
     print('=' * 60)
@@ -2982,4 +2950,4 @@ Press Ctrl+C to stop the server.
 
 
 if __name__ == '__main__':
-    main(debug=True)
+    main()
