@@ -191,3 +191,86 @@ class TestPyPopARTApp:
         assert selected_style['style']['border-color'] == '#ff0000'
         assert selected_style['style']['border-width'] == 4
         assert selected_style['style']['z-index'] == 999
+
+
+class TestCentralHaplotypesTable:
+    """The Statistics tab's Central Haplotypes table.
+
+    This panel silently showed 'Unable to identify central haplotypes'
+    for its whole life: the formatter indexed identify_central_haplotypes'
+    list of (id, score) tuples as if it were a dict, and a bare except
+    swallowed the TypeError. These tests pin the real shape.
+    """
+
+    def build_network(self):
+        """Build a three-haplotype chain (H1 - H2 - H3)."""
+        from pypopart import build_network
+        from pypopart.core.alignment import Alignment
+        from pypopart.core.sequence import Sequence
+
+        alignment = Alignment(
+            [
+                Sequence('s1', 'AAAA'),
+                Sequence('s2', 'AAAT'),
+                Sequence('s3', 'AATT'),
+            ]
+        )
+        return build_network('mst', alignment)
+
+    def render(self, network, **kwargs):
+        """Render the central-haplotype table for a network."""
+        from pypopart.gui.callbacks.display import _format_central_haplotypes
+        from pypopart.stats import (
+            calculate_node_centrality,
+            identify_central_haplotypes,
+        )
+
+        return _format_central_haplotypes(
+            identify_central_haplotypes(network),
+            calculate_node_centrality(network),
+            **kwargs,
+        )
+
+    def rows_of(self, rendered):
+        """Extract the table body rows from the rendered output."""
+        table = rendered.children[0]
+        return table.children[1].children
+
+    def test_table_lists_each_measure(self):
+        """Every centrality measure gets its own column."""
+        rendered = self.render(self.build_network())
+        header = rendered.children[0].children[0]
+        titles = [th.children for th in header.children.children]
+        assert titles == [
+            'Haplotype',
+            'Degree',
+            'Betweenness',
+            'Closeness',
+            'Eigenvector',
+        ]
+
+    def test_rows_are_ranked_and_populated(self):
+        """The hub ranks first and every cell holds a formatted score."""
+        rows = self.rows_of(self.render(self.build_network()))
+        assert len(rows) == 3
+
+        cells = [[td.children for td in row.children] for row in rows]
+        # H2 is the middle of the chain, so it is the most central
+        assert cells[0][0] == 'H2'
+        assert cells[0][1] == '1.000'
+        # no cell is left empty or unformatted
+        for row in cells:
+            assert all(value and value != '-' for value in row)
+
+    def test_top_n_caps_the_table(self):
+        """top_n limits the rows and the caption reports the total."""
+        rendered = self.render(self.build_network(), top_n=2)
+        assert len(self.rows_of(rendered)) == 2
+        assert 'Top 2 of 3' in rendered.children[1].children
+
+    def test_empty_network_renders_a_message(self):
+        """An empty network reports that there is nothing to rank."""
+        from pypopart.core.graph import HaplotypeNetwork
+
+        rendered = self.render(HaplotypeNetwork())
+        assert 'No haplotypes to rank' in rendered.children

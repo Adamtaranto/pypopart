@@ -12,8 +12,12 @@ from pypopart.core.graph import HaplotypeNetwork
 from pypopart.stats import (
     calculate_diversity_metrics,
     calculate_network_metrics,
+    calculate_node_centrality,
     identify_central_haplotypes,
 )
+
+#: How many haplotypes the Central Haplotypes table lists.
+CENTRAL_HAPLOTYPE_COUNT = 5
 
 
 def register(app, logger) -> None:
@@ -77,6 +81,7 @@ def register(app, logger) -> None:
             network_metrics = calculate_network_metrics(network)
             diversity_metrics = calculate_diversity_metrics(network)
             central_haps = identify_central_haplotypes(network)
+            node_centrality = calculate_node_centrality(network)
 
             # Create statistics display
             return html.Div(
@@ -114,7 +119,7 @@ def register(app, logger) -> None:
                     ),
                     html.Hr(),
                     html.H5('Central Haplotypes'),
-                    _format_central_haplotypes(central_haps),
+                    _format_central_haplotypes(central_haps, node_centrality),
                 ]
             )
 
@@ -898,30 +903,62 @@ def register(app, logger) -> None:
     )
 
 
-def _format_central_haplotypes(central: Dict) -> html.Div:
+def _format_central_haplotypes(
+    ranked: List[Tuple[str, float]],
+    centrality: Dict[str, Dict[str, float]],
+    top_n: int = CENTRAL_HAPLOTYPE_COUNT,
+) -> html.Div:
     """
-    Format central haplotypes for display.
+    Render the most central haplotypes as a table.
 
     Parameters
     ----------
-    central : Dict
-        Central haplotype metrics.
+    ranked : List[Tuple[str, float]]
+        (haplotype_id, score) pairs from identify_central_haplotypes,
+        already sorted by descending degree centrality.
+    centrality : Dict[str, Dict[str, float]]
+        Per-node centrality measures from calculate_node_centrality.
+    top_n : int, default=CENTRAL_HAPLOTYPE_COUNT
+        Maximum number of haplotypes to list.
 
     Returns
     -------
     html.Div
-        The rendered list of central haplotypes.
+        A table of the most central haplotypes, or a short message when
+        the network has no nodes to rank.
     """
-    try:
-        return html.Ul(
-            [
-                html.Li(
-                    f'Degree Centrality: {central["degree_centrality"]} '
-                    f'(degree: {central["degree"]})'
-                ),
-                html.Li(f'Betweenness Centrality: {central["betweenness_centrality"]}'),
-                html.Li(f'Closeness Centrality: {central["closeness_centrality"]}'),
-            ]
+    if not ranked:
+        return html.Div('No haplotypes to rank.', style={'color': 'gray'})
+
+    measures = ('degree', 'betweenness', 'closeness', 'eigenvector')
+    header = html.Thead(
+        html.Tr([html.Th('Haplotype')] + [html.Th(m.title()) for m in measures])
+    )
+    rows = []
+    for hap_id, _score in ranked[:top_n]:
+        scores = centrality.get(hap_id, {})
+        rows.append(
+            html.Tr(
+                [html.Td(hap_id)]
+                + [
+                    html.Td(f'{scores[m]:.3f}' if m in scores else '-')
+                    for m in measures
+                ]
+            )
         )
-    except Exception:
-        return html.Div('Unable to identify central haplotypes')
+
+    caption = (
+        f'Top {len(rows)} of {len(ranked)} haplotypes, ranked by degree centrality.'
+    )
+    return html.Div(
+        [
+            dbc.Table(
+                [header, html.Tbody(rows)],
+                bordered=False,
+                hover=True,
+                striped=True,
+                size='sm',
+            ),
+            html.Small(caption, style={'color': 'gray'}),
+        ]
+    )
