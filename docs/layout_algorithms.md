@@ -52,10 +52,10 @@ This guide helps you choose the best layout algorithm for your haplotype network
 ```python
 layout = manager.compute_layout(
     'hierarchical',
-    root_node='H1',      # Optional: specify root
-    vertical=True,       # True = top-down, False = left-right
-    width=2.0,          # Layout width
-    height=2.0          # Layout height
+    root_node='H1',  # Optional: specify root
+    vertical=True,  # True = top-down, False = left-right
+    width=2.0,  # Layout width
+    height=2.0,  # Layout height
 )
 ```
 
@@ -85,8 +85,8 @@ layout = manager.compute_layout(
 ```python
 layout = manager.compute_layout(
     'spectral',
-    scale=1.0,          # Scale factor
-    center=(0.0, 0.0)   # Center position
+    scale=1.0,  # Scale factor
+    center=(0.0, 0.0),  # Center position
 )
 ```
 
@@ -117,9 +117,9 @@ layout = manager.compute_layout(
 ```python
 layout = manager.compute_layout(
     'spring',
-    k=None,             # Optimal distance (None = auto)
-    iterations=50,      # More = better quality but slower
-    seed=42            # For reproducibility
+    k=None,  # Optimal distance (None = auto)
+    iterations=50,  # More = better quality but slower
+    seed=42,  # For reproducibility
 )
 ```
 
@@ -156,8 +156,8 @@ layout = manager.compute_layout(
 ```python
 layout = manager.compute_layout(
     'kamada_kawai',
-    scale=1.0,          # Scale factor
-    center=(0.0, 0.0)   # Center position
+    scale=1.0,  # Scale factor
+    center=(0.0, 0.0),  # Center position
 )
 ```
 
@@ -189,8 +189,8 @@ layout = manager.compute_layout(
 ```python
 layout = manager.compute_layout(
     'circular',
-    scale=1.0,          # Radius of circle
-    center=(0.0, 0.0)   # Center position
+    scale=1.0,  # Radius of circle
+    center=(0.0, 0.0),  # Center position
 )
 ```
 
@@ -220,8 +220,8 @@ layout = manager.compute_layout(
 ```python
 layout = manager.compute_layout(
     'radial',
-    center_node='H1',   # Node to place at center
-    scale=1.0           # Scale factor
+    center_node='H1',  # Node to place at center
+    scale=1.0,  # Scale factor
 )
 ```
 
@@ -251,20 +251,13 @@ layout = manager.compute_layout(
 #### Spring Proportional
 
 ```python
-layout = manager.compute_layout(
-    'spring_proportional',
-    iterations=100,
-    seed=42
-)
+layout = manager.compute_layout('spring_proportional', iterations=100, seed=42)
 ```
 
 #### Kamada-Kawai Proportional
 
 ```python
-layout = manager.compute_layout(
-    'kamada_kawai_proportional',
-    scale=1.0
-)
+layout = manager.compute_layout('kamada_kawai_proportional', scale=1.0)
 ```
 
 ## Performance Benchmarks

@@ -366,19 +366,21 @@ Run multiple algorithms on the same data:
 from pypopart import Alignment
 from pypopart.algorithms import MSTAlgorithm, MSNAlgorithm, TCSAlgorithm, MJNAlgorithm
 
-alignment = Alignment.from_fasta("sequences.fasta")
+alignment = Alignment.from_fasta('sequences.fasta')
 
 algorithms = {
-    "MST": MSTAlgorithm(),
-    "MSN": MSNAlgorithm(),
-    "TCS": TCSAlgorithm(),
-    "MJN": MJNAlgorithm(),
+    'MST': MSTAlgorithm(),
+    'MSN': MSNAlgorithm(),
+    'TCS': TCSAlgorithm(),
+    'MJN': MJNAlgorithm(),
 }
 
 networks = {}
 for name, algorithm in algorithms.items():
     networks[name] = algorithm.build_network(alignment)
-    print(f"{name}: {networks[name].number_of_nodes()} nodes, {networks[name].number_of_edges()} edges")
+    print(
+        f'{name}: {networks[name].number_of_nodes()} nodes, {networks[name].number_of_edges()} edges'
+    )
 ```
 
 CLI batch comparison:

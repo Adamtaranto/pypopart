@@ -21,7 +21,8 @@ ATCGATCGATCGATTGATCG
 
 ```python
 from pypopart import Alignment
-alignment = Alignment.from_fasta("sequences.fasta")
+
+alignment = Alignment.from_fasta('sequences.fasta')
 ```
 
 **CLI:**
@@ -66,7 +67,7 @@ END;
 **Load in Python:**
 
 ```python
-alignment = Alignment.from_nexus("sequences.nex")
+alignment = Alignment.from_nexus('sequences.nex')
 metadata = alignment.get_metadata()
 ```
 
@@ -84,7 +85,7 @@ Seq3      ATCGATCGATCGATTGATCG
 **Load in Python:**
 
 ```python
-alignment = Alignment.from_phylip("sequences.phy")
+alignment = Alignment.from_phylip('sequences.phy')
 ```
 
 ### GenBank Format
@@ -92,7 +93,7 @@ alignment = Alignment.from_phylip("sequences.phy")
 Full GenBank entries:
 
 ```python
-alignment = Alignment.from_genbank("sequences.gb")
+alignment = Alignment.from_genbank('sequences.gb')
 ```
 
 ## Working with Metadata
@@ -105,7 +106,7 @@ Metadata can encode population, location, time, or custom traits:
 
 ```python
 # Automatically loaded from NEXUS file
-alignment = Alignment.from_nexus("sequences_with_traits.nex")
+alignment = Alignment.from_nexus('sequences_with_traits.nex')
 print(alignment.metadata)
 ```
 
@@ -115,15 +116,17 @@ print(alignment.metadata)
 import pandas as pd
 
 # Load sequences
-alignment = Alignment.from_fasta("sequences.fasta")
+alignment = Alignment.from_fasta('sequences.fasta')
 
 # Add metadata
-metadata = pd.DataFrame({
-    'sequence_id': ['Seq1', 'Seq2', 'Seq3'],
-    'Population': ['PopA', 'PopA', 'PopB'],
-    'Location': ['Site1', 'Site1', 'Site2'],
-    'Year': [2020, 2020, 2021]
-})
+metadata = pd.DataFrame(
+    {
+        'sequence_id': ['Seq1', 'Seq2', 'Seq3'],
+        'Population': ['PopA', 'PopA', 'PopB'],
+        'Location': ['Site1', 'Site1', 'Site2'],
+        'Year': [2020, 2020, 2021],
+    }
+)
 
 alignment.set_metadata(metadata)
 ```
@@ -132,10 +135,8 @@ alignment.set_metadata(metadata)
 
 ```python
 # If names are like: "Sample1_PopA_Site1"
-alignment = Alignment.from_fasta("sequences.fasta")
-alignment.parse_names(
-    pattern=r"(?P<sample>\w+)_(?P<population>\w+)_(?P<location>\w+)"
-)
+alignment = Alignment.from_fasta('sequences.fasta')
+alignment.parse_names(pattern=r'(?P<sample>\w+)_(?P<population>\w+)_(?P<location>\w+)')
 ```
 
 ### Using Metadata for Analysis
@@ -145,8 +146,8 @@ alignment.parse_names(
 from pypopart.visualization import StaticPlot
 
 plot = StaticPlot(network)
-plot.color_by_attribute("Population")
-plot.save("colored_network.png")
+plot.color_by_attribute('Population')
+plot.save('colored_network.png')
 
 # Calculate population statistics
 from pypopart.stats import PopulationGenetics
@@ -161,17 +162,17 @@ fst = popgen.calculate_fst(population_column='Population')
 
 ```python
 # Verify alignment
-print(f"Number of sequences: {len(alignment)}")
-print(f"Alignment length: {alignment.length}")
-print(f"Valid alignment: {alignment.is_valid()}")
+print(f'Number of sequences: {len(alignment)}')
+print(f'Alignment length: {alignment.length}')
+print(f'Valid alignment: {alignment.is_valid()}')
 
 # Check for gaps
 if alignment.has_gaps():
-    print("Warning: Alignment contains gaps")
+    print('Warning: Alignment contains gaps')
 
 # Check for ambiguous bases
 if alignment.has_ambiguous():
-    print("Warning: Alignment contains ambiguous bases")
+    print('Warning: Alignment contains ambiguous bases')
 ```
 
 ### Handle Missing Data
@@ -193,13 +194,13 @@ PyPopART can auto-detect formats:
 
 ```python
 # Auto-detect format
-alignment = Alignment.from_file("sequences.unknown")
+alignment = Alignment.from_file('sequences.unknown')
 ```
 
 Or explicitly specify:
 
 ```python
-alignment = Alignment.from_file("sequences.txt", format="fasta")
+alignment = Alignment.from_file('sequences.txt', format='fasta')
 ```
 
 ## Large Files
@@ -210,7 +211,7 @@ For very large files:
 
 ```python
 # Process in chunks
-for chunk in Alignment.read_chunks("large_file.fasta", chunk_size=1000):
+for chunk in Alignment.read_chunks('large_file.fasta', chunk_size=1000):
     # Process each chunk
     network = algorithm.build_network(chunk)
 ```
@@ -220,9 +221,7 @@ for chunk in Alignment.read_chunks("large_file.fasta", chunk_size=1000):
 ```python
 # Disable unnecessary features
 alignment = Alignment.from_fasta(
-    "sequences.fasta",
-    load_metadata=False,
-    compute_stats=False
+    'sequences.fasta', load_metadata=False, compute_stats=False
 )
 ```
 
@@ -235,12 +234,12 @@ from Bio import AlignIO
 from pypopart import Alignment
 
 # BioPython to PyPopART
-bio_aln = AlignIO.read("sequences.fasta", "fasta")
+bio_aln = AlignIO.read('sequences.fasta', 'fasta')
 pp_aln = Alignment.from_biopython(bio_aln)
 
 # PyPopART to BioPython
 bio_aln = pp_aln.to_biopython()
-AlignIO.write(bio_aln, "output.fasta", "fasta")
+AlignIO.write(bio_aln, 'output.fasta', 'fasta')
 ```
 
 ## Data Requirements
@@ -265,12 +264,12 @@ PyPopART includes example datasets:
 from pypopart.data import load_example
 
 # Load example data
-alignment = load_example("woodmouse")
-alignment = load_example("influenza")
-alignment = load_example("mtdna")
+alignment = load_example('woodmouse')
+alignment = load_example('influenza')
+alignment = load_example('mtdna')
 
 # Get example file path
-path = load_example("woodmouse", return_path=True)
+path = load_example('woodmouse', return_path=True)
 ```
 
 ## Tips for Data Preparation

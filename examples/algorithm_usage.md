@@ -24,47 +24,51 @@ from pypopart.algorithms import (
     TCS,
     MedianJoiningNetwork,
     ParsimonyNetwork,
-    TightSpanWalker
+    TightSpanWalker,
 )
 
 # Create alignment
 sequences = [
-    Sequence("sample1", "ATCGATCG"),
-    Sequence("sample2", "ATCGATCC"),
-    Sequence("sample3", "ATCGGTCG"),
-    Sequence("sample4", "GTCGATCG")
+    Sequence('sample1', 'ATCGATCG'),
+    Sequence('sample2', 'ATCGATCC'),
+    Sequence('sample3', 'ATCGGTCG'),
+    Sequence('sample4', 'GTCGATCG'),
 ]
 alignment = Alignment(sequences)
 
 # 1. Minimum Spanning Tree
-mst = MinimumSpanningTree(distance_method="hamming", algorithm="prim")
+mst = MinimumSpanningTree(distance_method='hamming', algorithm='prim')
 network_mst = mst.construct_network(alignment)
-print(f"MST: {len(network_mst.haplotypes)} haplotypes, {len(network_mst.edges)} edges")
+print(f'MST: {len(network_mst.haplotypes)} haplotypes, {len(network_mst.edges)} edges')
 
 # 2. Minimum Spanning Network
-msn = MinimumSpanningNetwork(distance_method="hamming", epsilon=0.0)
+msn = MinimumSpanningNetwork(distance_method='hamming', epsilon=0.0)
 network_msn = msn.construct_network(alignment)
-print(f"MSN: {len(network_msn.haplotypes)} haplotypes, {len(network_msn.edges)} edges")
+print(f'MSN: {len(network_msn.haplotypes)} haplotypes, {len(network_msn.edges)} edges')
 
 # 3. TCS (Statistical Parsimony)
-tcs = TCS(distance_method="hamming", confidence=0.95)
+tcs = TCS(distance_method='hamming', confidence=0.95)
 network_tcs = tcs.construct_network(alignment)
-print(f"TCS: {len(network_tcs.haplotypes)} haplotypes, {len(network_tcs.edges)} edges")
+print(f'TCS: {len(network_tcs.haplotypes)} haplotypes, {len(network_tcs.edges)} edges')
 
 # 4. Median-Joining Network
-mjn = MedianJoiningNetwork(distance_method="hamming", epsilon=0)
+mjn = MedianJoiningNetwork(distance_method='hamming', epsilon=0)
 network_mjn = mjn.build_network(alignment)
-print(f"MJN: {len(network_mjn.graph.nodes)} nodes, {len(network_mjn.graph.edges)} edges")
+print(
+    f'MJN: {len(network_mjn.graph.nodes)} nodes, {len(network_mjn.graph.edges)} edges'
+)
 
 # 5. Parsimony Network
-pn = ParsimonyNetwork(distance_method="hamming", n_trees=100)
+pn = ParsimonyNetwork(distance_method='hamming', n_trees=100)
 network_pn = pn.build_network(alignment)
-print(f"PN: {len(network_pn.graph.nodes)} nodes, {len(network_pn.graph.edges)} edges")
+print(f'PN: {len(network_pn.graph.nodes)} nodes, {len(network_pn.graph.edges)} edges')
 
 # 6. Tight Span Walker
-tsw = TightSpanWalker(distance_method="hamming")
+tsw = TightSpanWalker(distance_method='hamming')
 network_tsw = tsw.build_network(alignment)
-print(f"TSW: {len(network_tsw.graph.nodes)} nodes, {len(network_tsw.graph.edges)} edges")
+print(
+    f'TSW: {len(network_tsw.graph.nodes)} nodes, {len(network_tsw.graph.edges)} edges'
+)
 ```
 
 ## Algorithm-Specific Parameters
@@ -73,8 +77,8 @@ print(f"TSW: {len(network_tsw.graph.nodes)} nodes, {len(network_tsw.graph.edges)
 
 ```python
 mst = MinimumSpanningTree(
-    distance_method="hamming",  # Distance metric: hamming, p, jc, k2p, tn
-    algorithm="prim"            # MST algorithm: "prim" or "kruskal"
+    distance_method='hamming',  # Distance metric: hamming, p, jc, k2p, tn
+    algorithm='prim',  # MST algorithm: "prim" or "kruskal"
 )
 ```
 
@@ -88,9 +92,9 @@ mst = MinimumSpanningTree(
 
 ```python
 msn = MinimumSpanningNetwork(
-    distance_method="hamming",
-    epsilon=0.0,              # Tolerance for equal distances
-    max_connections=None      # Limit connections per node (None = no limit)
+    distance_method='hamming',
+    epsilon=0.0,  # Tolerance for equal distances
+    max_connections=None,  # Limit connections per node (None = no limit)
 )
 ```
 
@@ -104,9 +108,9 @@ msn = MinimumSpanningNetwork(
 
 ```python
 tcs = TCS(
-    distance_method="hamming",
-    confidence=0.95,          # Parsimony confidence level (0.0-1.0)
-    connection_limit=None     # Max distance (auto-calculated if None)
+    distance_method='hamming',
+    confidence=0.95,  # Parsimony confidence level (0.0-1.0)
+    connection_limit=None,  # Max distance (auto-calculated if None)
 )
 ```
 
@@ -121,8 +125,8 @@ tcs = TCS(
 
 ```python
 mjn = MedianJoiningNetwork(
-    distance_method="hamming",
-    epsilon=0                 # Complexity control parameter (0 = maximum simplification)
+    distance_method='hamming',
+    epsilon=0,  # Complexity control parameter (0 = maximum simplification)
 )
 ```
 
@@ -137,9 +141,9 @@ mjn = MedianJoiningNetwork(
 
 ```python
 pn = ParsimonyNetwork(
-    n_trees=20,        # Number of stepwise-addition parsimony trees
-    alpha=0.95,        # Edge-frequency threshold for pruning
-    random_seed=42,    # Reproducible sampling
+    n_trees=20,  # Number of stepwise-addition parsimony trees
+    alpha=0.95,  # Edge-frequency threshold for pruning
+    random_seed=42,  # Reproducible sampling
 )
 ```
 
@@ -154,8 +158,8 @@ pn = ParsimonyNetwork(
 
 ```python
 tsw = TightSpanWalker(
-    distance_method="hamming",
-    epsilon=1e-6              # Tolerance for metric comparisons
+    distance_method='hamming',
+    epsilon=1e-6,  # Tolerance for metric comparisons
 )
 ```
 
@@ -175,19 +179,19 @@ All algorithms support multiple distance calculation methods:
 
 ```python
 # Hamming distance (count of differences)
-algorithm = Algorithm(distance_method="hamming")
+algorithm = Algorithm(distance_method='hamming')
 
 # p-distance (proportion of differences)
-algorithm = Algorithm(distance_method="p")
+algorithm = Algorithm(distance_method='p')
 
 # Jukes-Cantor correction
-algorithm = Algorithm(distance_method="jc")
+algorithm = Algorithm(distance_method='jc')
 
 # Kimura 2-parameter
-algorithm = Algorithm(distance_method="k2p")
+algorithm = Algorithm(distance_method='k2p')
 
 # Tamura-Nei
-algorithm = Algorithm(distance_method="tn")
+algorithm = Algorithm(distance_method='tn')
 ```
 
 **Recommendations:**
@@ -204,22 +208,22 @@ After constructing a network, you can analyze it:
 
 ```python
 # Check connectivity
-print(f"Is connected: {network.is_connected()}")
+print(f'Is connected: {network.is_connected()}')
 
 # Get network statistics
 stats = network.calculate_stats()
-print(f"Nodes: {stats['num_nodes']}")
-print(f"Edges: {stats['num_edges']}")
-print(f"Connected: {stats['is_connected']}")
+print(f'Nodes: {stats["num_nodes"]}')
+print(f'Edges: {stats["num_edges"]}')
+print(f'Connected: {stats["is_connected"]}')
 
 # Get haplotype information
 for hap in network.haplotypes:
-    print(f"{hap.id}: frequency={hap.frequency}, samples={len(hap.sample_ids)}")
+    print(f'{hap.id}: frequency={hap.frequency}, samples={len(hap.sample_ids)}')
 
 # Get edge information
 for u, v in network.edges:
     dist = network.get_edge_distance(u, v)
-    print(f"{u} -- {v}: distance={dist}")
+    print(f'{u} -- {v}: distance={dist}')
 ```
 
 ## Comparing Algorithms
@@ -229,15 +233,15 @@ algorithms = {
     'MST': MinimumSpanningTree(),
     'MSN': MinimumSpanningNetwork(),
     'TCS': TCS(),
-    'MJN': MedianJoiningNetwork()
+    'MJN': MedianJoiningNetwork(),
 }
 
 for name, algo in algorithms.items():
     network = algo.construct_network(alignment)
-    print(f"\n{name}:")
-    print(f"  Haplotypes: {len(network.haplotypes)}")
-    print(f"  Edges: {len(network.edges)}")
-    print(f"  Connected: {network.is_connected()}")
+    print(f'\n{name}:')
+    print(f'  Haplotypes: {len(network.haplotypes)}')
+    print(f'  Edges: {len(network.edges)}')
+    print(f'  Connected: {network.is_connected()}')
 ```
 
 ## Best Practices

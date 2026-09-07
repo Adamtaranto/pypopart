@@ -30,7 +30,7 @@ Distance: 1
 ```python
 from pypopart.core.distance import DistanceCalculator
 
-calc = DistanceCalculator(metric="hamming")
+calc = DistanceCalculator(metric='hamming')
 distances = calc.calculate(alignment)
 ```
 
@@ -67,7 +67,7 @@ where p is the proportion of different sites
 **Python:**
 
 ```python
-calc = DistanceCalculator(metric="jukes-cantor")
+calc = DistanceCalculator(metric='jukes-cantor')
 distances = calc.calculate(alignment)
 ```
 
@@ -107,7 +107,7 @@ where:
 **Python:**
 
 ```python
-calc = DistanceCalculator(metric="k2p")
+calc = DistanceCalculator(metric='k2p')
 distances = calc.calculate(alignment)
 ```
 
@@ -144,7 +144,7 @@ Most sophisticated model with unequal base frequencies.
 **Python:**
 
 ```python
-calc = DistanceCalculator(metric="tamura-nei")
+calc = DistanceCalculator(metric='tamura-nei')
 distances = calc.calculate(alignment)
 ```
 
@@ -200,12 +200,12 @@ Is there GC bias?
 ```python
 from pypopart.core.distance import DistanceCalculator
 
-calc = DistanceCalculator(metric="k2p")
+calc = DistanceCalculator(metric='k2p')
 distances = calc.calculate(alignment)
 
 # Save matrix
-distances.to_csv("distances.csv")
-distances.to_numpy("distances.npy")
+distances.to_csv('distances.csv')
+distances.to_numpy('distances.npy')
 ```
 
 ### Load Pre-computed Distances
@@ -215,7 +215,7 @@ import numpy as np
 from pypopart import DistanceMatrix
 
 # Load from file
-distances = DistanceMatrix.from_csv("distances.csv")
+distances = DistanceMatrix.from_csv('distances.csv')
 
 # Use with algorithm
 from pypopart.algorithms import MSTAlgorithm
@@ -234,16 +234,16 @@ values = distances.values()
 
 # Plot histogram
 plt.hist(values, bins=30)
-plt.xlabel("Genetic Distance")
-plt.ylabel("Frequency")
-plt.title("Distance Distribution")
+plt.xlabel('Genetic Distance')
+plt.ylabel('Frequency')
+plt.title('Distance Distribution')
 plt.show()
 
 # Summary statistics
-print(f"Min distance: {min(values):.4f}")
-print(f"Max distance: {max(values):.4f}")
-print(f"Mean distance: {np.mean(values):.4f}")
-print(f"Median distance: {np.median(values):.4f}")
+print(f'Min distance: {min(values):.4f}')
+print(f'Max distance: {max(values):.4f}')
+print(f'Mean distance: {np.mean(values):.4f}')
+print(f'Median distance: {np.median(values):.4f}')
 ```
 
 ## Advanced Options
@@ -255,12 +255,14 @@ Define your own distance metric:
 ```python
 from pypopart.core.distance import BaseDistance
 
+
 class CustomDistance(BaseDistance):
     def calculate_pairwise(self, seq1, seq2):
         # Your calculation here
         diff = sum(a != b for a, b in zip(seq1, seq2))
         # Apply custom correction
         return diff * custom_factor
+
 
 # Use custom metric
 calc = DistanceCalculator(metric=CustomDistance())
@@ -273,8 +275,8 @@ Control how gaps are treated:
 
 ```python
 calc = DistanceCalculator(
-    metric="k2p",
-    gap_mode="pairwise"  # 'pairwise', 'complete', 'ignore'
+    metric='k2p',
+    gap_mode='pairwise',  # 'pairwise', 'complete', 'ignore'
 )
 ```
 
@@ -290,9 +292,9 @@ Account for among-site rate variation:
 
 ```python
 calc = DistanceCalculator(
-    metric="k2p",
-    gamma=True,       # Use gamma distribution
-    alpha=0.5         # Shape parameter
+    metric='k2p',
+    gamma=True,  # Use gamma distribution
+    alpha=0.5,  # Shape parameter
 )
 ```
 
@@ -302,8 +304,8 @@ calc = DistanceCalculator(
 
 ```python
 # Plot uncorrected vs corrected distances
-hamming_calc = DistanceCalculator(metric="hamming")
-k2p_calc = DistanceCalculator(metric="k2p")
+hamming_calc = DistanceCalculator(metric='hamming')
+k2p_calc = DistanceCalculator(metric='k2p')
 
 hamming_dist = hamming_calc.calculate(alignment)
 k2p_dist = k2p_calc.calculate(alignment)
@@ -311,13 +313,13 @@ k2p_dist = k2p_calc.calculate(alignment)
 # If K2P >> Hamming, saturation is present
 ratio = k2p_dist.mean() / hamming_dist.mean()
 if ratio > 1.5:
-    print("Warning: Significant saturation detected")
+    print('Warning: Significant saturation detected')
 ```
 
 ### Compare Metrics
 
 ```python
-metrics = ["hamming", "jukes-cantor", "k2p", "tamura-nei"]
+metrics = ['hamming', 'jukes-cantor', 'k2p', 'tamura-nei']
 results = {}
 
 for metric in metrics:
@@ -325,9 +327,9 @@ for metric in metrics:
     dist = calc.calculate(alignment)
     results[metric] = dist.mean()
 
-print("Mean distances by metric:")
+print('Mean distances by metric:')
 for metric, mean_dist in results.items():
-    print(f"  {metric}: {mean_dist:.4f}")
+    print(f'  {metric}: {mean_dist:.4f}')
 ```
 
 ## Performance Considerations
@@ -346,9 +348,9 @@ for metric, mean_dist in results.items():
 ```python
 # For large datasets
 calc = DistanceCalculator(
-    metric="k2p",
-    parallel=True,      # Use multiprocessing
-    n_jobs=4            # Number of cores
+    metric='k2p',
+    parallel=True,  # Use multiprocessing
+    n_jobs=4,  # Number of cores
 )
 
 # Cache results

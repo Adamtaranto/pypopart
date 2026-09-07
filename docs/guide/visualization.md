@@ -33,7 +33,7 @@ PyPopART provides multiple visualization options for creating publication-qualit
 from pypopart.visualization import StaticPlot
 
 plot = StaticPlot(network)
-plot.save("network.png")
+plot.save('network.png')
 ```
 
 CLI:
@@ -47,50 +47,50 @@ pypopart plot network.gml -o figure.png
 ```python
 plot = StaticPlot(
     network,
-    figsize=(12, 10),      # Figure size in inches
-    dpi=300,               # Resolution
-    layout="spring",       # Layout algorithm
-    node_size=500,         # Base node size
-    node_color="#1f78b4", # Default node color
-    edge_width=2.0,        # Edge width
-    edge_color="#888888",  # Edge color
-    font_size=10,          # Label font size
-    show_labels=True,      # Show node labels
-    title="Haplotype Network"
+    figsize=(12, 10),  # Figure size in inches
+    dpi=300,  # Resolution
+    layout='spring',  # Layout algorithm
+    node_size=500,  # Base node size
+    node_color='#1f78b4',  # Default node color
+    edge_width=2.0,  # Edge width
+    edge_color='#888888',  # Edge color
+    font_size=10,  # Label font size
+    show_labels=True,  # Show node labels
+    title='Haplotype Network',
 )
-plot.save("custom_network.png")
+plot.save('custom_network.png')
 ```
 
 ### Output Formats
 
 ```python
 # PNG (raster)
-plot.save("network.png", format="png", dpi=300)
+plot.save('network.png', format='png', dpi=300)
 
 # PDF (vector, best for publications)
-plot.save("network.pdf", format="pdf")
+plot.save('network.pdf', format='pdf')
 
 # SVG (vector, editable)
-plot.save("network.svg", format="svg")
+plot.save('network.svg', format='svg')
 
 # EPS (vector, legacy journals)
-plot.save("network.eps", format="eps")
+plot.save('network.eps', format='eps')
 ```
 
 ### Layout Algorithms
 
 ```python
 # Spring layout (force-directed)
-plot = StaticPlot(network, layout="spring")
+plot = StaticPlot(network, layout='spring')
 
 # Circular layout
-plot = StaticPlot(network, layout="circular")
+plot = StaticPlot(network, layout='circular')
 
 # Kamada-Kawai (energy minimization)
-plot = StaticPlot(network, layout="kamada-kawai")
+plot = StaticPlot(network, layout='kamada-kawai')
 
 # Spectral layout (eigenvalue-based)
-plot = StaticPlot(network, layout="spectral")
+plot = StaticPlot(network, layout='spectral')
 
 # Custom positions
 positions = {node: (x, y) for node, x, y in ...}
@@ -102,25 +102,25 @@ plot = StaticPlot(network, positions=positions)
 ```python
 # Color by population
 plot = StaticPlot(network)
-plot.color_by_attribute("Population")
-plot.save("colored_network.png")
+plot.color_by_attribute('Population')
+plot.save('colored_network.png')
 
 # Custom color map
-color_map = {"PopA": "#ff0000", "PopB": "#0000ff"}
-plot.color_by_attribute("Population", color_map=color_map)
+color_map = {'PopA': '#ff0000', 'PopB': '#0000ff'}
+plot.color_by_attribute('Population', color_map=color_map)
 
 # Continuous values
-plot.color_by_attribute("Year", cmap="viridis")
+plot.color_by_attribute('Year', cmap='viridis')
 ```
 
 ### Node Sizing
 
 ```python
 # Size by frequency
-plot = StaticPlot(network, size_by="frequency", node_size=50)
+plot = StaticPlot(network, size_by='frequency', node_size=50)
 
 # Size by custom attribute
-plot.size_by_attribute("SampleSize", min_size=100, max_size=1000)
+plot.size_by_attribute('SampleSize', min_size=100, max_size=1000)
 
 # Fixed sizes
 plot = StaticPlot(network, node_size=300)
@@ -134,10 +134,10 @@ plot = StaticPlot(network)
 plot.edge_width_by_distance(min_width=0.5, max_width=5.0)
 
 # Edge color by type
-plot.set_edge_colors({"observed": "#000000", "inferred": "#888888"})
+plot.set_edge_colors({'observed': '#000000', 'inferred': '#888888'})
 
 # Dashed edges for inferred connections
-plot.style_inferred_edges(style="dashed", alpha=0.5)
+plot.style_inferred_edges(style='dashed', alpha=0.5)
 ```
 
 ## Interactive Visualization
@@ -148,7 +148,7 @@ plot.style_inferred_edges(style="dashed", alpha=0.5)
 from pypopart.visualization import InteractivePlot
 
 plot = InteractivePlot(network)
-plot.save("network.html")
+plot.save('network.html')
 ```
 
 Open `network.html` in a browser for interactive exploration.
@@ -166,16 +166,16 @@ Open `network.html` in a browser for interactive exploration.
 ```python
 plot = InteractivePlot(
     network,
-    layout="spring",
-    title="Interactive Haplotype Network",
+    layout='spring',
+    title='Interactive Haplotype Network',
     width=1200,
     height=800,
-    node_size_by="frequency",
-    color_by="Population",
+    node_size_by='frequency',
+    color_by='Population',
     show_edge_labels=True,
-    hover_data=["Population", "Location", "Year"]
+    hover_data=['Population', 'Location', 'Year'],
 )
-plot.save("interactive_network.html")
+plot.save('interactive_network.html')
 ```
 
 ### Embedding in Web Pages
@@ -217,11 +217,7 @@ Navigate to `http://localhost:8050`
 ```python
 from pypopart.gui import NetworkDashboard
 
-dashboard = NetworkDashboard(
-    network=network,
-    alignment=alignment,
-    port=8050
-)
+dashboard = NetworkDashboard(network=network, alignment=alignment, port=8050)
 dashboard.run()
 ```
 
@@ -235,13 +231,13 @@ from pypopart.visualization import StaticPlot
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-algorithms = ["MST", "MSN", "MJN"]
+algorithms = ['MST', 'MSN', 'MJN']
 for ax, name, net in zip(axes, algorithms, networks):
     plot = StaticPlot(net, ax=ax)
     ax.set_title(name)
 
 plt.tight_layout()
-plt.savefig("comparison.png", dpi=300)
+plt.savefig('comparison.png', dpi=300)
 ```
 
 ### Subnetwork Visualization
@@ -249,11 +245,11 @@ plt.savefig("comparison.png", dpi=300)
 ```python
 # Extract subnetwork (e.g., one population)
 subnetwork = network.subgraph(
-    [n for n in network.nodes() if network.nodes[n].get("Population") == "PopA"]
+    [n for n in network.nodes() if network.nodes[n].get('Population') == 'PopA']
 )
 
 plot = StaticPlot(subnetwork)
-plot.save("subnetwork.png")
+plot.save('subnetwork.png')
 ```
 
 ### Time Series Animation
@@ -263,7 +259,7 @@ from pypopart.visualization import NetworkAnimation
 
 # Create animation showing network growth over time
 anim = NetworkAnimation(networks_by_year)
-anim.save("network_evolution.gif")
+anim.save('network_evolution.gif')
 ```
 
 ### Geographic Overlay
@@ -273,8 +269,8 @@ import geopandas as gpd
 from pypopart.visualization import GeographicPlot
 
 # Plot network on map (requires coordinates in metadata)
-geoplot = GeographicPlot(network, basemap="world")
-geoplot.save("geographic_network.png")
+geoplot = GeographicPlot(network, basemap='world')
+geoplot.save('geographic_network.png')
 ```
 
 ## Styling Tips
@@ -284,13 +280,15 @@ geoplot.save("geographic_network.png")
 ```python
 import matplotlib.pyplot as plt
 
-plt.rcParams.update({
-    'font.size': 12,
-    'font.family': 'Arial',
-    'axes.linewidth': 1.5,
-    'xtick.major.width': 1.5,
-    'ytick.major.width': 1.5,
-})
+plt.rcParams.update(
+    {
+        'font.size': 12,
+        'font.family': 'Arial',
+        'axes.linewidth': 1.5,
+        'xtick.major.width': 1.5,
+        'ytick.major.width': 1.5,
+    }
+)
 
 plot = StaticPlot(
     network,
@@ -300,7 +298,7 @@ plot = StaticPlot(
     edge_width=1.5,
     font_size=11,
 )
-plot.save("publication_figure.pdf")
+plot.save('publication_figure.pdf')
 ```
 
 ### Color Schemes
@@ -309,31 +307,29 @@ plot.save("publication_figure.pdf")
 # Colorblind-friendly palettes
 from pypopart.visualization.colors import colorblind_safe
 
-plot.color_by_attribute("Population", colors=colorblind_safe)
+plot.color_by_attribute('Population', colors=colorblind_safe)
 
 # Sequential for continuous data
-plot.color_by_attribute("Year", cmap="Blues")
+plot.color_by_attribute('Year', cmap='Blues')
 
 # Diverging for deviation from mean
-plot.color_by_attribute("Diversity", cmap="RdBu")
+plot.color_by_attribute('Diversity', cmap='RdBu')
 ```
 
 ### Legends and Annotations
 
 ```python
 # Add legend
-plot.add_legend(title="Population", loc="upper right")
+plot.add_legend(title='Population', loc='upper right')
 
 # Add scale bar
 plot.add_scale_bar(mutations_per_unit=1)
 
 # Annotate specific nodes
-plot.annotate_node("Haplotype_1", "Ancestral",
-                   fontsize=12, color="red")
+plot.annotate_node('Haplotype_1', 'Ancestral', fontsize=12, color='red')
 
 # Add text box
-plot.add_textbox("MST Algorithm\nK2P Distance",
-                 position=(0.05, 0.95))
+plot.add_textbox('MST Algorithm\nK2P Distance', position=(0.05, 0.95))
 ```
 
 ## Export for External Tools
@@ -342,7 +338,7 @@ plot.add_textbox("MST Algorithm\nK2P Distance",
 
 ```python
 # Save as GEXF
-network.save("network.gexf")
+network.save('network.gexf')
 # Open in Gephi for advanced visualization
 ```
 
@@ -350,7 +346,7 @@ network.save("network.gexf")
 
 ```python
 # Save as GraphML
-network.save("network.graphml")
+network.save('network.graphml')
 # Import into Cytoscape
 ```
 
@@ -358,7 +354,7 @@ network.save("network.graphml")
 
 ```python
 # Save as GML
-network.save("network.gml")
+network.save('network.gml')
 ```
 
 R code:
@@ -377,9 +373,9 @@ plot(network)
 # Reduce complexity for large networks
 plot = StaticPlot(
     network,
-    show_labels=False,      # Disable labels
-    edge_width=0.5,         # Thin edges
-    simplify_edges=True     # Merge parallel edges
+    show_labels=False,  # Disable labels
+    edge_width=0.5,  # Thin edges
+    simplify_edges=True,  # Merge parallel edges
 )
 ```
 
@@ -387,11 +383,11 @@ plot = StaticPlot(
 
 ```python
 # Export multiple visualizations efficiently
-layouts = ["spring", "circular", "kamada-kawai"]
+layouts = ['spring', 'circular', 'kamada-kawai']
 
 for layout in layouts:
     plot = StaticPlot(network, layout=layout)
-    plot.save(f"network_{layout}.png")
+    plot.save(f'network_{layout}.png')
 ```
 
 ## Common Customizations
@@ -399,14 +395,10 @@ for layout in layouts:
 ### Highlight Specific Nodes
 
 ```python
-highlight_nodes = ["H1", "H2", "H5"]
+highlight_nodes = ['H1', 'H2', 'H5']
 plot = StaticPlot(network)
 plot.highlight_nodes(
-    highlight_nodes,
-    color="#ff0000",
-    size=800,
-    edge_color="#ff0000",
-    edge_width=3
+    highlight_nodes, color='#ff0000', size=800, edge_color='#ff0000', edge_width=3
 )
 ```
 
@@ -414,24 +406,24 @@ plot.highlight_nodes(
 
 ```python
 # Example: Mark ingroup vs outgroup
-ingroup = [n for n in network.nodes() if network.nodes[n]["group"] == "ingroup"]
-outgroup = [n for n in network.nodes() if network.nodes[n]["group"] == "outgroup"]
+ingroup = [n for n in network.nodes() if network.nodes[n]['group'] == 'ingroup']
+outgroup = [n for n in network.nodes() if network.nodes[n]['group'] == 'outgroup']
 
 plot = StaticPlot(network)
-plot.color_nodes(ingroup, "#1f78b4")
-plot.color_nodes(outgroup, "#ff7f00")
+plot.color_nodes(ingroup, '#1f78b4')
+plot.color_nodes(outgroup, '#ff7f00')
 ```
 
 ### Median Vector Styling
 
 ```python
 # Different style for median vectors (MJN)
-observed = [n for n in network.nodes() if network.nodes[n]["type"] == "observed"]
-median = [n for n in network.nodes() if network.nodes[n]["type"] == "median"]
+observed = [n for n in network.nodes() if network.nodes[n]['type'] == 'observed']
+median = [n for n in network.nodes() if network.nodes[n]['type'] == 'median']
 
 plot = StaticPlot(network)
-plot.style_nodes(observed, shape="o", color="#1f78b4")
-plot.style_nodes(median, shape="s", color="#ff7f00", size=200)
+plot.style_nodes(observed, shape='o', color='#1f78b4')
+plot.style_nodes(median, shape='s', color='#ff7f00', size=200)
 ```
 
 ## Troubleshooting

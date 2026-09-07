@@ -45,12 +45,12 @@ Save as `sequences.fasta`.
 from pypopart import Alignment
 
 # Load sequences
-alignment = Alignment.from_fasta("sequences.fasta")
+alignment = Alignment.from_fasta('sequences.fasta')
 
 # Check alignment
-print(f"Sequences: {len(alignment)}")
-print(f"Length: {alignment.length}")
-print(f"Unique haplotypes: {alignment.n_unique()}")
+print(f'Sequences: {len(alignment)}')
+print(f'Length: {alignment.length}')
+print(f'Unique haplotypes: {alignment.n_unique()}')
 ```
 
 ## Step 3: Build Network
@@ -62,13 +62,17 @@ from pypopart.algorithms import MSTAlgorithm, MJNAlgorithm
 mst_algorithm = MSTAlgorithm()
 mst_network = mst_algorithm.build_network(alignment)
 
-print(f"MST - Nodes: {mst_network.number_of_nodes()}, Edges: {mst_network.number_of_edges()}")
+print(
+    f'MST - Nodes: {mst_network.number_of_nodes()}, Edges: {mst_network.number_of_edges()}'
+)
 
 # Try comprehensive MJN
 mjn_algorithm = MJNAlgorithm()
 mjn_network = mjn_algorithm.build_network(alignment)
 
-print(f"MJN - Nodes: {mjn_network.number_of_nodes()}, Edges: {mjn_network.number_of_edges()}")
+print(
+    f'MJN - Nodes: {mjn_network.number_of_nodes()}, Edges: {mjn_network.number_of_edges()}'
+)
 ```
 
 ## Step 4: Calculate Statistics
@@ -78,16 +82,16 @@ from pypopart.stats import NetworkStatistics, PopulationGenetics
 
 # Network statistics
 stats = NetworkStatistics(mst_network)
-print(f"\nNetwork Statistics:")
-print(f"  Diameter: {stats.diameter()}")
-print(f"  Avg path length: {stats.average_path_length():.3f}")
-print(f"  Clustering: {stats.clustering_coefficient():.3f}")
+print(f'\nNetwork Statistics:')
+print(f'  Diameter: {stats.diameter()}')
+print(f'  Avg path length: {stats.average_path_length():.3f}')
+print(f'  Clustering: {stats.clustering_coefficient():.3f}')
 
 # Population genetics
 popgen = PopulationGenetics(alignment)
-print(f"\nPopulation Genetics:")
-print(f"  Haplotype diversity: {popgen.haplotype_diversity():.4f}")
-print(f"  Nucleotide diversity: {popgen.nucleotide_diversity():.4f}")
+print(f'\nPopulation Genetics:')
+print(f'  Haplotype diversity: {popgen.haplotype_diversity():.4f}')
+print(f'  Nucleotide diversity: {popgen.nucleotide_diversity():.4f}')
 print(f"  Tajima's D: {popgen.tajimas_d():.4f}")
 ```
 
@@ -98,41 +102,41 @@ from pypopart.visualization import StaticPlot, InteractivePlot
 
 # Static plot
 static = StaticPlot(mst_network, figsize=(10, 10))
-static.save("mst_network.png", dpi=300)
+static.save('mst_network.png', dpi=300)
 
 # Interactive HTML plot
 interactive = InteractivePlot(mjn_network)
-interactive.save("mjn_network.html")
+interactive.save('mjn_network.html')
 
-print("\nPlots saved!")
+print('\nPlots saved!')
 ```
 
 ## Step 6: Export Results
 
 ```python
 # Save networks
-mst_network.save("mst_network.gml")
-mjn_network.save("mjn_network.nexus")
+mst_network.save('mst_network.gml')
+mjn_network.save('mjn_network.nexus')
 
 # Save statistics report
 import json
 
 report = {
-    "network": {
-        "nodes": stats.number_of_nodes(),
-        "edges": stats.number_of_edges(),
-        "diameter": stats.diameter(),
+    'network': {
+        'nodes': stats.number_of_nodes(),
+        'edges': stats.number_of_edges(),
+        'diameter': stats.diameter(),
     },
-    "diversity": {
-        "haplotype": popgen.haplotype_diversity(),
-        "nucleotide": popgen.nucleotide_diversity(),
-    }
+    'diversity': {
+        'haplotype': popgen.haplotype_diversity(),
+        'nucleotide': popgen.nucleotide_diversity(),
+    },
 }
 
-with open("analysis_report.json", "w") as f:
+with open('analysis_report.json', 'w') as f:
     json.dump(report, f, indent=2)
 
-print("Results exported!")
+print('Results exported!')
 ```
 
 ## Complete Script
@@ -147,8 +151,8 @@ from pypopart.visualization import StaticPlot, InteractivePlot
 import json
 
 # Load data
-alignment = Alignment.from_fasta("sequences.fasta")
-print(f"Loaded {len(alignment)} sequences")
+alignment = Alignment.from_fasta('sequences.fasta')
+print(f'Loaded {len(alignment)} sequences')
 
 # Build networks
 mst_network = MSTAlgorithm().build_network(alignment)
@@ -159,20 +163,20 @@ stats = NetworkStatistics(mst_network)
 popgen = PopulationGenetics(alignment)
 
 # Create visualizations
-StaticPlot(mst_network).save("mst_network.png")
-InteractivePlot(mjn_network).save("mjn_network.html")
+StaticPlot(mst_network).save('mst_network.png')
+InteractivePlot(mjn_network).save('mjn_network.html')
 
 # Export results
-mst_network.save("mst_network.gml")
+mst_network.save('mst_network.gml')
 report = {
-    "nodes": stats.number_of_nodes(),
-    "haplotype_diversity": popgen.haplotype_diversity(),
-    "nucleotide_diversity": popgen.nucleotide_diversity(),
+    'nodes': stats.number_of_nodes(),
+    'haplotype_diversity': popgen.haplotype_diversity(),
+    'nucleotide_diversity': popgen.nucleotide_diversity(),
 }
-with open("report.json", "w") as f:
+with open('report.json', 'w') as f:
     json.dump(report, f, indent=2)
 
-print("Analysis complete!")
+print('Analysis complete!')
 ```
 
 ## CLI Equivalent

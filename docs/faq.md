@@ -193,14 +193,11 @@ alignment = load_alignment('sequences.fasta')
 popgen = PopulationGeneticsAnalysis(alignment)
 
 # Define populations
-populations = {
-    'PopA': ['Seq1', 'Seq2'],
-    'PopB': ['Seq3', 'Seq4']
-}
+populations = {'PopA': ['Seq1', 'Seq2'], 'PopB': ['Seq3', 'Seq4']}
 
 # Calculate FST
 fst = popgen.calculate_pairwise_fst(populations)
-print(f"FST = {fst:.4f}")
+print(f'FST = {fst:.4f}')
 ```
 
 ### What does reticulation index mean?

@@ -10,7 +10,7 @@ from pypopart.algorithms import MSTAlgorithm, MJNAlgorithm
 from pypopart.visualization import StaticPlot, InteractivePlot
 
 # 1. Load sequence data
-alignment = Alignment.from_fasta("sequences.fasta")
+alignment = Alignment.from_fasta('sequences.fasta')
 
 # 2. Build network
 algorithm = MSTAlgorithm()
@@ -18,7 +18,7 @@ network = algorithm.build_network(alignment)
 
 # 3. Visualize
 plot = StaticPlot(network)
-plot.save("network.png")
+plot.save('network.png')
 ```
 
 ## Loading Data
@@ -29,16 +29,16 @@ plot.save("network.png")
 from pypopart import Alignment
 
 # FASTA format
-alignment = Alignment.from_fasta("sequences.fasta")
+alignment = Alignment.from_fasta('sequences.fasta')
 
 # NEXUS format (with metadata)
-alignment = Alignment.from_nexus("sequences.nex")
+alignment = Alignment.from_nexus('sequences.nex')
 
 # PHYLIP format
-alignment = Alignment.from_phylip("sequences.phy")
+alignment = Alignment.from_phylip('sequences.phy')
 
 # GenBank format
-alignment = Alignment.from_genbank("sequences.gb")
+alignment = Alignment.from_genbank('sequences.gb')
 ```
 
 ### From Strings
@@ -55,7 +55,7 @@ ATCGATCGATCG
 ATCGATTGATCG
 """
 
-alignment = Alignment.from_string(fasta_string, format="fasta")
+alignment = Alignment.from_string(fasta_string, format='fasta')
 ```
 
 ### From BioPython
@@ -65,7 +65,7 @@ from Bio import AlignIO
 from pypopart import Alignment
 
 # Load with BioPython
-bio_alignment = AlignIO.read("sequences.fasta", "fasta")
+bio_alignment = AlignIO.read('sequences.fasta', 'fasta')
 
 # Convert to PyPopART
 alignment = Alignment.from_biopython(bio_alignment)
@@ -104,7 +104,7 @@ network = tcs.build_network(alignment)
 from pypopart.core.distance import DistanceCalculator
 
 # Create calculator with specific metric
-calc = DistanceCalculator(metric="k2p")  # Kimura 2-parameter
+calc = DistanceCalculator(metric='k2p')  # Kimura 2-parameter
 distances = calc.calculate(alignment)
 
 # Available metrics: 'hamming', 'jukes-cantor', 'k2p', 'tamura-nei'
@@ -120,9 +120,9 @@ network = algorithm.build_network(alignment)
 
 ```python
 # Basic properties
-print(f"Number of nodes: {network.number_of_nodes()}")
-print(f"Number of edges: {network.number_of_edges()}")
-print(f"Network density: {network.density()}")
+print(f'Number of nodes: {network.number_of_nodes()}')
+print(f'Number of edges: {network.number_of_edges()}')
+print(f'Network density: {network.density()}')
 
 # Get nodes and edges
 nodes = list(network.nodes())
@@ -132,12 +132,12 @@ edges = list(network.edges())
 for node in network.nodes():
     haplotype = network.nodes[node]['haplotype']
     frequency = network.nodes[node]['frequency']
-    print(f"{node}: frequency={frequency}")
+    print(f'{node}: frequency={frequency}')
 
 # Edge attributes
 for u, v in network.edges():
     weight = network[u][v]['weight']
-    print(f"{u} -> {v}: distance={weight}")
+    print(f'{u} -> {v}: distance={weight}')
 ```
 
 ### Network Statistics
@@ -147,9 +147,9 @@ from pypopart.stats import NetworkStatistics, TopologyAnalysis
 
 # Calculate basic statistics
 stats = NetworkStatistics(network)
-print(f"Diameter: {stats.diameter()}")
-print(f"Average path length: {stats.average_path_length()}")
-print(f"Clustering coefficient: {stats.clustering_coefficient()}")
+print(f'Diameter: {stats.diameter()}')
+print(f'Average path length: {stats.average_path_length()}')
+print(f'Clustering coefficient: {stats.clustering_coefficient()}')
 
 # Topology analysis
 topology = TopologyAnalysis(network)
@@ -166,8 +166,8 @@ from pypopart.stats import PopulationGenetics
 popgen = PopulationGenetics(alignment)
 
 # Diversity measures
-print(f"Nucleotide diversity: {popgen.nucleotide_diversity()}")
-print(f"Haplotype diversity: {popgen.haplotype_diversity()}")
+print(f'Nucleotide diversity: {popgen.nucleotide_diversity()}')
+print(f'Haplotype diversity: {popgen.haplotype_diversity()}')
 
 # Neutrality tests
 print(f"Tajima's D: {popgen.tajimas_d()}")
@@ -175,7 +175,7 @@ print(f"Fu's Fs: {popgen.fus_fs()}")
 
 # Population differentiation (requires population metadata)
 fst = popgen.calculate_fst(population_column='Population')
-print(f"FST: {fst}")
+print(f'FST: {fst}')
 ```
 
 ## Visualization
@@ -187,21 +187,21 @@ from pypopart.visualization import StaticPlot
 
 # Basic plot
 plot = StaticPlot(network)
-plot.save("network.png")
+plot.save('network.png')
 
 # Customized plot
 plot = StaticPlot(
     network,
-    layout="spring",        # or 'circular', 'kamada-kawai'
+    layout='spring',  # or 'circular', 'kamada-kawai'
     node_size=500,
     edge_width=2.0,
     figsize=(12, 10),
-    dpi=300
+    dpi=300,
 )
 
 # Color by metadata
-plot.color_by_attribute("Population")
-plot.save("colored_network.png", format="pdf")
+plot.color_by_attribute('Population')
+plot.save('colored_network.png', format='pdf')
 ```
 
 ### Interactive Plots
@@ -211,17 +211,17 @@ from pypopart.visualization import InteractivePlot
 
 # Create interactive HTML plot
 plot = InteractivePlot(network)
-plot.save("network.html")
+plot.save('network.html')
 
 # With custom styling
 plot = InteractivePlot(
     network,
-    layout="spring",
-    node_size_by="frequency",
-    color_by="Population",
-    show_labels=True
+    layout='spring',
+    node_size_by='frequency',
+    color_by='Population',
+    show_labels=True,
 )
-plot.save("interactive_network.html")
+plot.save('interactive_network.html')
 ```
 
 ### Layout Algorithms
@@ -235,11 +235,11 @@ plot = StaticPlot(network, positions=layout)
 
 # Available layouts
 layouts = [
-    "spring",           # Force-directed (default)
-    "circular",         # Circular arrangement
-    "kamada-kawai",     # Energy minimization
-    "spectral",         # Eigenvalue-based
-    "random"            # Random positions
+    'spring',  # Force-directed (default)
+    'circular',  # Circular arrangement
+    'kamada-kawai',  # Energy minimization
+    'spectral',  # Eigenvalue-based
+    'random',  # Random positions
 ]
 ```
 
@@ -249,13 +249,13 @@ layouts = [
 
 ```python
 # Export in various formats
-network.save("network.gml")          # GML format
-network.save("network.graphml")      # GraphML format
-network.save("network.json")         # JSON format
-network.save("network.nexus")        # NEXUS format
+network.save('network.gml')  # GML format
+network.save('network.graphml')  # GraphML format
+network.save('network.json')  # JSON format
+network.save('network.nexus')  # NEXUS format
 
 # With metadata
-network.save("network.nexus", include_traits=True)
+network.save('network.nexus', include_traits=True)
 ```
 
 ### Export Distance Matrix
@@ -263,15 +263,16 @@ network.save("network.nexus", include_traits=True)
 ```python
 from pypopart.core.distance import DistanceCalculator
 
-calc = DistanceCalculator(metric="k2p")
+calc = DistanceCalculator(metric='k2p')
 distances = calc.calculate(alignment)
 
 # Save as CSV
-distances.to_csv("distances.csv")
+distances.to_csv('distances.csv')
 
 # Save as NumPy array
 import numpy as np
-np.save("distances.npy", distances.matrix)
+
+np.save('distances.npy', distances.matrix)
 ```
 
 ### Export Statistics
@@ -282,16 +283,16 @@ import pandas as pd
 
 stats = NetworkStatistics(network)
 results = {
-    "diameter": stats.diameter(),
-    "avg_path_length": stats.average_path_length(),
-    "clustering": stats.clustering_coefficient(),
-    "num_nodes": network.number_of_nodes(),
-    "num_edges": network.number_of_edges(),
+    'diameter': stats.diameter(),
+    'avg_path_length': stats.average_path_length(),
+    'clustering': stats.clustering_coefficient(),
+    'num_nodes': network.number_of_nodes(),
+    'num_edges': network.number_of_edges(),
 }
 
 # Save as DataFrame
 df = pd.DataFrame([results])
-df.to_csv("statistics.csv", index=False)
+df.to_csv('statistics.csv', index=False)
 ```
 
 ## Advanced Usage
@@ -301,12 +302,14 @@ df.to_csv("statistics.csv", index=False)
 ```python
 from pypopart.algorithms.base import BaseAlgorithm
 
+
 class CustomAlgorithm(BaseAlgorithm):
     def build_network(self, alignment):
         # Your implementation
         network = self.create_empty_network()
         # ... add nodes and edges
         return network
+
 
 # Use your algorithm
 algorithm = CustomAlgorithm()
@@ -323,10 +326,10 @@ from pypopart.algorithms import MSTAlgorithm
 # Process multiple files
 algorithm = MSTAlgorithm()
 
-for fasta_file in Path("data").glob("*.fasta"):
+for fasta_file in Path('data').glob('*.fasta'):
     alignment = Alignment.from_fasta(fasta_file)
     network = algorithm.build_network(alignment)
-    network.save(f"networks/{fasta_file.stem}.gml")
+    network.save(f'networks/{fasta_file.stem}.gml')
 ```
 
 ### Integration with NetworkX
@@ -343,7 +346,7 @@ betweenness = nx.betweenness_centrality(network)
 communities = nx.community.louvain_communities(network)
 
 # Export to other NetworkX formats
-nx.write_gexf(network, "network.gexf")
+nx.write_gexf(network, 'network.gexf')
 ```
 
 ## Error Handling
@@ -356,14 +359,14 @@ from pypopart.exceptions import (
 )
 
 try:
-    alignment = Alignment.from_fasta("sequences.fasta")
+    alignment = Alignment.from_fasta('sequences.fasta')
     network = algorithm.build_network(alignment)
 except AlignmentError as e:
-    print(f"Alignment error: {e}")
+    print(f'Alignment error: {e}')
 except NetworkError as e:
-    print(f"Network construction error: {e}")
+    print(f'Network construction error: {e}')
 except FileNotFoundError:
-    print("Input file not found")
+    print('Input file not found')
 ```
 
 ## Next Steps
