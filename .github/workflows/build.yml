@@ -8,10 +8,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # hatch-vcs needs tags for versioning
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Build sdist and wheel
@@ -25,7 +25,7 @@ jobs:
           /tmp/smoke/bin/pip install dist/*.whl
           /tmp/smoke/bin/python -c "import pypopart; print(pypopart.__version__)"
           /tmp/smoke/bin/pypopart --help
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
