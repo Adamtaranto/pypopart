@@ -48,19 +48,7 @@ def make_alignment(seed: int = 5, n_seqs: int = 10, length: int = 30) -> Alignme
 ALIGNMENT = make_alignment()
 
 
-_TSW_XFAIL = pytest.param(
-    'tsw',
-    marks=pytest.mark.xfail(
-        reason='TSW indexes the original distance matrix after growing the '
-        'dT matrix (known bug) until the Phase 4 parity rewrite',
-        strict=False,
-    ),
-)
-
-
-@pytest.mark.parametrize(
-    'name', [n if n != 'tsw' else _TSW_XFAIL for n in sorted(ALGORITHMS)]
-)
+@pytest.mark.parametrize('name', sorted(ALGORITHMS))
 def test_sampled_haplotypes_present(name):
     """Every sampled haplotype appears as a node in the network."""
     from pypopart.core.haplotype import identify_haplotypes_from_alignment
@@ -73,7 +61,7 @@ def test_sampled_haplotypes_present(name):
     assert haplotype_ids <= node_ids
 
 
-@pytest.mark.parametrize('name', ['mst', 'msn', 'mjn', _TSW_XFAIL])
+@pytest.mark.parametrize('name', ['mst', 'msn', 'mjn', 'tsw'])
 def test_network_connected(name):
     """Spanning-style networks connect all haplotypes."""
     network = build(name).build_network(ALIGNMENT)

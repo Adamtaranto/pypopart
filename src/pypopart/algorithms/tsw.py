@@ -1,82 +1,51 @@
 """
-Tight Span Walker (TSW) algorithm for haplotype network construction.
+Tight Span Walker (TSW) algorithm, ported from PopART's TightSpanWalker.
 
-This module implements the Tight Span Walker algorithm, which constructs
-a haplotype network by computing the tight span of a distance matrix.
-The tight span is the smallest metric space that contains all optimal
-paths between sequences.
-
-References
-----------
-.. [1] Dress, A. W., & Huson, D. H. (2004). Constructing splits graphs.
-       IEEE/ACM Transactions on Computational Biology and Bioinformatics, 1(3), 109-115.
-.. [2] Bryant, D., & Moulton, V. (2004). Neighbor-Net: an agglomerative method
-       for the construction of phylogenetic networks. Molecular biology and evolution, 21(2), 255-265.
+Constructs a metric-preserving haplotype network from the tight span of
+the distance matrix (Dress et al. 2012). Like PopART, it operates on
+condensed site patterns with site-weighted distances, computes the
+tight-span metric dT(i,j) = max_k |d(i,k) - d(j,k)|, and walks a
+geodesic between every pair of sample vertices, materialising internal
+(median) vertices along the way. Internal vertices carry no sequence,
+only a dT vector, and are memoised so shared vertices are reused.
 """
 
-import logging
-from typing import Dict, List, Optional
+import math
+from typing import Dict, List, Optional, Tuple
 
-import numpy as np
+import networkx as nx
 
 from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix
 from ..core.graph import HaplotypeNetwork
-from ..core.haplotype import Haplotype, identify_haplotypes_from_alignment
+from ..core.haplotype import Haplotype
+from ..core.haplotype import identify_haplotypes_from_alignment
+from ..core.sequence import Sequence
+from ..core.site_patterns import condense_site_patterns, is_ambiguous
 from .base import NetworkAlgorithm
-
-logger = logging.getLogger(__name__)
 
 
 class TightSpanWalker(NetworkAlgorithm):
     """
-    Construct a Tight Span Walker network from haplotype data.
-
-    The Tight Span Walker (TSW) algorithm constructs a network by computing
-    the tight span of a distance matrix. This creates a network that preserves
-    all metric properties of the original distances and can represent complex
-    reticulate relationships.
-
-    The algorithm works by:
-    1. Computing dT distances (tree metric distances)
-    2. Building geodesic paths between all pairs of haplotypes
-    3. Adding median/internal vertices where needed to maintain metric properties
-
-    This creates a more complex network than MST/MSN but captures the full
-    metric structure of the data.
+    Construct a haplotype network using the Tight Span Walker algorithm.
 
     Parameters
     ----------
     distance_method : str, default='hamming'
-        Method for calculating pairwise distances between sequences.
-        Options: 'hamming', 'jukes_cantor', 'kimura_2p', 'tamura_nei'.
-    epsilon : float, default=1e-6
-        Tolerance for floating point comparisons.
+        Kept for interface compatibility; TSW always uses PopART's
+        site-weighted Hamming distances over condensed site patterns.
+    tolerance : float, default=1e-6
+        Relative tolerance for floating point comparisons (PopART's
+        aboutEqual uses FLT_EPSILON).
     **kwargs : dict
-        Additional parameters passed to base NetworkAlgorithm.
-
-    Attributes
-    ----------
-    epsilon : float
-        Tolerance for floating point comparisons.
-    _dt_matrix : Optional[np.ndarray]
-        Matrix of dT (tree metric) distances.
-    _internal_vertices : Dict[str, Haplotype]
-        Dictionary of inferred internal/median vertices.
-
-    Examples
-    --------
-    >>> from pypopart.algorithms import TightSpanWalker
-    >>> from pypopart.io import load_alignment
-    >>> alignment = load_alignment('sequences.fasta')
-    >>> tsw = TightSpanWalker(distance_method='hamming')
-    >>> network = tsw.construct_network(alignment)
+        Additional parameters passed to the base class.
 
     Notes
     -----
-    TSW is computationally expensive (O(n³) or worse) and is best suited
-    for smaller datasets (n < 100) where accurate representation of complex
-    relationships is critical.
+    Internal vertices are inferred median points of the tight span; they
+    have no sequence and are flagged with median markers. Best suited to
+    small and medium datasets (the walk is O(n^2) geodesics, each
+    scanning O(n^2) sample pairs).
     """
 
     def __init__(
@@ -96,9 +65,14 @@ class TightSpanWalker(NetworkAlgorithm):
         """
         super().__init__(distance_method, **kwargs)
         self.tolerance = tolerance
-        self._dt_matrix: Optional[np.ndarray] = None
-        self._internal_vertices: Dict[str, Haplotype] = {}
-        self._internal_counter = 0
+
+        # Algorithm state (reset per construct_network call)
+        self._n_samples = 0
+        self._d: List[List[float]] = []
+        self._dt: Dict[Tuple[int, int], float] = {}
+        self._vertex_map: Dict[Tuple[float, ...], int] = {}
+        self._graph = nx.Graph()
+        self._n_vertices = 0
 
     def construct_network(
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
@@ -110,366 +84,344 @@ class TightSpanWalker(NetworkAlgorithm):
         ----------
         alignment : Alignment
             Multiple sequence alignment.
-        distance_matrix : Optional[DistanceMatrix]
-            Optional pre-computed distance matrix.
+        distance_matrix : DistanceMatrix, optional
+            Ignored; TSW computes site-weighted distances over condensed
+            site patterns, as PopART does.
 
         Returns
         -------
         HaplotypeNetwork
-            Haplotype network representing the tight span.
+            Metric-preserving network with inferred internal vertices.
         """
-        # Identify unique haplotypes
         haplotypes = identify_haplotypes_from_alignment(alignment)
 
-        if len(haplotypes) <= 1:
-            # Single or no haplotypes - create trivial network
+        if len(haplotypes) == 0:
+            return HaplotypeNetwork()
+        if len(haplotypes) == 1:
             network = HaplotypeNetwork()
-            for hap in haplotypes:
-                network.add_haplotype(hap)
+            network.add_haplotype(haplotypes[0])
             return network
 
-        # Calculate distances between haplotypes
-        if distance_matrix is None:
-            haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
-        else:
-            haplotype_dist_matrix = distance_matrix
-        self._distance_matrix = haplotype_dist_matrix
-
-        # Compute dT (tree metric) distances
-        self._compute_dt_distances(haplotype_dist_matrix)
-
-        # Build network using geodesic paths
-        network = self._build_tight_span_network(haplotypes, haplotype_dist_matrix)
-
-        return network
-
-    def _compute_dt_distances(self, distance_matrix: DistanceMatrix) -> None:
-        """
-        Compute dT (tree metric) distances.
-
-        For each pair (i, j), dT(i,j) = max over all k of |d(i,k) - d(j,k)|.
-        This represents the minimum distance if sequences were on a tree.
-
-        Parameters
-        ----------
-        distance_matrix : DistanceMatrix
-            Pairwise distance matrix.
-        """
-        labels = distance_matrix.labels
-        n = len(labels)
-        self._dt_matrix = np.zeros((n, n))
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                # Compute max |d(i,k) - d(j,k)| over all k
-                max_diff = 0.0
-                for k in range(n):
-                    if k != i and k != j:
-                        diff = abs(
-                            distance_matrix.get_distance(labels[i], labels[k])
-                            - distance_matrix.get_distance(labels[j], labels[k])
-                        )
-                        max_diff = max(max_diff, diff)
-
-                self._dt_matrix[i, j] = max_diff
-                self._dt_matrix[j, i] = max_diff
-
-    def _build_tight_span_network(
-        self, haplotypes: List[Haplotype], distance_matrix: DistanceMatrix
-    ) -> HaplotypeNetwork:
-        """
-        Build the tight span network using geodesic paths.
-
-        Parameters
-        ----------
-        haplotypes : List[Haplotype]
-            List of unique haplotypes.
-        distance_matrix : DistanceMatrix
-            Pairwise distance matrix.
-
-        Returns
-        -------
-        HaplotypeNetwork
-            Constructed tight span network.
-        """
-        network = HaplotypeNetwork()
-
-        # Add all original haplotypes to network
-        for hap in haplotypes:
-            network.add_haplotype(hap)
-
-        # Store vertex map for checking existing vertices with same dT vector
-        self._vertex_map: Dict[tuple, str] = {}
-        for i, hap in enumerate(haplotypes):
-            dt_vector = tuple(self._dt_matrix[i, :])
-            self._vertex_map[dt_vector] = hap.id
-
-        # Build geodesic paths between all pairs
+        condensed, weights = condense_site_patterns([h.data for h in haplotypes])
         n = len(haplotypes)
-        for i in range(n):
-            for j in range(i + 1, n):
-                self._add_geodesic_path(
-                    network, haplotypes[i], haplotypes[j], distance_matrix, i, j
-                )
 
-        # Prune unnecessary median vertices
-        network = self._prune_unnecessary_medians(network)
+        self._n_samples = n
+        self._d = [
+            [
+                self._weighted_distance(condensed[i], condensed[j], weights)
+                for j in range(n)
+            ]
+            for i in range(n)
+        ]
+        self._compute_dt()
+        self._vertex_map = {}
+        self._graph = nx.Graph()
+        self._graph.add_nodes_from(range(n))
+        self._n_vertices = n
+
+        for i in range(n):
+            self._vertex_map[tuple(self._dt_row(i))] = i
+
+        for i in range(n):
+            for j in range(i):
+                self._geodesic(i, j)
+
+        # Build the HaplotypeNetwork: samples keep their haplotypes,
+        # internal tight-span vertices become sequence-less medians
+        network = HaplotypeNetwork()
+        for haplotype in haplotypes:
+            network.add_haplotype(haplotype)
+        index_to_label = {i: haplotypes[i].id for i in range(n)}
+        for idx in range(n, self._n_vertices):
+            label = f'Median_{idx - n}'
+            index_to_label[idx] = label
+            median_seq = Sequence(
+                id=label, data='', description='Inferred tight-span vertex'
+            )
+            network.add_haplotype(
+                Haplotype(sequence=median_seq, sample_ids=[]), median_vector=True
+            )
+            network.graph.nodes[label]['is_median'] = True
+        for u, v, attrs in self._graph.edges(data=True):
+            network.add_edge(
+                index_to_label[u], index_to_label[v], distance=attrs['distance']
+            )
 
         return network
 
-    def _add_geodesic_path(
-        self,
-        network: HaplotypeNetwork,
-        hap1: Haplotype,
-        hap2: Haplotype,
-        distance_matrix: DistanceMatrix,
-        idx1: int,
-        idx2: int,
-    ) -> None:
-        """
-        Add geodesic path between two haplotypes.
+    # ------------------------------------------------------------------
+    # Distance and dT bookkeeping
+    # ------------------------------------------------------------------
 
-        Implements the geodesic algorithm from the C++ TSW implementation.
-        This uses bipartite coloring and delta computation to determine
-        if intermediate vertices are needed.
+    @staticmethod
+    def _weighted_distance(s1: str, s2: str, weights: List[int]) -> float:
+        """
+        Site-weighted Hamming distance over condensed sequences.
 
         Parameters
         ----------
-        network : HaplotypeNetwork
-            Network being constructed.
-        hap1 : Haplotype
-            First haplotype.
-        hap2 : Haplotype
-            Second haplotype.
-        distance_matrix : DistanceMatrix
-            Pairwise distance matrix.
-        idx1 : int
-            Index of first haplotype in distance matrix.
-        idx2 : int
-            Index of second haplotype in distance matrix.
+        s1 : str
+            First condensed sequence.
+        s2 : str
+            Second condensed sequence.
+        weights : list of int
+            Site weights per condensed column.
+
+        Returns
+        -------
+        float
+            Weighted distance (ambiguous positions skipped).
         """
-        # Get dT distance between f and g
-        dt_fg = self._dt_matrix[idx1, idx2]
+        total = 0
+        for c1, c2, w in zip(s1, s2, weights):
+            if is_ambiguous(c1) or is_ambiguous(c2):
+                continue
+            if c1 != c2:
+                total += w
+        return float(total)
 
-        # Skip if already connected
-        if network.has_edge(hap1.id, hap2.id):
-            return
+    def _compute_dt(self) -> None:
+        """
+        Compute the tight-span metric over sample vertices.
 
-        # Compute bipartite coloring and delta
-        # Build auxiliary graph K_f based on dT distances from f
-        n = self._dt_matrix.shape[0]
-        green_vertices = set()
-        red_vertices = set()
-
-        # Color vertices based on their position relative to f and g
+        dT(i, j) = max over all samples k (including i and j) of
+        abs(d(i,k) - d(j,k)), so dT(i, j) >= d(i, j) always holds.
+        """
+        n = self._n_samples
+        self._dt = {}
         for i in range(n):
-            fi = self._dt_matrix[idx1, i]
-            gi = self._dt_matrix[idx2, i]
+            for j in range(i):
+                value = max(abs(self._d[i][k] - self._d[j][k]) for k in range(n))
+                self._dt[(i, j)] = self._dt[(j, i)] = value
 
-            # Check if vertex i is on the path from f to g
-            # Vertices are green if they're closer to f
-            if abs(fi + dt_fg + gi - distance_matrix.matrix[i, idx2]) < self.tolerance:
-                green_vertices.add(i)
-            # Vertices are red if they're closer to g
-            elif abs(fi + dt_fg - gi) < self.tolerance:
-                red_vertices.add(i)
+    def _dt_get(self, i: int, j: int) -> float:
+        """
+        Look up dT between two vertices.
 
-        # Compute delta - the splitting parameter
-        delta = float('inf')
-        for i in green_vertices:
-            for j in green_vertices:
-                if i != j:
-                    fi = self._dt_matrix[idx1, i]
-                    fj = self._dt_matrix[idx1, j]
-                    dij = distance_matrix.matrix[i, j]
-                    delta = min(delta, (fi + fj - dij))
+        Parameters
+        ----------
+        i : int
+            First vertex index.
+        j : int
+            Second vertex index.
 
-        if delta != float('inf'):
-            delta = delta / 2.0
-        else:
-            delta = dt_fg
+        Returns
+        -------
+        float
+            The tight-span distance.
+        """
+        if i == j:
+            return 0.0
+        return self._dt[(i, j)]
 
-        # If delta equals dT(f,g), create direct edge
-        if abs(dt_fg - delta) < self.tolerance:
-            if not network.has_edge(hap1.id, hap2.id):
-                network.add_edge(hap1.id, hap2.id, distance=dt_fg)
-            return
+    def _dt_row(self, i: int) -> List[float]:
+        """
+        Return the dT vector from a vertex to every sample vertex.
 
-        # Need to create intermediate vertex h and recurse
-        if dt_fg > delta + self.tolerance:
-            # Compute dT vector for new vertex h
-            h_dt_vector = []
+        Parameters
+        ----------
+        i : int
+            Vertex index.
+
+        Returns
+        -------
+        list of float
+            dT(i, k) for each sample k.
+        """
+        return [self._dt_get(i, k) for k in range(self._n_samples)]
+
+    def _about_equal(self, a: float, b: float) -> bool:
+        """
+        Compare floats with relative tolerance (PopART's aboutEqual).
+
+        Parameters
+        ----------
+        a : float
+            First value.
+        b : float
+            Second value.
+
+        Returns
+        -------
+        bool
+            True when the values are equal within tolerance.
+        """
+        return math.isclose(a, b, rel_tol=self.tolerance, abs_tol=self.tolerance)
+
+    # ------------------------------------------------------------------
+    # Geodesic walk (port of TightSpanWalker::geodesic)
+    # ------------------------------------------------------------------
+
+    def _geodesic(self, f: int, g: int) -> None:
+        """
+        Walk the tight-span geodesic between two vertices.
+
+        Iterative version of the C++ tail recursion: each step either
+        connects f directly to g (when dT(f, g) equals delta) or
+        materialises/reuses the internal vertex h one delta-step from f
+        and continues from h.
+
+        Parameters
+        ----------
+        f : int
+            Start vertex index.
+        g : int
+            End vertex index.
+
+        Raises
+        ------
+        RuntimeError
+            On the same inconsistencies the C++ code reports: an
+            uncoloured auxiliary vertex, a negative delta, or an
+            apparent negative edge length.
+        """
+        n = self._n_samples
+
+        while True:
+            # Build the auxiliary graph K over sample vertices: an edge
+            # (i, j) whenever dT(f,i) + dT(f,j) == d(i,j)
+            adjacency: Dict[int, List[int]] = {i: [] for i in range(n)}
+            edge_order: List[Tuple[int, int]] = []
             for i in range(n):
-                fi = self._dt_matrix[idx1, i]
-                if i in green_vertices or i == idx1:
-                    h_dt_vector.append(fi - delta)
-                else:  # red vertices
-                    h_dt_vector.append(fi + delta)
+                f_i = self._dt_get(f, i)
+                for j in range(i):
+                    if self._about_equal(f_i + self._dt_get(f, j), self._d[i][j]):
+                        adjacency[i].append(j)
+                        adjacency[j].append(i)
+                        edge_order.append((i, j))
 
-            h_dt_tuple = tuple(h_dt_vector)
+            BLACK, GREEN, RED = 0, 1, 2
+            colour = [BLACK] * n
 
-            # Check if vertex with this dT vector already exists
-            if h_dt_tuple in self._vertex_map:
-                h_id = self._vertex_map[h_dt_tuple]
-            else:
-                # Create new median vertex
-                median_hap = self._create_median_vertex(hap1, hap2)
-                h_id = median_hap.id
-                network.add_haplotype(median_hap, median_vector=True)
-                self._vertex_map[h_dt_tuple] = h_id
+            # Seed colours from edges lying on the f-g geodesic
+            dt_fg = self._dt_get(f, g)
+            for i, j in edge_order:
+                # C++ names: edge (from=v, to=u) = our (i, j) -> v=i, u=j
+                v, u = i, j
+                fv, gv = self._dt_get(v, f), self._dt_get(v, g)
+                fu, gu = self._dt_get(u, f), self._dt_get(u, g)
+                weight = self._d[i][j]
+                if fv < gv:
+                    if (
+                        self._about_equal(fv + dt_fg + gu, weight)
+                        and colour[u] == BLACK
+                    ):
+                        colour[u] = GREEN
+                        for neighbour in adjacency[u]:
+                            colour[neighbour] = RED
+                elif fu < gu:
+                    if (
+                        self._about_equal(fu + dt_fg + gv, weight)
+                        and colour[v] == BLACK
+                    ):
+                        colour[v] = GREEN
+                        for neighbour in adjacency[v]:
+                            colour[neighbour] = RED
 
-                # Extend dT matrix for new vertex
-                new_row = np.array(h_dt_vector)
-                self._dt_matrix = np.vstack([self._dt_matrix, new_row])
-                new_col = np.append(h_dt_vector, [0])
-                self._dt_matrix = np.column_stack([self._dt_matrix, new_col])
+            # Propagate 2-colouring by BFS from sample vertex 0
+            marked = [False] * n
+            queue = [0]
+            while queue:
+                v = queue.pop(0)
+                marked[v] = True
+                if colour[v] == RED:
+                    for u in adjacency[v]:
+                        if not marked[u]:
+                            queue.append(u)
+                else:  # black or green
+                    colour[v] = GREEN
+                    for u in adjacency[v]:
+                        colour[u] = RED
+                        if not marked[u]:
+                            queue.append(u)
 
-            # Add edge from f to h
-            if not network.has_edge(hap1.id, h_id):
-                network.add_edge(hap1.id, h_id, distance=delta)
+            # delta = half the minimum over green pairs (i == j included)
+            delta = float('inf')
+            green = [i for i in range(n) if colour[i] == GREEN]
+            for a_pos, i in enumerate(green):
+                f_i = self._dt_get(f, i)
+                for j in green[: a_pos + 1]:
+                    delta = min(delta, f_i + self._dt_get(f, j) - self._d[i][j])
+            delta /= 2
 
-            # Recursively add geodesic from h to g
-            h_idx = self._dt_matrix.shape[0] - 1
-            h_hap = network.get_haplotype(h_id)
-            self._add_geodesic_path(network, h_hap, hap2, distance_matrix, h_idx, idx2)
+            if delta < 0:
+                raise RuntimeError('Something is wrong, delta should be positive.')
 
-    def _create_median_vertex(self, hap1: Haplotype, hap2: Haplotype) -> Haplotype:
-        """
-        Create a median vertex between two haplotypes.
+            if self._about_equal(dt_fg, delta):
+                if not self._graph.has_edge(f, g):
+                    self._graph.add_edge(f, g, distance=delta)
+                return
 
-        Parameters
-        ----------
-        hap1 : Haplotype
-            First haplotype.
-        hap2 : Haplotype
-            Second haplotype.
+            if dt_fg > delta:
+                new_dt_vector: List[float] = []
+                for i in range(n):
+                    f_i = self._dt_get(f, i)
+                    if colour[i] == GREEN:
+                        new_dt_vector.append(f_i - delta)
+                    elif colour[i] == RED:
+                        new_dt_vector.append(f_i + delta)
+                    else:
+                        raise RuntimeError('Uncoloured vertex!')
 
-        Returns
-        -------
-        Haplotype
-            Median haplotype.
-        """
-        from ..core.sequence import Sequence
+                key = tuple(new_dt_vector)
+                existing = self._vertex_map.get(key)
+                if existing is None:
+                    h = self._n_vertices
+                    self._n_vertices += 1
+                    self._graph.add_node(h)
+                    self._vertex_map[key] = h
 
-        # Create median sequence by taking consensus
-        seq1 = hap1.data
-        seq2 = hap2.data
+                    for i in range(n):
+                        self._dt[(h, i)] = self._dt[(i, h)] = new_dt_vector[i]
+                    # dT between h and previously created internal
+                    # vertices: max over sample pairs (both orders) of
+                    # d(j,k) - dT(h,j) - dT(i,k)
+                    for i in range(n, h):
+                        dt_ih = -float('inf')
+                        for j in range(n):
+                            for k in range(n):
+                                dt_ih = max(
+                                    dt_ih,
+                                    self._d[j][k]
+                                    - self._dt_get(h, j)
+                                    - self._dt_get(i, k),
+                                    self._d[j][k]
+                                    - self._dt_get(h, k)
+                                    - self._dt_get(i, j),
+                                )
+                        self._dt[(h, i)] = self._dt[(i, h)] = dt_ih
 
-        median_seq = []
-        for c1, c2 in zip(seq1, seq2):
-            if c1 == c2:
-                median_seq.append(c1)
-            else:
-                # Take first character for simplicity
-                # In a more sophisticated implementation, we would
-                # choose based on parsimony or other criteria
-                median_seq.append(c1)
+                    self._graph.add_edge(f, h, distance=delta)
+                else:
+                    h = existing
+                    if not self._graph.has_edge(f, h):
+                        self._graph.add_edge(f, h, distance=delta)
 
-        median_sequence = ''.join(median_seq)
+                f = h
+                continue
 
-        # Check if this median already exists
-        median_id = f'Median_{self._internal_counter}'
+            raise RuntimeError('Apparent negative edge length between vertices g and h')
 
-        # Create median Sequence object
-        median_seq_obj = Sequence(median_id, median_sequence)
-
-        # Create median haplotype
-        median_hap = Haplotype(sequence=median_seq_obj, sample_ids=[])
-
-        self._internal_vertices[median_id] = median_hap
-        self._internal_counter += 1
-
-        return median_hap
-
-    def _prune_unnecessary_medians(self, network: HaplotypeNetwork) -> HaplotypeNetwork:
-        """
-        Prune median vertices that don't bridge observed nodes.
-
-        A median vertex should only be kept if it:
-        1. Connects two or more observed (non-median) vertices, OR
-        2. Connects to other median vertices that eventually lead to observed vertices
-
-        This prevents the excess of isolated or non-bridging intermediate nodes.
-
-        Parameters
-        ----------
-        network : HaplotypeNetwork
-            Network to prune.
-
-        Returns
-        -------
-        HaplotypeNetwork
-            Pruned network.
-        """
-        # Identify observed vs median vertices
-        observed_nodes = {
-            h.id for h in network.haplotypes if not network.is_median_vector(h.id)
-        }
-        median_nodes = {
-            h.id for h in network.haplotypes if network.is_median_vector(h.id)
-        }
-
-        # Find medians to keep - those that bridge observed nodes
-        medians_to_keep = set()
-
-        for median_id in median_nodes:
-            # Get neighbors of this median
-            neighbors = list(network.get_neighbors(median_id))
-
-            # Count observed and median neighbors
-            observed_neighbors = [n for n in neighbors if n in observed_nodes]
-            median_neighbors = [n for n in neighbors if n in median_nodes]
-
-            # Keep if:
-            # 1. Connects to 2+ observed nodes (bridges observed nodes)
-            # 2. Connects to 1 observed + 1+ medians (on path between observed)
-            # 3. Connects to 2+ medians (internal to a path)
-            if (
-                len(observed_neighbors) >= 2
-                or (len(observed_neighbors) >= 1 and len(median_neighbors) >= 1)
-                or len(median_neighbors) >= 2
-            ):
-                medians_to_keep.add(median_id)
-
-        # Additionally, check if median is on a path between observed nodes
-        # using BFS to ensure connectivity
-        for median_id in list(median_nodes - medians_to_keep):
-            # Check if removing this node would disconnect observed nodes
-            neighbors = list(network.get_neighbors(median_id))
-            if len(neighbors) >= 2:
-                # Check if neighbors can reach each other without this median
-                # For simplicity, if it has degree >= 2, it might be bridging
-                medians_to_keep.add(median_id)
-
-        # Remove medians that aren't kept
-        medians_to_remove = median_nodes - medians_to_keep
-
-        for median_id in medians_to_remove:
-            try:
-                network.remove_haplotype(median_id)
-            except Exception:
-                # If removal fails, skip (node might already be removed)
-                pass
-
-        return network
-
-    def get_parameters(self) -> Dict:
+    def get_parameters(self) -> dict:
         """
         Get algorithm parameters.
 
         Returns
         -------
         dict
-            Dictionary of parameters.
+            Parameters including tolerance.
         """
         params = super().get_parameters()
         params['tolerance'] = self.tolerance
         return params
 
+    def __repr__(self) -> str:
+        """Detailed representation."""
+        return (
+            f'TightSpanWalker(distance={self.distance_method}, '
+            f'tolerance={self.tolerance})'
+        )
+
     def __str__(self) -> str:
         """Return string representation."""
-        return f'TightSpanWalker(distance={self.distance_method}, tolerance={self.tolerance})'
-
-
-# Convenient alias
-TSWAlgorithm = TightSpanWalker
+        return self.__repr__()

@@ -84,49 +84,41 @@ class TestTightSpanWalker:
         assert len(network) >= 3
         assert network.is_connected()
 
-    def test_tsw_compute_dt_distances(self):
-        """Test dT distance computation."""
+    def test_tsw_compute_dt(self):
+        """DT includes k == i/j, so dT(i, j) >= d(i, j) always."""
         tsw = TightSpanWalker()
+        tsw._n_samples = 3
+        tsw._d = [[0.0, 1.0, 2.0], [1.0, 0.0, 2.0], [2.0, 2.0, 0.0]]
+        tsw._compute_dt()
 
-        # Create a simple distance matrix
-        labels = ['A', 'B', 'C']
-        matrix = np.array([[0.0, 1.0, 2.0], [1.0, 0.0, 2.0], [2.0, 2.0, 0.0]])
-        dist_matrix = DistanceMatrix(labels, matrix)
-
-        # Compute dT distances
-        tsw._compute_dt_distances(dist_matrix)
-
-        # Check dT matrix is symmetric
-        assert tsw._dt_matrix.shape == (3, 3)
+        # Symmetric and bounded below by d
         for i in range(3):
             for j in range(3):
-                assert tsw._dt_matrix[i, j] == tsw._dt_matrix[j, i]
+                assert tsw._dt_get(i, j) == tsw._dt_get(j, i)
+                assert tsw._dt_get(i, j) >= tsw._d[i][j]
 
-        # dT(A, B) = max(|d(A,C) - d(B,C)|) = |2 - 2| = 0
-        # But need to check all k, including edge case
-        # Actually dT should be computed correctly
-        assert tsw._dt_matrix[0, 1] >= 0
+        # dT(0,1) = max(|0-1|, |1-0|, |2-2|) = 1 (k==i term dominates)
+        assert tsw._dt_get(0, 1) == 1.0
 
-    def test_tsw_median_vertex_creation(self):
-        """Test creation of median vertices."""
+    def test_tsw_internal_vertices_sequenceless(self):
+        """Internal tight-span vertices carry no sequence (C++ parity)."""
         tsw = TightSpanWalker()
-
-        from pypopart.core.haplotype import Haplotype
-        from pypopart.core.sequence import Sequence
-
-        seq1 = Sequence('H1', 'ATCG')
-        seq2 = Sequence('H2', 'ATCC')
-        hap1 = Haplotype(sequence=seq1, sample_ids=['seq1'])
-        hap2 = Haplotype(sequence=seq2, sample_ids=['seq2'])
-
-        median = tsw._create_median_vertex(hap1, hap2)
-
-        # Median should have no samples (inferred)
-        assert median.frequency == 0
-        assert 'Median' in median.id
-
-        # Sequence should be consensus of the two
-        assert len(median.data) == 4
+        alignment = Alignment(
+            [
+                Sequence('s1', 'AAT'),
+                Sequence('s2', 'ATA'),
+                Sequence('s3', 'TAA'),
+            ]
+        )
+        network = tsw.construct_network(alignment)
+        medians = [
+            node
+            for node, attrs in network.graph.nodes(data=True)
+            if attrs.get('median_vector')
+        ]
+        for node in medians:
+            assert network.get_haplotype(node).data == ''
+            assert network.get_haplotype(node).frequency == 0
 
     def test_tsw_with_identical_sequences(self):
         """Test TSW with identical sequences (should be single haplotype)."""
