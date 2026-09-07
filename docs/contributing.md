@@ -90,8 +90,18 @@ Thank you for your interest in contributing to PyPopART! This document provides 
 
 ## Documentation
 
+The docs are built with [Zensical](https://zensical.org), configured in
+`zensical.toml`:
+
+```bash
+pip install -e ".[docs]"
+zensical serve          # live preview on http://localhost:8000
+zensical build --strict # what CI runs; fails on any warning
+```
+
 - Update documentation for new features
 - Add docstrings to all public functions and classes
+  (numpy style; `pre-commit` validates them with numpydoc)
 - Include examples in docstrings
 - Update the changelog
 

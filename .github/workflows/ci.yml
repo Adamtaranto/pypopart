@@ -32,8 +32,8 @@ jobs:
           pip install -e ".[gui,viz,speed]" mypy
           mypy src/pypopart || true
   docs:
-    # --strict fails on any mkdocstrings/griffe warning, which keeps the
-    # docstrings parseable now that the backlog is cleared.
+    # --strict fails on any warning, which keeps the docstrings parseable
+    # now that the numpydoc backlog is cleared.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
       - name: Build docs
         run: |
           pip install -e ".[docs,gui,viz,speed]"
-          mkdocs build --strict
+          zensical build --clean --strict
   test:
     runs-on: ubuntu-latest
     strategy:

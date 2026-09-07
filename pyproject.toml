@@ -36,9 +36,8 @@ dev = [
 ]
 
 docs = [
-    "mkdocs",
-    "mkdocs-material",
-    "mkdocstrings[python]",
+    "zensical",
+    "mkdocstrings-python",
     "pymdown-extensions",
 ]
 
