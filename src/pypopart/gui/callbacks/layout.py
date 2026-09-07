@@ -34,7 +34,20 @@ def register(app, logger) -> None:
         Input('layout-select', 'value'),
     )
     def toggle_geographic_options(layout: str) -> Tuple[Dict, bool]:
-        """Show/hide geographic options based on layout selection."""
+        """
+        Show/hide geographic options based on layout selection.
+
+        Parameters
+        ----------
+        layout : str
+            Selected layout name.
+
+        Returns
+        -------
+        Tuple[Dict, bool]
+            Style for the geographic options panel, and whether geographic
+            mode is active.
+        """
         if layout == 'geographic':
             return {'display': 'block'}, True
         else:
@@ -62,7 +75,29 @@ def register(app, logger) -> None:
         metadata_data: Optional[Dict],
         projection: str,
     ) -> Optional[Dict]:
-        """Apply layout algorithm to network."""
+        """
+        Apply layout algorithm to network.
+
+        Parameters
+        ----------
+        n_clicks : int, optional
+            Button click count from Dash.
+        network_data : Dict, optional
+            Serialized network from the network store.
+        spacing_factor : float
+            Layout spacing multiplier.
+        layout_method : str
+            Selected layout algorithm name.
+        metadata_data : Dict, optional
+            Serialized metadata from the metadata store.
+        projection : str
+            Map projection name.
+
+        Returns
+        -------
+        Optional[Dict]
+            Node positions for the layout store, or None on failure.
+        """
         if not network_data:
             return None
 
@@ -182,7 +217,27 @@ def register(app, logger) -> None:
         metadata_data: Optional[Dict],
         h_number_mapping: Optional[Dict],
     ) -> Tuple[List[Dict], List[Dict], html.Div]:
-        """Update network visualization with Cytoscape."""
+        """
+        Update network visualization with Cytoscape.
+
+        Parameters
+        ----------
+        layout_data : Dict, optional
+            Node positions from the layout store.
+        network_data : Dict, optional
+            Serialized network from the network store.
+        geographic_mode : bool
+            Whether the geographic layout mode is active.
+        metadata_data : Dict, optional
+            Serialized metadata from the metadata store.
+        h_number_mapping : Dict, optional
+            Custom haplotype label mapping, if uploaded.
+
+        Returns
+        -------
+        Tuple[List[Dict], List[Dict], html.Div]
+            Cytoscape elements, the stylesheet, and the legend content.
+        """
         if not network_data or not layout_data:
             # Return empty elements
             return [], [], html.Div('Upload data and compute network to visualize')
@@ -337,7 +392,21 @@ def register(app, logger) -> None:
         elements: Optional[List[Dict]],
         current_layout: Optional[Dict],
     ) -> Tuple[Optional[Dict], bool]:
-        """Update node positions when user drags nodes in Cytoscape."""
+        """
+        Update node positions when user drags nodes in Cytoscape.
+
+        Parameters
+        ----------
+        elements : List[Dict], optional
+            Current Cytoscape elements.
+        current_layout : Dict, optional
+            Current layout positions.
+
+        Returns
+        -------
+        Tuple[Optional[Dict], bool]
+            Updated layout positions, and whether the update was applied.
+        """
         if not elements or not current_layout:
             raise PreventUpdate
 
@@ -381,7 +450,23 @@ def register(app, logger) -> None:
         edge_width: float,
         current_stylesheet: List[Dict],
     ) -> List[Dict]:
-        """Update node size and edge width in stylesheet."""
+        """
+        Update node size and edge width in stylesheet.
+
+        Parameters
+        ----------
+        node_size : int
+            Node size setting from the slider.
+        edge_width : float
+            Edge width setting from the slider.
+        current_stylesheet : List[Dict]
+            Current Cytoscape stylesheet.
+
+        Returns
+        -------
+        List[Dict]
+            The stylesheet with the new node and edge sizing.
+        """
         if not current_stylesheet:
             raise PreventUpdate
 

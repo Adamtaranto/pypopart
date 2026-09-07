@@ -29,9 +29,7 @@ repos:
     rev: v1.9.0
     hooks:
       - id: numpydoc-validation
-        # Remaining legacy-docstring backlog. Fix a file's docstrings,
-        # remove it from this list, and the hook enforces it forever.
-        exclude: '^(tests/.*|docs/.*|src/pypopart/gui/(callbacks/.*|layout/cards\.py))$'
+        exclude: "^(tests/.*|docs/.*)$"
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.8
     hooks:

@@ -79,7 +79,22 @@ def register(app, logger) -> None:
     def handle_file_upload(
         contents: Optional[str], filename: Optional[str]
     ) -> Tuple[html.Div, Optional[Dict], bool, bool]:
-        """Handle file upload and parse alignment."""
+        """
+        Handle file upload and parse alignment.
+
+        Parameters
+        ----------
+        contents : str, optional
+            Base64-encoded upload payload from Dash.
+        filename : str, optional
+            Name of the uploaded file.
+
+        Returns
+        -------
+        Tuple[html.Div, Optional[Dict], bool, bool]
+            Upload feedback, the parsed alignment for its store, and the
+            disabled state of the compute and template buttons.
+        """
         if contents is None:
             return html.Div(), None, True, True
 
@@ -179,7 +194,21 @@ def register(app, logger) -> None:
     def handle_metadata_upload(
         contents: Optional[str], filename: Optional[str]
     ) -> Tuple[html.Div, Optional[Dict]]:
-        """Handle metadata file upload and parse coordinates."""
+        """
+        Handle metadata file upload and parse coordinates.
+
+        Parameters
+        ----------
+        contents : str, optional
+            Base64-encoded upload payload from Dash.
+        filename : str, optional
+            Name of the uploaded file.
+
+        Returns
+        -------
+        Tuple[html.Div, Optional[Dict]]
+            Upload feedback and the parsed metadata for its store.
+        """
         if contents is None:
             return html.Div(), None
 
@@ -306,7 +335,21 @@ def register(app, logger) -> None:
     def download_metadata_template(
         n_clicks: int, alignment_data: Optional[Dict]
     ) -> Dict:
-        """Generate and download metadata template CSV."""
+        """
+        Generate and download metadata template CSV.
+
+        Parameters
+        ----------
+        n_clicks : int
+            Button click count from Dash.
+        alignment_data : Dict, optional
+            Serialized alignment from the alignment store.
+
+        Returns
+        -------
+        Dict
+            Download payload for the metadata template.
+        """
         if not alignment_data:
             raise PreventUpdate
 
@@ -344,7 +387,23 @@ def register(app, logger) -> None:
         network_data: Optional[Dict],
         mapping_data: Optional[Dict],
     ) -> Optional[Dict]:
-        """Download H number label mapping template as CSV."""
+        """
+        Download H number label mapping template as CSV.
+
+        Parameters
+        ----------
+        n_clicks : int, optional
+            Button click count from Dash.
+        network_data : Dict, optional
+            Serialized network from the network store.
+        mapping_data : Dict, optional
+            Uploaded haplotype label mapping.
+
+        Returns
+        -------
+        Optional[Dict]
+            Download payload for the haplotype label template.
+        """
         if not network_data:
             raise PreventUpdate
 
@@ -403,7 +462,28 @@ def register(app, logger) -> None:
         layout_data: Optional[Dict],
         metadata_data: Optional[Dict],
     ) -> Tuple[Optional[Dict], html.Div, List[Dict]]:
-        """Process uploaded H number mapping CSV and update graph."""
+        """
+        Process uploaded H number mapping CSV and update graph.
+
+        Parameters
+        ----------
+        contents : str, optional
+            Base64-encoded upload payload from Dash.
+        filename : str, optional
+            Name of the uploaded file.
+        network_data : Dict, optional
+            Serialized network from the network store.
+        layout_data : Dict, optional
+            Node positions from the layout store.
+        metadata_data : Dict, optional
+            Serialized metadata from the metadata store.
+
+        Returns
+        -------
+        Tuple[Optional[Dict], html.Div, List[Dict]]
+            The parsed label mapping, upload feedback, and the refreshed
+            Cytoscape elements.
+        """
         if not contents or not network_data:
             raise PreventUpdate
 

@@ -41,7 +41,24 @@ def register(app, logger) -> None:
     def export_network(
         n_clicks: int, network_data: Dict, export_format: str
     ) -> Tuple[Dict, Dict]:
-        """Export network in selected format."""
+        """
+        Export network in selected format.
+
+        Parameters
+        ----------
+        n_clicks : int
+            Button click count from Dash.
+        network_data : Dict
+            Serialized network from the network store.
+        export_format : str
+            Selected export format.
+
+        Returns
+        -------
+        Tuple[Dict, Dict]
+            Download payload for file formats, and the Cytoscape image
+            request for PNG/SVG.
+        """
         if not network_data:
             raise PreventUpdate
 
@@ -132,7 +149,27 @@ def register(app, logger) -> None:
         metadata_data: Optional[Dict],
         h_number_mapping: Optional[Dict],
     ) -> Optional[Dict]:
-        """Download haplotype summary as CSV."""
+        """
+        Download haplotype summary as CSV.
+
+        Parameters
+        ----------
+        n_clicks : int, optional
+            Button click count from Dash.
+        network_data : Dict, optional
+            Serialized network from the network store.
+        alignment_data : Dict, optional
+            Serialized alignment from the alignment store.
+        metadata_data : Dict, optional
+            Serialized metadata from the metadata store.
+        h_number_mapping : Dict, optional
+            Custom haplotype label mapping, if uploaded.
+
+        Returns
+        -------
+        Optional[Dict]
+            Download payload for the haplotype summary.
+        """
         if not network_data or not alignment_data:
             raise PreventUpdate
 

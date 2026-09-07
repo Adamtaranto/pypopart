@@ -32,7 +32,19 @@ def register(app, logger) -> None:
         Output('statistics-display', 'children'), Input('network-store', 'data')
     )
     def update_statistics(network_data: Optional[Dict]) -> html.Div:
-        """Update statistics display (cached per network payload)."""
+        """
+        Update statistics display (cached per network payload).
+
+        Parameters
+        ----------
+        network_data : Dict, optional
+            Serialized network from the network store.
+
+        Returns
+        -------
+        html.Div
+            The rendered statistics panel.
+        """
         if not network_data:
             return html.Div(
                 'Compute a network to see statistics',
@@ -42,7 +54,19 @@ def register(app, logger) -> None:
 
     @functools.lru_cache(maxsize=4)
     def _statistics_for(network_json: str) -> html.Div:
-        """Build the statistics view for one serialized network."""
+        """
+        Build the statistics view for one serialized network.
+
+        Parameters
+        ----------
+        network_json : str
+            Serialized network payload used as the cache key.
+
+        Returns
+        -------
+        html.Div
+            The rendered statistics panel.
+        """
         network_data = json.loads(network_json)
 
         try:
@@ -123,7 +147,20 @@ def register(app, logger) -> None:
         Output('alignment-display', 'children'), Input('alignment-store', 'data')
     )
     def update_alignment_display(alignment_data: Optional[Dict]):
-        """Update alignment viewer with colored nucleotides for polymorphic sites."""
+        """
+        Update alignment viewer with colored nucleotides for polymorphic sites.
+
+        Parameters
+        ----------
+        alignment_data : Dict, optional
+            Serialized alignment from the alignment store.
+
+        Returns
+        -------
+        html.Div or str
+            The rendered alignment view, or a prompt when no data is
+            loaded.
+        """
         if not alignment_data:
             return 'Upload data to view alignment'
 
@@ -238,7 +275,25 @@ def register(app, logger) -> None:
         metadata_data: Optional[Dict],
         h_number_mapping: Optional[Dict],
     ) -> html.Div:
-        """Update haplotype summary showing H number to sequence name mapping."""
+        """
+        Update haplotype summary showing H number to sequence name mapping.
+
+        Parameters
+        ----------
+        network_data : Dict, optional
+            Serialized network from the network store.
+        alignment_data : Dict, optional
+            Serialized alignment from the alignment store.
+        metadata_data : Dict, optional
+            Serialized metadata from the metadata store.
+        h_number_mapping : Dict, optional
+            Custom haplotype label mapping, if uploaded.
+
+        Returns
+        -------
+        html.Div
+            The rendered haplotype summary table.
+        """
         if not network_data or not alignment_data:
             return html.Div('Compute network to view haplotype summary')
 
@@ -397,7 +452,26 @@ def register(app, logger) -> None:
         current_stylesheet: List[Dict],
         h_number_mapping: Optional[Dict],
     ) -> Tuple[List[Dict], List[Dict]]:
-        """Update search dropdown options and highlight selected nodes."""
+        """
+        Update search dropdown options and highlight selected nodes.
+
+        Parameters
+        ----------
+        network_data : Dict, optional
+            Serialized network from the network store.
+        selected_h_list : List[str], optional
+            Haplotype labels selected in the search box.
+        current_stylesheet : List[Dict]
+            Current Cytoscape stylesheet.
+        h_number_mapping : Dict, optional
+            Custom haplotype label mapping, if uploaded.
+
+        Returns
+        -------
+        Tuple[List[Dict], List[Dict]]
+            Dropdown options for the haplotype search, and the stylesheet
+            highlighting the selection.
+        """
         if not network_data:
             return [], current_stylesheet or []
 
@@ -510,7 +584,21 @@ def register(app, logger) -> None:
         alignment_data: Optional[Dict],
         metadata_data: Optional[Dict],
     ) -> Tuple[html.Div, html.Div]:
-        """Display metadata with all sequence IDs."""
+        """
+        Display metadata with all sequence IDs.
+
+        Parameters
+        ----------
+        alignment_data : Dict, optional
+            Serialized alignment from the alignment store.
+        metadata_data : Dict, optional
+            Serialized metadata from the metadata store.
+
+        Returns
+        -------
+        Tuple[html.Div, html.Div]
+            The metadata table and its summary panel.
+        """
         if not alignment_data:
             return html.Div('Upload alignment to view metadata'), html.Div()
 
@@ -668,7 +756,25 @@ def register(app, logger) -> None:
         network_data: Optional[Dict],
         h_number_mapping: Optional[Dict],
     ) -> html.Div:
-        """Update tooltip content based on hovered node."""
+        """
+        Update tooltip content based on hovered node.
+
+        Parameters
+        ----------
+        hover_data : Dict, optional
+            Hovered node data from Cytoscape.
+        edge_hover_data : Dict, optional
+            Hovered edge data from Cytoscape.
+        network_data : Dict, optional
+            Serialized network from the network store.
+        h_number_mapping : Dict, optional
+            Custom haplotype label mapping, if uploaded.
+
+        Returns
+        -------
+        html.Div
+            The tooltip content for the hovered node or edge.
+        """
         # Hide tooltip if hovering over edge instead of node
         if edge_hover_data and not hover_data:
             return html.Div()
@@ -793,7 +899,19 @@ def register(app, logger) -> None:
 
 
 def _format_central_haplotypes(central: Dict) -> html.Div:
-    """Format central haplotypes for display."""
+    """
+    Format central haplotypes for display.
+
+    Parameters
+    ----------
+    central : Dict
+        Central haplotype metrics.
+
+    Returns
+    -------
+    html.Div
+        The rendered list of central haplotypes.
+    """
     try:
         return html.Ul(
             [

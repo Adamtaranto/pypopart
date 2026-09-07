@@ -29,7 +29,19 @@ def register(app, logger) -> None:
         Input('algorithm-select', 'value'),
     )
     def update_algorithm_parameters(algorithm: str) -> html.Div:
-        """Update parameter controls based on selected algorithm."""
+        """
+        Update parameter controls based on selected algorithm.
+
+        Parameters
+        ----------
+        algorithm : str
+            Selected algorithm name.
+
+        Returns
+        -------
+        html.Div
+            The parameter controls for the selected algorithm.
+        """
         if algorithm == 'mst':
             return html.Div(
                 [
@@ -158,7 +170,26 @@ def register(app, logger) -> None:
         algorithm: str,
         param_values: List,
     ) -> Tuple[Optional[Dict], html.Div, bool, bool]:
-        """Compute haplotype network using selected algorithm."""
+        """
+        Compute haplotype network using selected algorithm.
+
+        Parameters
+        ----------
+        n_clicks : int
+            Button click count from Dash.
+        alignment_data : Dict
+            Serialized alignment from the alignment store.
+        algorithm : str
+            Selected algorithm name.
+        param_values : List
+            Algorithm parameter values from the controls.
+
+        Returns
+        -------
+        Tuple[Optional[Dict], html.Div, bool, bool]
+            The computed network for its store, status feedback, and the
+            disabled state of the layout and export controls.
+        """
         if not alignment_data:
             raise PreventUpdate
 

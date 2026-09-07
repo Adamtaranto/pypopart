@@ -6,7 +6,14 @@ import dash_cytoscape as cyto
 
 
 def build_layout(app) -> None:
-    """Set up the application layout with all components."""
+    """
+    Set up the application layout with all components.
+
+    Parameters
+    ----------
+    app : dash.Dash
+        The Dash application to attach the layout to.
+    """
     app.layout = html.Div(
         [
             # Header
@@ -99,7 +106,14 @@ def build_layout(app) -> None:
 
 
 def create_upload_card() -> dbc.Card:
-    """Create file upload card."""
+    """
+    Create file upload card.
+
+    Returns
+    -------
+    dbc.Card
+        The file upload card.
+    """
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -166,7 +180,14 @@ def create_upload_card() -> dbc.Card:
 
 
 def create_algorithm_card() -> dbc.Card:
-    """Create algorithm selection and parameter card."""
+    """
+    Create algorithm selection and parameter card.
+
+    Returns
+    -------
+    dbc.Card
+        The algorithm selection and parameter card.
+    """
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -228,7 +249,14 @@ def create_algorithm_card() -> dbc.Card:
 
 
 def create_layout_card() -> dbc.Card:
-    """Create layout configuration card."""
+    """
+    Create layout configuration card.
+
+    Returns
+    -------
+    dbc.Card
+        The layout configuration card.
+    """
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -371,7 +399,14 @@ def create_layout_card() -> dbc.Card:
 
 
 def create_export_card() -> dbc.Card:
-    """Create export options card."""
+    """
+    Create export options card.
+
+    Returns
+    -------
+    dbc.Card
+        The export options card.
+    """
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -415,7 +450,14 @@ def create_export_card() -> dbc.Card:
 
 
 def create_network_tab() -> html.Div:
-    """Create network visualization tab."""
+    """
+    Create network visualization tab.
+
+    Returns
+    -------
+    html.Div
+        The network visualization tab.
+    """
     return html.Div(
         [
             # Search bar
@@ -509,7 +551,14 @@ def create_network_tab() -> html.Div:
 
 
 def create_statistics_tab() -> html.Div:
-    """Create statistics display tab."""
+    """
+    Create statistics display tab.
+
+    Returns
+    -------
+    html.Div
+        The statistics display tab.
+    """
     return html.Div(
         [
             dcc.Loading(
@@ -523,7 +572,14 @@ def create_statistics_tab() -> html.Div:
 
 
 def create_alignment_tab() -> html.Div:
-    """Create alignment viewer tab."""
+    """
+    Create alignment viewer tab.
+
+    Returns
+    -------
+    html.Div
+        The alignment viewer tab.
+    """
     return html.Div(
         [
             html.Div(
@@ -541,7 +597,14 @@ def create_alignment_tab() -> html.Div:
 
 
 def create_haplotype_summary_tab() -> html.Div:
-    """Create haplotype summary tab showing H number to sequence name mapping."""
+    """
+    Create haplotype summary tab showing H number to sequence name mapping.
+
+    Returns
+    -------
+    html.Div
+        The haplotype summary tab showing H number to sequence name mapping.
+    """
     return html.Div(
         [
             html.Div(
@@ -594,7 +657,14 @@ def create_haplotype_summary_tab() -> html.Div:
 
 
 def create_metadata_tab() -> html.Div:
-    """Create metadata tab showing imported metadata and alignment IDs."""
+    """
+    Create metadata tab showing imported metadata and alignment IDs.
+
+    Returns
+    -------
+    html.Div
+        The metadata tab showing imported metadata and alignment IDs.
+    """
     return html.Div(
         [
             html.Div(
