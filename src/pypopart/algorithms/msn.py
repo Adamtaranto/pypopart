@@ -1,6 +1,7 @@
-"""Minimum Spanning Network (MSN) algorithm for haplotype network construction."""
+"""Minimum Spanning Network (MSN) algorithm for haplotype networks."""
 
-from typing import Dict, List, Optional, Tuple
+from collections import defaultdict
+from typing import List, Optional, Tuple
 
 from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix
@@ -11,22 +12,39 @@ from .mst import MinimumSpanningTree
 
 class MinimumSpanningNetwork(MinimumSpanningTree):
     """
-    Construct a Minimum Spanning Network from haplotype data.
+    Construct a Minimum Spanning Network (MSN) from haplotype data.
 
-    MSN extends MST by adding alternative connections at the same distance
-    level, creating a network that shows all equally parsimonious relationships
-    between haplotypes while removing redundant edges.
+    Follows PopART's AbstractMSN::computeMSN: pairs are processed in
+    ascending distance levels; at each level, edges are added for every
+    pair joining two distinct components (strict mode, epsilon == 0) or
+    for every pair at that level (relaxed mode, epsilon > 0). Component
+    merging happens only after a whole level is added, so ties at the
+    connection threshold produce the MSN's alternative paths. Once the
+    network first becomes connected at threshold T, levels are processed
+    up to T + epsilon and then construction stops.
 
-    This creates a more realistic representation of genetic relationships than
-    a simple tree, as it can represent reticulation events and uncertainty in
-    phylogenetic relationships.
+    Parameters
+    ----------
+    distance_method : str, default='hamming'
+        Method for calculating distances.
+    epsilon : float, default=0.0
+        Extension of the connection threshold: levels up to
+        (first-connection threshold + epsilon) are included, and any
+        epsilon > 0 relaxes the cross-component requirement, as in
+        PopART.
+    prune_redundant : bool, default=False
+        PyPopART-specific extra (no PopART analogue, off by default):
+        after construction, remove edges for which an alternative path
+        of equal or shorter total distance exists.
+    **kwargs : dict
+        Additional parameters passed to the base class.
     """
 
     def __init__(
         self,
         distance_method: str = 'hamming',
         epsilon: float = 0.0,
-        max_connections: Optional[int] = None,
+        prune_redundant: bool = False,
         **kwargs,
     ):
         """
@@ -34,293 +52,173 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
 
         Parameters
         ----------
-        distance_method :
+        distance_method : str, default='hamming'
             Method for calculating distances.
-        epsilon :
-            Tolerance for considering distances equal (default 0.0).
-        max_connections :
-            Maximum number of alternative connections per node.
-        **kwargs :
-            Additional parameters.
+        epsilon : float, default=0.0
+            Connection-threshold extension (PopART semantics; a value
+            greater than zero also relaxes the cross-component rule).
+        prune_redundant : bool, default=False
+            Opt-in removal of edges with equal-or-shorter alternative
+            paths. Not part of PopART's MSN.
+        **kwargs : dict
+            Additional parameters passed to the base class.
         """
         super().__init__(distance_method, algorithm='prim', **kwargs)
         self.epsilon = epsilon
-        self.max_connections = max_connections
+        self.prune_redundant = prune_redundant
 
     def construct_network(
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-            Construct MSN from sequence alignment.
+        Construct MSN from sequence alignment.
 
         Parameters
         ----------
-            alignment :
-                Multiple sequence alignment.
-            distance_matrix :
-                Optional pre-computed distance matrix.
+        alignment : Alignment
+            Multiple sequence alignment.
+        distance_matrix : DistanceMatrix, optional
+            Optional pre-computed distance matrix.
 
         Returns
         -------
+        HaplotypeNetwork
             Haplotype network representing the MSN.
         """
-        # Identify unique haplotypes
         haplotypes = identify_haplotypes(alignment)
 
         if len(haplotypes) <= 1:
             return super().construct_network(alignment, distance_matrix)
 
-        # Calculate distances between haplotypes
         haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
         self._distance_matrix = haplotype_dist_matrix
 
-        # Build initial MST
-        mst_edges = self._prim_mst(haplotypes, haplotype_dist_matrix)
+        labels = [h.id for h in haplotypes]
+        edges = self._msn_edges(labels, haplotype_dist_matrix)
 
-        # Add alternative connections at same distance
-        msn_edges = self._add_alternative_connections(
-            haplotypes, mst_edges, haplotype_dist_matrix
-        )
+        network = HaplotypeNetwork()
+        for haplotype in haplotypes:
+            network.add_haplotype(haplotype)
+        for u, v, dist in edges:
+            network.add_edge(u, v, distance=dist)
 
-        # Remove redundant edges
-        final_edges = self._remove_redundant_edges(haplotypes, msn_edges)
-
-        # Construct network
-        network = self._build_network(haplotypes, final_edges)
+        if self.prune_redundant:
+            self._prune_redundant_edges(network)
 
         return network
 
-    def _add_alternative_connections(
-        self,
-        haplotypes: List,
-        mst_edges: List[Tuple[str, str, float]],
-        distance_matrix: DistanceMatrix,
+    def _msn_edges(
+        self, labels: List[str], distance_matrix: DistanceMatrix
     ) -> List[Tuple[str, str, float]]:
         """
-            Add alternative connections at the same distance level.
-
-            For each distance level in the MST, add all edges at that distance
-            (or within epsilon) that don't create redundancy.
+        Compute MSN edges with PopART's level-sweep algorithm.
 
         Parameters
         ----------
-            haplotypes :
-                List of Haplotype objects.
-            mst_edges :
-                MST edges from Prim's algorithm.
-            distance_matrix :
-                Distance matrix.
+        labels : list of str
+            Node labels, in distance-matrix order.
+        distance_matrix : DistanceMatrix
+            Pairwise distances between the labelled nodes.
 
         Returns
         -------
-            Extended list of edges including alternatives.
+        list of tuple
+            Edges as (label_u, label_v, distance).
+
+        Raises
+        ------
+        RuntimeError
+            If the pair queue empties before the graph is connected
+            (cannot happen with a complete finite distance matrix).
         """
-        hap_ids = [h.id for h in haplotypes]
+        n = len(labels)
+        matrix = distance_matrix.matrix
+        strict = self.epsilon == 0
 
-        # Track which edges are already in the network
-        existing_edges = set()
-        for id1, id2, _dist in mst_edges:
-            existing_edges.add((min(id1, id2), max(id1, id2)))
+        levels = defaultdict(list)
+        for i in range(n):
+            for j in range(i):
+                levels[float(matrix[i, j])].append((i, j))
 
-        # Get unique distances from MST
-        mst_distances = sorted({dist for _, _, dist in mst_edges})
+        component = list(range(n))
+        ncomps = n
+        max_value = float('inf')
+        edges: List[Tuple[str, str, float]] = []
 
-        all_edges = list(mst_edges)
+        for dist in sorted(levels):
+            if dist > max_value:
+                break
 
-        # For each distance level, add alternative edges
-        for target_dist in mst_distances:
-            # Find all possible edges at this distance (within epsilon)
-            candidate_edges = []
+            # Add edges for the whole level before merging components,
+            # so equal-distance ties between the same components all
+            # make it into the network.
+            new_pairs = []
+            for i, j in levels[dist]:
+                if not strict or component[i] != component[j]:
+                    new_pairs.append((i, j))
+                    edges.append((labels[i], labels[j], dist))
 
-            for i, id1 in enumerate(hap_ids):
-                for id2 in hap_ids[i + 1 :]:
-                    edge_key = (min(id1, id2), max(id1, id2))
-                    if edge_key in existing_edges:
-                        continue
+            for i, j in new_pairs:
+                comp_i, comp_j = component[i], component[j]
+                if comp_i != comp_j:
+                    low, high = min(comp_i, comp_j), max(comp_i, comp_j)
+                    component = [
+                        low if c == high else (c - 1 if c > high else c)
+                        for c in component
+                    ]
+                    ncomps -= 1
+                if ncomps == 1 and max_value == float('inf'):
+                    max_value = dist + self.epsilon
 
-                    dist = distance_matrix.get_distance(id1, id2)
+        if ncomps > 1:
+            raise RuntimeError('Pair queue empty before the graph is connected')
 
-                    # Check if distance matches target (within epsilon)
-                    if abs(dist - target_dist) <= self.epsilon:
-                        candidate_edges.append((id1, id2, dist))
+        return edges
 
-            # Add candidate edges that create useful connections
-            for id1, id2, dist in candidate_edges:
-                # Check if adding this edge would be useful
-                # (connects nodes that aren't already directly connected)
-                edge_key = (min(id1, id2), max(id1, id2))
-
-                # Add the edge
-                all_edges.append((id1, id2, dist))
-                existing_edges.add(edge_key)
-
-                # Respect max_connections limit if specified
-                if self.max_connections is not None:
-                    conn_count1 = sum(1 for e in all_edges if id1 in (e[0], e[1]))
-                    conn_count2 = sum(1 for e in all_edges if id2 in (e[0], e[1]))
-
-                    if (
-                        conn_count1 > self.max_connections
-                        or conn_count2 > self.max_connections
-                    ):
-                        # Remove this edge if it violates max_connections
-                        all_edges.pop()
-                        existing_edges.remove(edge_key)
-
-        return all_edges
-
-    def _remove_redundant_edges(
-        self, haplotypes: List, edges: List[Tuple[str, str, float]]
-    ) -> List[Tuple[str, str, float]]:
+    def _prune_redundant_edges(self, network: HaplotypeNetwork) -> None:
         """
-            Remove redundant edges from the network.
+        Remove edges that have an equal-or-shorter alternative path.
 
-            An edge is redundant if removing it doesn't disconnect the network
-            and there exists an alternative path of the same or shorter total length.
+        PyPopART-specific opt-in behaviour (PopART keeps all tied edges).
+        Edges are examined longest-first; an edge is dropped when the
+        remaining network still offers a path between its endpoints of
+        no greater total distance.
 
         Parameters
         ----------
-            haplotypes :
-                List of Haplotype objects.
-            edges :
-                List of edges.
-
-        Returns
-        -------
-            List of non-redundant edges.
+        network : HaplotypeNetwork
+            Network to prune in place.
         """
-        if len(edges) <= len(haplotypes) - 1:
-            # Already minimal - can't remove any edges without disconnecting
-            return edges
+        import networkx as nx
 
-        # Build adjacency list
-        adjacency: Dict[str, List[Tuple[str, float]]] = {}
-        for id1, id2, dist in edges:
-            if id1 not in adjacency:
-                adjacency[id1] = []
-            if id2 not in adjacency:
-                adjacency[id2] = []
-            adjacency[id1].append((id2, dist))
-            adjacency[id2].append((id1, dist))
-
-        # Try to remove each edge and check if network remains connected
-        non_redundant = []
-
-        for edge in edges:
-            id1, id2, dist = edge
-
-            # Temporarily remove edge
-            adjacency[id1] = [(n, d) for n, d in adjacency[id1] if n != id2]
-            adjacency[id2] = [(n, d) for n, d in adjacency[id2] if n != id1]
-
-            # Check if still connected using BFS
-            if self._is_connected(adjacency, id1, id2):
-                # Check if alternative path exists with same or shorter length
-                alt_path_length = self._shortest_path_length(adjacency, id1, id2)
-                if alt_path_length is not None and alt_path_length <= dist:
-                    # Edge is redundant - don't add it back
-                    continue
-
-            # Edge is not redundant - add it back
-            adjacency[id1].append((id2, dist))
-            adjacency[id2].append((id1, dist))
-            non_redundant.append(edge)
-
-        return non_redundant
-
-    def _is_connected(
-        self, adjacency: Dict[str, List[Tuple[str, float]]], start: str, end: str
-    ) -> bool:
-        """
-            Check if two nodes are connected using BFS.
-
-        Parameters
-        ----------
-            adjacency :
-                Adjacency list representation.
-            start :
-                Start node ID.
-            end :
-                End node ID.
-
-        Returns
-        -------
-            True if connected, False otherwise.
-        """
-        if start == end:
-            return True
-
-        if start not in adjacency or end not in adjacency:
-            return False
-
-        visited = {start}
-        queue = [start]
-
-        while queue:
-            current = queue.pop(0)
-
-            if current == end:
-                return True
-
-            for neighbor, _ in adjacency.get(current, []):
-                if neighbor not in visited:
-                    visited.add(neighbor)
-                    queue.append(neighbor)
-
-        return False
-
-    def _shortest_path_length(
-        self, adjacency: Dict[str, List[Tuple[str, float]]], start: str, end: str
-    ) -> Optional[float]:
-        """
-            Find shortest path length between two nodes using Dijkstra's algorithm.
-
-        Parameters
-        ----------
-            adjacency :
-                Adjacency list representation.
-            start :
-                Start node ID.
-            end :
-                End node ID.
-
-        Returns
-        -------
-            Shortest path length, or None if no path exists.
-        """
-        import heapq
-
-        if start not in adjacency or end not in adjacency:
-            return None
-
-        # Priority queue: (distance, node)
-        pq = [(0, start)]
-        distances = {start: 0}
-        visited = set()
-
-        while pq:
-            current_dist, current = heapq.heappop(pq)
-
-            if current in visited:
-                continue
-
-            visited.add(current)
-
-            if current == end:
-                return current_dist
-
-            for neighbor, edge_dist in adjacency.get(current, []):
-                if neighbor not in visited:
-                    new_dist = current_dist + edge_dist
-                    if neighbor not in distances or new_dist < distances[neighbor]:
-                        distances[neighbor] = new_dist
-                        heapq.heappush(pq, (new_dist, neighbor))
-
-        return distances.get(end)
+        graph = network.graph
+        edges_by_length = sorted(
+            graph.edges(data=True),
+            key=lambda e: e[2].get('distance', 0),
+            reverse=True,
+        )
+        for u, v, attrs in edges_by_length:
+            dist = attrs.get('distance', 0)
+            graph.remove_edge(u, v)
+            try:
+                alternative = nx.shortest_path_length(
+                    graph, u, v, weight=lambda a, b, d: d.get('distance') or 1
+                )
+            except nx.NetworkXNoPath:
+                alternative = float('inf')
+            if alternative > dist:
+                graph.add_edge(u, v, **attrs)
 
     def get_parameters(self) -> dict:
-        """Get algorithm parameters."""
+        """
+        Get algorithm parameters.
+
+        Returns
+        -------
+        dict
+            Parameters including epsilon and prune_redundant.
+        """
         params = super().get_parameters()
         params['epsilon'] = self.epsilon
-        params['max_connections'] = self.max_connections
+        params['prune_redundant'] = self.prune_redundant
         return params

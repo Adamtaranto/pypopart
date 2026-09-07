@@ -250,19 +250,17 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         # Calculate distances between current haplotypes (including new medians)
         haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
 
-        # Build initial MST
-        mst_edges = self._prim_mst(haplotypes, haplotype_dist_matrix)
+        # Build MSN with the PopART level-sweep (see MinimumSpanningNetwork)
+        labels = [h.id for h in haplotypes]
+        edges = self._msn_edges(labels, haplotype_dist_matrix)
 
-        # Add alternative connections at same distance
-        msn_edges = self._add_alternative_connections(
-            haplotypes, mst_edges, haplotype_dist_matrix
-        )
-
-        # Remove redundant edges
-        final_edges = self._remove_redundant_edges(haplotypes, msn_edges)
-
-        # Construct network (preserves haplotype IDs)
-        network = self._build_network(haplotypes, final_edges)
+        network = HaplotypeNetwork()
+        for haplotype in haplotypes:
+            network.add_haplotype(
+                haplotype, median_vector=haplotype.id.startswith('Median_')
+            )
+        for u, v, dist in edges:
+            network.add_edge(u, v, distance=dist)
 
         return network
 

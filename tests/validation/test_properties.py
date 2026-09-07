@@ -91,11 +91,6 @@ def test_tcs_connected():
     assert network.is_connected()
 
 
-@pytest.mark.xfail(
-    reason='MSN prunes redundant edges (no C++ analogue) until the Phase 4 '
-    'parity rewrite; PopART MSN contains every MST edge',
-    strict=False,
-)
 def test_msn_contains_mst_edges():
     """The MSN edge set is a superset of some minimum spanning tree."""
     mst_net = build('mst').build_network(ALIGNMENT)
