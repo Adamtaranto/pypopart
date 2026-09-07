@@ -207,8 +207,9 @@ class InteractiveCytoscapePlotter:
                                 pop_counts.get('Unassigned', 0) + 1
                             )
 
-                # Generate pie chart for all nodes with population data (including single population)
-                if pop_counts and len(pop_counts) >= 1:
+                # Pie charts only make sense for mixed-population nodes;
+                # single-population nodes get that population's solid colour.
+                if len(pop_counts) > 1:
                     # Prepare pie chart display for all nodes with populations
                     total = sum(pop_counts.values())
                     pie_data = []
@@ -246,6 +247,14 @@ class InteractiveCytoscapePlotter:
 
                     # Use transparent background to show pie chart
                     node_data['color'] = 'transparent'
+                elif pop_counts:
+                    # Exactly one population: solid colour for it
+                    node_data['has_pie'] = False
+                    (pop,) = pop_counts
+                    if pop == 'Unassigned':
+                        node_data['color'] = '#D3D3D3'
+                    else:
+                        node_data['color'] = population_colors.get(pop, '#87CEEB')
                 else:
                     node_data['has_pie'] = False
                     node_data['color'] = '#87CEEB'

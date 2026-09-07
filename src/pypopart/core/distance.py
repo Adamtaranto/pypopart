@@ -567,24 +567,64 @@ def calculate_distance_matrix(
     return DistanceMatrix(labels, matrix)
 
 
+#: Canonical distance-method names and their accepted aliases.
+DISTANCE_METHOD_ALIASES = {
+    'hamming': 'hamming',
+    'p': 'p',
+    'jc': 'jc',
+    'jukes-cantor': 'jc',
+    'jukes_cantor': 'jc',
+    'k2p': 'k2p',
+    'kimura': 'k2p',
+    'kimura_2p': 'k2p',
+    'tn': 'tn',
+    'tamura-nei': 'tn',
+    'tamura_nei': 'tn',
+}
+
+
+def normalize_distance_method(method: str) -> str:
+    """
+    Resolve a distance-method name or alias to its canonical form.
+
+    Parameters
+    ----------
+    method : str
+        Method name or alias (case-insensitive), e.g. 'tamura_nei' or 'tn'.
+
+    Returns
+    -------
+    str
+        Canonical method name: 'hamming', 'p', 'jc', 'k2p', or 'tn'.
+
+    Raises
+    ------
+    ValueError
+        If the method is not recognised.
+    """
+    canonical = DISTANCE_METHOD_ALIASES.get(method.lower())
+    if canonical is None:
+        valid = sorted(set(DISTANCE_METHOD_ALIASES))
+        raise ValueError(f'Unknown distance method: {method}. Valid: {valid}')
+    return canonical
+
+
 def calculate_pairwise_distances(
     alignment: Alignment, method: str = 'hamming', ignore_gaps: bool = True
 ) -> DistanceMatrix:
     """Calculate pairwise distances using specified method."""
-    method = method.lower()
+    method = normalize_distance_method(method)
 
     if method == 'hamming':
         distance_func = hamming_distance
     elif method == 'p':
         distance_func = p_distance
-    elif method in ('jc', 'jukes-cantor'):
+    elif method == 'jc':
         distance_func = jukes_cantor_distance
-    elif method in ('k2p', 'kimura'):
+    elif method == 'k2p':
         distance_func = kimura_2p_distance
-    elif method in ('tn', 'tamura-nei'):
+    else:  # 'tn'
         distance_func = tamura_nei_distance
-    else:
-        raise ValueError(f'Unknown distance method: {method}')
 
     return calculate_distance_matrix(
         alignment, distance_func=distance_func, ignore_gaps=ignore_gaps

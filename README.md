@@ -327,8 +327,8 @@ pypopart network sequences.fasta -d k2p -o network.graphml
 # Load alignment with population metadata
 pypopart load sequences.fasta -m metadata.csv
 
-# Visualize colored by population
-pypopart visualize network.graphml -o network.png --color-by population
+# Visualize the network
+pypopart visualize network.graphml -o network.png --show-labels
 ```
 
 Metadata CSV format:
@@ -344,7 +344,7 @@ Hap3,PopB,,,,,
 
 ```bash
 # Comprehensive statistics
-pypopart analyze network.graphml --stats --topology --popgen -o results.json
+pypopart analyze network.graphml --stats --topology --popgen -a sequences.fasta -o results.json
 ```
 
 ### Topology Analysis
@@ -367,9 +367,9 @@ Identifies:
 pypopart visualize network.graphml -o network.pdf \
     --layout circular --show-labels --width 1200 --height 1200
 
-# Radial layout, interactive
+# Kamada-Kawai layout, interactive
 pypopart visualize network.graphml -o network.html \
-    --layout radial --interactive
+    --layout kamada_kawai --interactive
 ```
 
 ## Examples and Tutorials

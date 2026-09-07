@@ -34,7 +34,7 @@ class TestPopulationMapping:
     @pytest.fixture
     def sample_network(self, sample_alignment):
         """Create a sample network."""
-        algo = MinimumSpanningTree(distance_metric='hamming')
+        algo = MinimumSpanningTree(distance_method='hamming')
         network = algo.build_network(sample_alignment)
         return network
 

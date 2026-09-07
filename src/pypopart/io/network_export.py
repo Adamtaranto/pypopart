@@ -15,6 +15,28 @@ from pypopart.core.graph import HaplotypeNetwork
 from pypopart.core.haplotype import Haplotype
 
 
+def _as_nx_graph(network: Union[HaplotypeNetwork, nx.Graph]) -> nx.Graph:
+    """
+    Return the underlying NetworkX graph for a network object.
+
+    A plain ``nx.Graph`` also has a ``.graph`` attribute (its attribute
+    dict), so this must type-check rather than duck-type.
+
+    Parameters
+    ----------
+    network :
+        HaplotypeNetwork or NetworkX graph.
+
+    Returns
+    -------
+    nx.Graph
+        The NetworkX graph itself, or the network's underlying graph.
+    """
+    if isinstance(network, nx.Graph):
+        return network
+    return network.graph
+
+
 def _sanitize_graph_for_export(
     graph: nx.Graph, format_type: str = 'generic'
 ) -> nx.Graph:
@@ -141,7 +163,7 @@ class GraphMLExporter:
             HaplotypeNetwork object.
         """
         # Convert network to NetworkX graph if needed
-        graph = network.graph if hasattr(network, 'graph') else network
+        graph = _as_nx_graph(network)
 
         # Sanitize graph data for export (strict mode for GraphML)
         sanitized_graph = _sanitize_graph_for_export(graph, format_type='graphml')
@@ -173,7 +195,7 @@ class GMLExporter:
         network :
             HaplotypeNetwork object.
         """
-        graph = network.graph if hasattr(network, 'graph') else network
+        graph = _as_nx_graph(network)
 
         # Sanitize graph data for export (GML requires strings like GraphML)
         sanitized_graph = _sanitize_graph_for_export(graph, format_type='graphml')
@@ -205,7 +227,7 @@ class CytoscapeExporter:
         network :
             HaplotypeNetwork object.
         """
-        graph = network.graph if hasattr(network, 'graph') else network
+        graph = _as_nx_graph(network)
 
         # Sanitize graph data for export
         sanitized_graph = _sanitize_graph_for_export(graph)
@@ -237,12 +259,12 @@ class JSONExporter:
 
         Parameters
         ----------
-        network :
-            HaplotypeNetwork object.
-        include_layout :
+        network : HaplotypeNetwork or nx.Graph
+            Network to export.
+        include_layout : bool
             Whether to include node layout positions.
         """
-        graph = network.graph if hasattr(network, 'graph') else network
+        graph = _as_nx_graph(network)
 
         # Sanitize graph data for export
         sanitized_graph = _sanitize_graph_for_export(graph)
@@ -273,7 +295,14 @@ class JSONExporter:
 
 
 class CSVExporter:
-    """Export haplotype network statistics to CSV format."""
+    """
+    Export haplotype network statistics to CSV format.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    """
 
     def __init__(self, filepath: Union[str, Path]):
         """
@@ -281,7 +310,7 @@ class CSVExporter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
         """
         self.filepath = Path(filepath)
@@ -292,10 +321,10 @@ class CSVExporter:
 
         Parameters
         ----------
-        network :
-            HaplotypeNetwork object.
+        network : HaplotypeNetwork or nx.Graph
+            Network to export.
         """
-        graph = network.graph if hasattr(network, 'graph') else network
+        graph = _as_nx_graph(network)
 
         # Collect all attribute keys
         all_keys = set()
@@ -319,10 +348,10 @@ class CSVExporter:
 
         Parameters
         ----------
-        network :
-            HaplotypeNetwork object.
+        network : HaplotypeNetwork or nx.Graph
+            Network to export.
         """
-        graph = network.graph if hasattr(network, 'graph') else network
+        graph = _as_nx_graph(network)
 
         # Collect all attribute keys
         all_keys = set()
@@ -348,9 +377,9 @@ class CSVExporter:
 
         Parameters
         ----------
-        network :
-            HaplotypeNetwork object.
-        statistics :
+        network : HaplotypeNetwork or nx.Graph
+            Network the statistics belong to.
+        statistics : dict
             Dictionary of statistics to export.
         """
         with open(self.filepath, 'w', newline='') as f:

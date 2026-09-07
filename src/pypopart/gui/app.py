@@ -1128,10 +1128,10 @@ class PyPopARTApp:
 
                 # Select and configure algorithm
                 if algorithm == 'mst':
-                    algo = MinimumSpanningTree(distance_metric=param_value or 'hamming')
+                    algo = MinimumSpanningTree(distance_method=param_value or 'hamming')
                 elif algorithm == 'msn':
                     algo = MinimumSpanningNetwork(
-                        distance_metric=param_value or 'hamming'
+                        distance_method=param_value or 'hamming'
                     )
                 elif algorithm == 'tcs':
                     algo = TCS(connection_limit=param_value or 10)
@@ -1178,11 +1178,11 @@ class PyPopARTApp:
                     ],
                 }
 
-                # Count median/inferred nodes
+                # Count median/inferred nodes (graph nodes use 'median_vector')
                 n_medians = sum(
                     1
                     for node in network.graph.nodes()
-                    if network.graph.nodes[node].get('is_median', False)
+                    if network.graph.nodes[node].get('median_vector', False)
                 )
 
                 feedback_parts = [html.Strong('✅ Network computed! ')]

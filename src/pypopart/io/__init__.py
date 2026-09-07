@@ -105,7 +105,7 @@ def save_alignment(alignment, filepath: Union[str, Path], format: str = 'fasta')
     writer.write_alignment(alignment)
 
 
-def load_network(filepath: Union[str, Path], format: Optional[str] = None) -> nx.Graph:
+def load_network(filepath: Union[str, Path], format: Optional[str] = None):
     """
     Load network from file.
 
@@ -121,8 +121,11 @@ def load_network(filepath: Union[str, Path], format: Optional[str] = None) -> nx
 
     Returns
     -------
-        networkx.Graph        Network object.
+    HaplotypeNetwork
+        Reconstructed network object.
     """
+    from pypopart.core.graph import HaplotypeNetwork
+
     filepath = Path(filepath)
 
     # Auto-detect format
@@ -139,17 +142,31 @@ def load_network(filepath: Union[str, Path], format: Optional[str] = None) -> nx
 
     # Load with appropriate method
     if format.lower() == 'graphml':
-        return nx.read_graphml(str(filepath))
+        graph = nx.read_graphml(str(filepath))
     elif format.lower() == 'gml':
-        return nx.read_gml(str(filepath))
+        graph = nx.read_gml(str(filepath))
     elif format.lower() == 'json':
         import json
 
         with open(filepath) as f:
             data = json.load(f)
-        return nx.node_link_graph(data)
+        if 'links' in data:
+            # NetworkX node-link format
+            graph = nx.node_link_graph(data)
+        else:
+            # PyPopART JSONExporter format: nodes/edges with 'attributes'
+            graph = nx.Graph()
+            graph.graph.update(data.get('metadata', {}))
+            for node in data.get('nodes', []):
+                graph.add_node(node['id'], **node.get('attributes', {}))
+            for edge in data.get('edges', []):
+                graph.add_edge(
+                    edge['source'], edge['target'], **edge.get('attributes', {})
+                )
     else:
         raise ValueError(f'Unknown format: {format}')
+
+    return HaplotypeNetwork.from_networkx(graph)
 
 
 def save_network(

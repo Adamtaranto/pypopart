@@ -14,21 +14,45 @@ class NetworkAlgorithm(ABC):
 
     All network construction algorithms should inherit from this class
     and implement the construct_network method.
+
+    Parameters
+    ----------
+    distance_method : str, default='hamming'
+        Method for calculating distances (hamming, p, jc, k2p, tn).
+    ignore_gaps : bool, default=True
+        Whether to ignore gap positions when calculating distances.
+    **kwargs : dict
+        Not accepted; present only to give a clear error for typos.
     """
 
-    def __init__(self, distance_method: str = 'hamming', **kwargs):
+    def __init__(
+        self, distance_method: str = 'hamming', ignore_gaps: bool = True, **kwargs
+    ):
         """
         Initialize network algorithm.
 
         Parameters
         ----------
-        distance_method :
+        distance_method : str, default='hamming'
             Method for calculating distances (hamming, p, jc, k2p, tn).
-        **kwargs :
-            Additional algorithm-specific parameters.
+        ignore_gaps : bool, default=True
+            Whether to ignore gap positions when calculating distances.
+        **kwargs : dict
+            Not accepted; present only to give a clear error for typos.
+
+        Raises
+        ------
+        TypeError
+            If unknown keyword arguments are passed (e.g. a misspelled
+            parameter name, which would otherwise be silently ignored).
         """
+        if kwargs:
+            raise TypeError(
+                f'{type(self).__name__} got unexpected keyword argument(s): '
+                f'{", ".join(sorted(kwargs))}'
+            )
         self.distance_method = distance_method
-        self.params = kwargs
+        self.params: Dict[str, Any] = {'ignore_gaps': ignore_gaps}
         self._distance_matrix: Optional[DistanceMatrix] = None
 
     @abstractmethod
@@ -36,33 +60,35 @@ class NetworkAlgorithm(ABC):
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-            Construct haplotype network from sequence alignment.
+        Construct haplotype network from sequence alignment.
 
         Parameters
         ----------
-            alignment :
-                Multiple sequence alignment.
-            distance_matrix :
-                Optional pre-computed distance matrix.
+        alignment : Alignment
+            Multiple sequence alignment.
+        distance_matrix : DistanceMatrix, optional
+            Optional pre-computed distance matrix.
 
         Returns
         -------
+        HaplotypeNetwork
             Constructed haplotype network.
         """
         pass
 
     def calculate_distances(self, alignment: Alignment) -> DistanceMatrix:
         """
-            Calculate pairwise distances between sequences.
+        Calculate pairwise distances between sequences.
 
         Parameters
         ----------
-            alignment :
-                Multiple sequence alignment.
+        alignment : Alignment
+            Multiple sequence alignment.
 
         Returns
         -------
-            Distance matrix.
+        DistanceMatrix
+            Pairwise distance matrix for the alignment.
         """
         return calculate_pairwise_distances(
             alignment,
@@ -81,13 +107,14 @@ class NetworkAlgorithm(ABC):
 
         Parameters
         ----------
-            alignment :
-                Multiple sequence alignment.
-            distance_matrix :
-                Optional pre-computed distance matrix.
+        alignment : Alignment
+            Multiple sequence alignment.
+        distance_matrix : DistanceMatrix, optional
+            Optional pre-computed distance matrix.
 
         Returns
         -------
+        HaplotypeNetwork
             Constructed haplotype network.
         """
         return self.construct_network(alignment, distance_matrix)
@@ -98,7 +125,8 @@ class NetworkAlgorithm(ABC):
 
         Returns
         -------
-            Dictionary of parameters.
+        dict
+            Dictionary of algorithm parameters.
         """
         return {'distance_method': self.distance_method, **self.params}
 

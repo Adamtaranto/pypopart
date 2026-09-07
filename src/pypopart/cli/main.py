@@ -5,12 +5,53 @@ This module provides the CLI for constructing and analyzing haplotype networks.
 """
 
 from pathlib import Path
-import sys
+import traceback
 from typing import Optional
 
 import click
 
 from pypopart import __version__
+
+#: Exceptions the CLI reports as user-facing errors rather than tracebacks.
+_USER_ERRORS = (OSError, ValueError, KeyError)
+
+
+def _echo(ctx: click.Context, message: str = '') -> None:
+    """
+    Print an informational message unless --quiet was given.
+
+    Parameters
+    ----------
+    ctx : click.Context
+        Click context carrying the 'quiet' flag.
+    message : str
+        Message to print.
+    """
+    if not ctx.obj.get('quiet'):
+        click.echo(message)
+
+
+def _fail(ctx: click.Context, error: BaseException) -> None:
+    """
+    Report a fatal error and exit with status 1.
+
+    Prints the full traceback first when -v/--verbose was given.
+
+    Parameters
+    ----------
+    ctx : click.Context
+        Click context carrying the 'verbose' count.
+    error : BaseException
+        The exception to report.
+
+    Raises
+    ------
+    click.ClickException
+        Always raised to terminate the command.
+    """
+    if ctx.obj.get('verbose', 0) > 0:
+        traceback.print_exc()
+    raise click.ClickException(str(error))
 
 
 @click.group()
@@ -24,10 +65,20 @@ from pypopart import __version__
 @click.option('-q', '--quiet', is_flag=True, help='Suppress all output except errors')
 @click.pass_context
 def main(ctx: click.Context, verbose: int, quiet: bool) -> None:
-    """
+    r"""
     Cli: PyPopART - Pure Python implementation of PopART haplotype network analysis.
 
     Construct and visualize haplotype networks from DNA sequence alignments.
+    \f
+
+    Parameters
+    ----------
+    ctx : click.Context
+        Click context object.
+    verbose : int
+        Verbosity level (repeatable flag count).
+    quiet : bool
+        Suppress all output except errors.
     """
     # Store verbosity in context for subcommands
     ctx.ensure_object(dict)
@@ -49,7 +100,12 @@ def main(ctx: click.Context, verbose: int, quiet: bool) -> None:
     type=click.Path(exists=True, dir_okay=False),
     help='Metadata/traits file (CSV format)',
 )
-@click.option('-o', '--output', type=click.Path(), help='Output file for loaded data')
+@click.option(
+    '-o',
+    '--output',
+    type=click.Path(),
+    help='Re-save the alignment (format from extension: .fasta/.nexus/.phy)',
+)
 @click.pass_context
 def load(
     ctx: click.Context,
@@ -58,41 +114,72 @@ def load(
     metadata: Optional[str],
     output: Optional[str],
 ) -> None:
-    """
+    r"""
     Load and validate sequence alignment data.
 
     INPUT_FILE: Path to sequence alignment file
-    """
-    from pypopart.io import load_alignment
+    \f
 
-    click.echo(f'Loading sequences from {input_file}...')
+    Parameters
+    ----------
+    ctx : click.Context
+        Click context object.
+    input_file : str
+        Path to the sequence alignment file.
+    format : str, optional
+        Input format override (fasta, nexus, phylip, genbank).
+    metadata : str, optional
+        Path to a metadata CSV file.
+    output : str, optional
+        Path to re-save the alignment to.
+    """
+    from pypopart.io import load_alignment, save_alignment
+    from pypopart.io.metadata import MetadataReader
+
+    _echo(ctx, f'Loading sequences from {input_file}...')
 
     try:
         alignment = load_alignment(input_file, format=format)
-        click.echo(f'✓ Loaded {len(alignment)} sequences')
-        click.echo(f'  Alignment length: {alignment.length} bp')
+        _echo(ctx, f'✓ Loaded {len(alignment)} sequences')
+        _echo(ctx, f'  Alignment length: {alignment.length} bp')
 
         if metadata:
-            click.echo(f'Loading metadata from {metadata}...')
-            # TODO: Load and attach metadata
-            click.echo('✓ Metadata loaded')
+            _echo(ctx, f'Loading metadata from {metadata}...')
+            metadata_dict = MetadataReader(metadata).read_metadata()
+            matched = sum(
+                1 for seq_id in alignment.sequence_ids if seq_id in metadata_dict
+            )
+            _echo(
+                ctx,
+                f'✓ Metadata loaded: {len(metadata_dict)} entries, '
+                f'{matched}/{len(alignment)} sequences matched',
+            )
 
         if output:
-            # TODO: Save processed alignment
-            click.echo(f'✓ Saved to {output}')
+            suffix = Path(output).suffix.lower()
+            out_format = {
+                '.fasta': 'fasta',
+                '.fa': 'fasta',
+                '.fna': 'fasta',
+                '.nexus': 'nexus',
+                '.nex': 'nexus',
+                '.phy': 'phylip',
+                '.phylip': 'phylip',
+            }.get(suffix, 'fasta')
+            save_alignment(alignment, output, format=out_format)
+            _echo(ctx, f'✓ Saved alignment to {output} ({out_format})')
 
         # Display summary statistics
         stats = alignment.calculate_stats()
-        click.echo('\nAlignment Statistics:')
-        click.echo(f'  Sequences: {stats.num_sequences}')
-        click.echo(f'  Length: {stats.length} bp')
-        click.echo(f'  Variable sites: {stats.variable_sites}')
-        click.echo(f'  Parsimony informative: {stats.parsimony_informative_sites}')
-        click.echo(f'  GC content: {stats.gc_content:.1f}%')
+        _echo(ctx, '\nAlignment Statistics:')
+        _echo(ctx, f'  Sequences: {stats.num_sequences}')
+        _echo(ctx, f'  Length: {stats.length} bp')
+        _echo(ctx, f'  Variable sites: {stats.variable_sites}')
+        _echo(ctx, f'  Parsimony informative: {stats.parsimony_informative_sites}')
+        _echo(ctx, f'  GC content: {stats.gc_content:.1f}%')
 
-    except Exception as e:
-        click.echo(f'✗ Error: {e}', err=True)
-        sys.exit(1)
+    except _USER_ERRORS as e:
+        _fail(ctx, e)
 
 
 @main.command()
@@ -100,7 +187,7 @@ def load(
 @click.option(
     '-a',
     '--algorithm',
-    type=click.Choice(['mst', 'msn', 'tcs', 'mjn', 'pn'], case_sensitive=False),
+    type=click.Choice(['mst', 'msn', 'tcs', 'mjn', 'pn', 'tsw'], case_sensitive=False),
     default='mjn',
     show_default=True,
     help='Network construction algorithm',
@@ -108,10 +195,12 @@ def load(
 @click.option(
     '-d',
     '--distance',
-    type=click.Choice(['hamming', 'jc', 'k2p', 'tamura_nei'], case_sensitive=False),
+    type=click.Choice(
+        ['hamming', 'jc', 'k2p', 'tn', 'tamura_nei'], case_sensitive=False
+    ),
     default='hamming',
     show_default=True,
-    help='Distance metric',
+    help='Distance metric (tamura_nei is an alias for tn)',
 )
 @click.option(
     '-e',
@@ -119,7 +208,7 @@ def load(
     type=float,
     default=0,
     show_default=True,
-    help='Epsilon parameter for median-joining network',
+    help='Epsilon parameter for MSN/MJN',
 )
 @click.option(
     '-p',
@@ -127,7 +216,13 @@ def load(
     type=float,
     default=0.95,
     show_default=True,
-    help='Parsimony probability limit for TCS (0-1)',
+    help='Parsimony confidence limit for TCS (0-1)',
+)
+@click.option(
+    '--seed',
+    type=int,
+    default=None,
+    help='Random seed for stochastic algorithms (pn)',
 )
 @click.option('-o', '--output', type=click.Path(), help='Output network file')
 @click.option(
@@ -146,13 +241,36 @@ def network(
     distance: str,
     epsilon: float,
     parsimony_limit: float,
+    seed: Optional[int],
     output: Optional[str],
     output_format: str,
 ) -> None:
-    """
+    r"""
     Construct haplotype network from sequence alignment.
 
     INPUT_FILE: Path to sequence alignment file
+    \f
+
+    Parameters
+    ----------
+    ctx : click.Context
+        Click context object.
+    input_file : str
+        Path to the sequence alignment file.
+    algorithm : str
+        Network construction algorithm name.
+    distance : str
+        Distance metric name or alias.
+    epsilon : float
+        Epsilon parameter for MSN/MJN.
+    parsimony_limit : float
+        Parsimony confidence limit for TCS (0-1).
+    seed : int, optional
+        Random seed for stochastic algorithms.
+    output : str, optional
+        Output network file path.
+    output_format : str
+        Output format (graphml, gml, json, nexus).
     """
     from pypopart.algorithms import (
         TCS,
@@ -160,72 +278,69 @@ def network(
         MinimumSpanningNetwork,
         MinimumSpanningTree,
         ParsimonyNetwork,
+        TightSpanWalker,
     )
+    from pypopart.core.distance import normalize_distance_method
+    from pypopart.core.haplotype import identify_haplotypes_from_alignment
     from pypopart.io import load_alignment, save_network
 
-    verbose = ctx.obj.get('verbose', 0)
-
-    click.echo(f'Loading sequences from {input_file}...')
+    _echo(ctx, f'Loading sequences from {input_file}...')
 
     try:
+        distance = normalize_distance_method(distance)
+
         # Load alignment
         alignment = load_alignment(input_file)
-        click.echo(f'✓ Loaded {len(alignment)} sequences ({alignment.length} bp)')
+        _echo(ctx, f'✓ Loaded {len(alignment)} sequences ({alignment.length} bp)')
 
         # Identify unique haplotypes for informational purposes
-        click.echo('Identifying unique haplotypes...')
-        from pypopart.core.haplotype import identify_haplotypes_from_alignment
-
+        _echo(ctx, 'Identifying unique haplotypes...')
         haplotypes = identify_haplotypes_from_alignment(alignment)
-        click.echo(f'✓ Found {len(haplotypes)} unique haplotypes')
+        _echo(ctx, f'✓ Found {len(haplotypes)} unique haplotypes')
 
         # Construct network
-        click.echo(f'Building {algorithm.upper()} network...')
+        _echo(ctx, f'Building {algorithm.upper()} network...')
 
         if algorithm == 'mst':
             algo = MinimumSpanningTree(distance_method=distance)
         elif algorithm == 'msn':
-            algo = MinimumSpanningNetwork(distance_method=distance)
+            algo = MinimumSpanningNetwork(distance_method=distance, epsilon=epsilon)
         elif algorithm == 'tcs':
-            algo = TCS(
-                distance_method=distance,
-                connection_limit=int(parsimony_limit) if parsimony_limit else None,
-            )
+            algo = TCS(distance_method=distance, confidence=parsimony_limit)
         elif algorithm == 'mjn':
             algo = MedianJoiningNetwork(distance_method=distance, epsilon=epsilon)
         elif algorithm == 'pn':
-            algo = ParsimonyNetwork(distance_method=distance, n_trees=100)
-        else:
-            raise ValueError(f'Unknown algorithm: {algorithm}')
+            algo = ParsimonyNetwork(distance_method=distance, random_seed=seed)
+        else:  # 'tsw'
+            algo = TightSpanWalker(distance_method=distance)
 
         network = algo.build_network(alignment)
-        click.echo('✓ Network constructed')
+        _echo(ctx, '✓ Network constructed')
 
         # Display network statistics
-        click.echo('\nNetwork Statistics:')
-        click.echo(f'  Nodes: {len(network.graph.nodes)}')
-        click.echo(f'  Edges: {len(network.graph.edges)}')
+        _echo(ctx, '\nNetwork Statistics:')
+        _echo(ctx, f'  Nodes: {len(network.graph.nodes)}')
+        _echo(ctx, f'  Edges: {len(network.graph.edges)}')
 
-        # Count median vectors
-        n_medians = sum(1 for node in network.graph.nodes if 'Median_' in str(node))
+        # Count inferred median/intermediate vectors
+        n_medians = sum(
+            1
+            for _, attrs in network.graph.nodes(data=True)
+            if attrs.get('median_vector')
+        )
         if n_medians > 0:
-            click.echo(f'  Median vectors: {n_medians}')
+            _echo(ctx, f'  Median vectors: {n_medians}')
 
         # Save network
         if output:
-            click.echo(f'\nSaving network to {output}...')
-            save_network(network.graph, output, format=output_format)
-            click.echo(f'✓ Network saved as {output_format.upper()}')
+            _echo(ctx, f'\nSaving network to {output}...')
+            save_network(network, output, format=output_format)
+            _echo(ctx, f'✓ Network saved as {output_format.upper()}')
         else:
             click.echo('\nℹ Use -o/--output to save the network to a file', err=True)
 
-    except Exception as e:
-        click.echo(f'✗ Error: {e}', err=True)
-        if verbose > 0:
-            import traceback
-
-            traceback.print_exc()
-        sys.exit(1)
+    except _USER_ERRORS as e:
+        _fail(ctx, e)
 
 
 @main.command()
@@ -243,10 +358,17 @@ def network(
 @click.option(
     '--popgen',
     is_flag=True,
-    help='Calculate population genetics measures',
+    help='Calculate population genetics measures (requires --alignment)',
 )
 @click.option(
-    '-o', '--output', type=click.Path(), help='Output file for analysis results'
+    '-a',
+    '--alignment',
+    'alignment_file',
+    type=click.Path(exists=True, dir_okay=False),
+    help='Original sequence alignment (needed for --popgen and diversity)',
+)
+@click.option(
+    '-o', '--output', type=click.Path(), help='Output file for analysis results (JSON)'
 )
 @click.pass_context
 def analyze(
@@ -255,59 +377,106 @@ def analyze(
     stats: bool,
     topology: bool,
     popgen: bool,
+    alignment_file: Optional[str],
     output: Optional[str],
 ) -> None:
-    """
+    r"""
     Analyze haplotype network statistics.
 
     NETWORK_FILE: Path to network file (GraphML, GML, or JSON)
+    \f
+
+    Parameters
+    ----------
+    ctx : click.Context
+        Click context object.
+    network_file : str
+        Path to the network file.
+    stats : bool
+        Whether to print network statistics.
+    topology : bool
+        Whether to run topology analysis.
+    popgen : bool
+        Whether to run population genetics analysis.
+    alignment_file : str, optional
+        Path to the original alignment (required for --popgen).
+    output : str, optional
+        Path for a JSON results file.
     """
-    from pypopart.io import load_network
+    from pypopart.io import load_alignment, load_network
     from pypopart.stats import (
-        NetworkStatistics,
-        TopologyAnalyzer,
+        calculate_summary_statistics,
+        calculate_tajimas_d,
+        calculate_topology_summary,
     )
 
-    click.echo(f'Loading network from {network_file}...')
+    _echo(ctx, f'Loading network from {network_file}...')
 
     try:
         network = load_network(network_file)
-        click.echo(f'✓ Loaded network with {network.number_of_nodes()} nodes')
+        _echo(ctx, f'✓ Loaded network with {network.num_nodes} nodes')
+
+        alignment = None
+        if alignment_file:
+            alignment = load_alignment(alignment_file)
+            _echo(ctx, f'✓ Loaded alignment with {len(alignment)} sequences')
 
         results = {}
 
-        # Network statistics
-        if stats or (not stats and not topology and not popgen):
-            click.echo('\n=== Network Statistics ===')
-            net_stats = NetworkStatistics(network)
-            summary = net_stats.summary()
+        # Network statistics (default when no analysis flag is given)
+        if stats or not (stats or topology or popgen):
+            _echo(ctx, '\n=== Network Statistics ===')
+            summary = calculate_summary_statistics(network, alignment)
 
-            for key, value in summary.items():
-                if isinstance(value, float):
-                    click.echo(f'{key}: {value:.4f}')
+            for section, values in summary.items():
+                if isinstance(values, dict):
+                    _echo(ctx, f'{section}:')
+                    for key, value in values.items():
+                        if isinstance(value, float):
+                            _echo(ctx, f'  {key}: {value:.4f}')
+                        else:
+                            _echo(ctx, f'  {key}: {value}')
                 else:
-                    click.echo(f'{key}: {value}')
+                    _echo(ctx, f'{section}: {values}')
 
             results['statistics'] = summary
 
         # Topology analysis
         if topology:
-            click.echo('\n=== Topology Analysis ===')
-            topo = TopologyAnalyzer(network)
-            topo_summary = topo.analyze()
+            _echo(ctx, '\n=== Topology Analysis ===')
+            topo_summary = calculate_topology_summary(network)
 
-            click.echo(f'Connected components: {topo_summary["num_components"]}')
-            click.echo(f'Star-like patterns: {len(topo_summary["star_patterns"])}')
-            click.echo(f'Central nodes: {topo_summary["central_nodes"]}')
+            _echo(ctx, f'Connected: {topo_summary.get("is_connected")}')
+            _echo(ctx, f'Components: {topo_summary.get("num_components")}')
+            _echo(
+                ctx, f'Star-like patterns: {len(topo_summary.get("star_patterns", []))}'
+            )
+            ancestral = topo_summary.get('ancestral_candidates', [])
+            _echo(ctx, f'Ancestral candidates: {len(ancestral)}')
 
             results['topology'] = topo_summary
 
         # Population genetics
         if popgen:
-            click.echo('\n=== Population Genetics ===')
-            # This requires alignment data - load if available
-            click.echo('Population genetics analysis requires original alignment data')
-            # TODO: Implement loading alignment data with network
+            _echo(ctx, '\n=== Population Genetics ===')
+            if alignment is None:
+                raise ValueError(
+                    'Population genetics analysis requires the original '
+                    'alignment; pass it with -a/--alignment'
+                )
+            tajima = calculate_tajimas_d(alignment)
+            _echo(ctx, f"Tajima's D: {tajima.D:.4f}")
+            _echo(ctx, f'  Nucleotide diversity (pi): {tajima.pi:.4f}')
+            _echo(ctx, f'  Watterson theta: {tajima.theta_w:.4f}')
+            _echo(ctx, f'  Segregating sites: {tajima.n_segregating_sites}')
+
+            results['popgen'] = {
+                'tajimas_d': tajima.D,
+                'pi': tajima.pi,
+                'theta_w': tajima.theta_w,
+                'segregating_sites': tajima.n_segregating_sites,
+                'n_samples': tajima.n_samples,
+            }
 
         # Save results
         if output:
@@ -315,11 +484,10 @@ def analyze(
 
             with open(output, 'w') as f:
                 json.dump(results, f, indent=2, default=str)
-            click.echo(f'\n✓ Results saved to {output}')
+            _echo(ctx, f'\n✓ Results saved to {output}')
 
-    except Exception as e:
-        click.echo(f'✗ Error: {e}', err=True)
-        sys.exit(1)
+    except _USER_ERRORS as e:
+        _fail(ctx, e)
 
 
 @main.command()
@@ -334,7 +502,7 @@ def analyze(
 @click.option(
     '--layout',
     type=click.Choice(
-        ['spring', 'circular', 'radial', 'hierarchical', 'kamada_kawai'],
+        ['spring', 'circular', 'kamada_kawai'],
         case_sensitive=False,
     ),
     default='spring',
@@ -358,12 +526,7 @@ def analyze(
 @click.option(
     '--interactive',
     is_flag=True,
-    help='Create interactive HTML visualization (requires .html output)',
-)
-@click.option(
-    '--color-by',
-    type=str,
-    help='Node attribute to use for coloring (e.g., population)',
+    help='Create interactive HTML visualization (implied by .html output)',
 )
 @click.option(
     '--show-labels',
@@ -380,274 +543,77 @@ def visualize(
     width: int,
     height: int,
     interactive: bool,
-    color_by: Optional[str],
     show_labels: bool,
 ) -> None:
-    """
+    r"""
     Visualize haplotype network.
 
     NETWORK_FILE: Path to network file (GraphML, GML, or JSON)
+    \f
+
+    Parameters
+    ----------
+    ctx : click.Context
+        Click context object.
+    network_file : str
+        Path to the network file.
+    output : str
+        Output image file path.
+    layout : str
+        Layout algorithm name.
+    width : int
+        Figure width in pixels.
+    height : int
+        Figure height in pixels.
+    interactive : bool
+        Whether to force interactive HTML output.
+    show_labels : bool
+        Whether to show node labels.
     """
     from pypopart.io import load_network
 
-    click.echo(f'Loading network from {network_file}...')
+    _echo(ctx, f'Loading network from {network_file}...')
 
     try:
         network = load_network(network_file)
-        click.echo(f'✓ Loaded network with {network.number_of_nodes()} nodes')
+        _echo(ctx, f'✓ Loaded network with {network.num_nodes} nodes')
 
         # Determine output format
         output_path = Path(output)
         is_html = output_path.suffix.lower() == '.html'
 
         if interactive or is_html:
-            # Interactive visualization
-            from pypopart.visualization.interactive import InteractiveVisualizer
+            # Interactive visualization (plotly)
+            from pypopart.visualization import InteractiveNetworkPlotter
 
-            click.echo(f'Creating interactive visualization with {layout} layout...')
-            viz = InteractiveVisualizer(network)
-            fig = viz.plot(
+            _echo(ctx, f'Creating interactive visualization with {layout} layout...')
+            plotter = InteractiveNetworkPlotter(network)
+            fig = plotter.plot(
                 layout_algorithm=layout,
                 width=width,
                 height=height,
-                color_by=color_by,
                 show_labels=show_labels,
             )
             fig.write_html(str(output_path))
-            click.echo(f'✓ Interactive visualization saved to {output}')
-            click.echo(f'  Open in browser: file://{output_path.absolute()}')
+            _echo(ctx, f'✓ Interactive visualization saved to {output}')
+            _echo(ctx, f'  Open in browser: file://{output_path.absolute()}')
 
         else:
-            # Static visualization
-            from pypopart.visualization.static import StaticVisualizer
+            # Static visualization (matplotlib)
+            from pypopart.visualization import StaticNetworkPlotter
 
-            click.echo(f'Creating static visualization with {layout} layout...')
-            viz = StaticVisualizer(network)
-            viz.plot(
+            _echo(ctx, f'Creating static visualization with {layout} layout...')
+            plotter = StaticNetworkPlotter(network)
+            fig, _ax = plotter.plot(
                 layout_algorithm=layout,
                 figsize=(width / 100, height / 100),
-                color_by=color_by,
                 show_labels=show_labels,
-                output_file=str(output_path),
             )
-            click.echo(f'✓ Visualization saved to {output}')
+            fig.savefig(str(output_path), dpi=150, bbox_inches='tight')
+            _echo(ctx, f'✓ Visualization saved to {output}')
 
-    except Exception as e:
-        click.echo(f'✗ Error: {e}', err=True)
-        sys.exit(1)
-
-
-@main.command(name='geo-visualize')
-@click.argument('network_file', type=click.Path(exists=True, dir_okay=False))
-@click.option(
-    '-m',
-    '--metadata',
-    type=click.Path(exists=True, dir_okay=False),
-    required=True,
-    help='Metadata CSV file with latitude/longitude columns',
-)
-@click.option(
-    '-o',
-    '--output',
-    type=click.Path(),
-    required=True,
-    help='Output image file (PNG, PDF, SVG, or HTML)',
-)
-@click.option(
-    '--projection',
-    type=click.Choice(
-        ['mercator', 'platecarree', 'orthographic'], case_sensitive=False
-    ),
-    default='mercator',
-    show_default=True,
-    help='Map projection',
-)
-@click.option(
-    '--base-map',
-    type=click.Choice(
-        ['OpenStreetMap', 'Stamen Terrain', 'CartoDB positron'], case_sensitive=False
-    ),
-    default='OpenStreetMap',
-    show_default=True,
-    help='Base map for interactive visualization',
-)
-@click.option(
-    '--zoom',
-    type=int,
-    default=4,
-    show_default=True,
-    help='Initial zoom level for interactive map (1-18)',
-)
-@click.option(
-    '--extent',
-    type=str,
-    help='Map extent as "lon_min,lon_max,lat_min,lat_max" (static maps only)',
-)
-@click.option(
-    '--width',
-    type=int,
-    default=1600,
-    show_default=True,
-    help='Figure width in pixels',
-)
-@click.option(
-    '--height',
-    type=int,
-    default=1200,
-    show_default=True,
-    help='Figure height in pixels',
-)
-@click.option(
-    '--interactive',
-    is_flag=True,
-    help='Create interactive HTML map visualization',
-)
-@click.option(
-    '--show-labels',
-    is_flag=True,
-    default=False,
-    help='Show node labels',
-)
-@click.option(
-    '--show-borders',
-    is_flag=True,
-    default=False,
-    help='Show country borders (static maps only)',
-)
-@click.option(
-    '--lat-column',
-    type=str,
-    default='latitude',
-    show_default=True,
-    help='Name of latitude column in metadata',
-)
-@click.option(
-    '--lon-column',
-    type=str,
-    default='longitude',
-    show_default=True,
-    help='Name of longitude column in metadata',
-)
-@click.pass_context
-def geo_visualize(
-    ctx: click.Context,
-    network_file: str,
-    metadata: str,
-    output: str,
-    projection: str,
-    base_map: str,
-    zoom: int,
-    extent: Optional[str],
-    width: int,
-    height: int,
-    interactive: bool,
-    show_labels: bool,
-    show_borders: bool,
-    lat_column: str,
-    lon_column: str,
-) -> None:
-    """
-    Visualize haplotype network on a geographic map.
-
-    NETWORK_FILE: Path to network file (GraphML, GML, or JSON)
-
-    This command overlays the haplotype network on a world map using
-    geographic coordinates from the metadata file. The metadata file must
-    contain latitude and longitude columns.
-    """
-    from pypopart.io import load_network
-    from pypopart.io.metadata import MetadataReader, extract_coordinates
-
-    click.echo(f'Loading network from {network_file}...')
-
-    try:
-        network = load_network(network_file)
-        click.echo(f'✓ Loaded network with {network.number_of_nodes()} nodes')
-
-        # Load metadata with coordinates
-        click.echo(f'Loading metadata from {metadata}...')
-        reader = MetadataReader(metadata)
-        metadata_dict = reader.read_metadata()
-
-        # Extract coordinates for each node
-        coordinates = {}
-        for node_id in network.node_ids:
-            if node_id in metadata_dict:
-                coords = extract_coordinates(
-                    metadata_dict[node_id],
-                    lat_column=lat_column,
-                    lon_column=lon_column,
-                    validate=True,
-                )
-                if coords:
-                    coordinates[node_id] = coords
-
-        click.echo(f'✓ Loaded coordinates for {len(coordinates)} nodes')
-
-        if not coordinates:
-            click.echo(
-                '✗ Error: No valid geographic coordinates found in metadata', err=True
-            )
-            sys.exit(1)
-
-        # Parse extent if provided
-        extent_tuple = None
-        if extent:
-            try:
-                parts = [float(x.strip()) for x in extent.split(',')]
-                if len(parts) != 4:
-                    raise ValueError('Extent must have 4 values')
-                extent_tuple = tuple(parts)
-            except ValueError as e:
-                click.echo(f'✗ Error: Invalid extent format: {e}', err=True)
-                sys.exit(1)
-
-        # Determine output format
-        output_path = Path(output)
-        is_html = output_path.suffix.lower() == '.html'
-
-        if interactive or is_html:
-            # Interactive geographic visualization
-            from pypopart.visualization import InteractiveGeoVisualizer
-
-            click.echo('Creating interactive geographic visualization...')
-            viz = InteractiveGeoVisualizer(network)
-            viz.plot(
-                coordinates=coordinates,
-                base_map=base_map,
-                zoom_start=zoom,
-                show_labels=show_labels,
-                output_file=str(output_path),
-            )
-            click.echo(f'✓ Interactive map saved to {output}')
-            click.echo(f'  Open in browser: file://{output_path.absolute()}')
-
-        else:
-            # Static geographic visualization
-            from pypopart.visualization import GeoVisualizer
-
-            click.echo(
-                f'Creating static geographic visualization with {projection} projection...'
-            )
-            viz = GeoVisualizer(network)
-            fig, ax = viz.plot(
-                coordinates=coordinates,
-                projection=projection,
-                extent=extent_tuple,
-                figsize=(width / 100, height / 100),
-                show_labels=show_labels,
-                show_borders=show_borders,
-                output_file=str(output_path),
-            )
-            click.echo(f'✓ Geographic visualization saved to {output}')
-
-    except Exception as e:
-        import traceback
-
-        click.echo(f'✗ Error: {e}', err=True)
-        if ctx.obj.get('verbose', 0) > 0:
-            traceback.print_exc()
-        sys.exit(1)
+    except _USER_ERRORS as e:
+        _fail(ctx, e)
 
 
 @main.command()
@@ -671,21 +637,36 @@ def info(
     list_distances: bool,
     list_formats: bool,
 ) -> None:
-    """Display information about PyPopART capabilities."""
+    r"""
+    Display information about PyPopART capabilities.
+
+    \f
+
+    Parameters
+    ----------
+    list_algorithms : bool
+        List available network construction algorithms.
+    list_distances : bool
+        List available distance metrics.
+    list_formats : bool
+        List supported file formats.
+    """
     if list_algorithms:
         click.echo('Available Network Construction Algorithms:')
         click.echo('  mst - Minimum Spanning Tree')
         click.echo('  msn - Minimum Spanning Network')
         click.echo('  tcs - Statistical Parsimony (TCS)')
         click.echo('  mjn - Median-Joining Network')
+        click.echo('  pn  - Parsimony Network (consensus from sampled trees)')
+        click.echo('  tsw - Tight Span Walker')
         click.echo()
 
     if list_distances:
         click.echo('Available Distance Metrics:')
-        click.echo('  hamming     - Simple Hamming distance (count differences)')
-        click.echo('  jc          - Jukes-Cantor correction')
-        click.echo('  k2p         - Kimura 2-parameter model')
-        click.echo('  tamura_nei  - Tamura-Nei model')
+        click.echo('  hamming    - Simple Hamming distance (count differences)')
+        click.echo('  jc         - Jukes-Cantor correction')
+        click.echo('  k2p        - Kimura 2-parameter model')
+        click.echo('  tn         - Tamura-Nei model (alias: tamura_nei)')
         click.echo()
 
     if list_formats:

@@ -85,14 +85,75 @@ class HaplotypeNetwork:
             # Add to network
             network.add_haplotype(haplotype, median_vector=is_median)
 
-        # Add edges
+        # Add edges; older serializations carry only 'weight', which holds
+        # the genetic distance, so fall back to it when 'distance' is absent.
         for edge in network_data.get('edges', []):
             source = edge['source']
             target = edge['target']
             weight = edge.get('weight', 1.0)
-            distance = edge.get('distance', 0)
+            distance = edge.get('distance', weight if 'weight' in edge else 0)
             network.add_edge(source, target, distance=distance, weight=weight)
 
+        return network
+
+    @classmethod
+    def from_networkx(cls, graph: nx.Graph) -> 'HaplotypeNetwork':
+        """
+        Build a HaplotypeNetwork from a plain NetworkX graph.
+
+        Intended for graphs loaded from exported network files (GraphML,
+        GML, JSON), where node attributes such as ``sequence``, ``frequency``,
+        ``median_vector`` and ``sample_ids`` may be present, possibly as
+        strings after serialization round-trips.
+
+        Parameters
+        ----------
+        graph :
+            NetworkX graph with optional haplotype node/edge attributes.
+
+        Returns
+        -------
+            Reconstructed HaplotypeNetwork object.
+        """
+
+        def _as_bool(value) -> bool:
+            if isinstance(value, str):
+                return value.strip().lower() in ('true', '1', 'yes')
+            return bool(value)
+
+        def _as_list(value) -> list:
+            if value is None:
+                return []
+            if isinstance(value, str):
+                return [item for item in value.split(',') if item]
+            return list(value)
+
+        nodes = [
+            {
+                'id': str(node_id),
+                'sequence': attrs.get('sequence', ''),
+                'is_median': _as_bool(
+                    attrs.get('median_vector', attrs.get('is_median', False))
+                ),
+                'sample_ids': _as_list(attrs.get('sample_ids')),
+            }
+            for node_id, attrs in graph.nodes(data=True)
+        ]
+        edges = [
+            {
+                'source': str(source),
+                'target': str(target),
+                **{
+                    key: attrs[key]
+                    for key in ('weight', 'distance')
+                    if key in attrs and attrs[key] is not None
+                },
+            }
+            for source, target, attrs in graph.edges(data=True)
+        ]
+
+        network = cls.from_serialized({'nodes': nodes, 'edges': edges})
+        network.metadata.update(graph.graph)
         return network
 
     @property
