@@ -1,36 +1,62 @@
 """
-Median-Joining Network (MJN) algorithm for haplotype network construction.
+Median-Joining Network (MJN) algorithm, ported from PopART's MedJoinNet.
 
-Implements the method from Bandelt, Forster & Rohl (1999):
-"Median-joining networks for inferring intraspecific phylogenies"
-Molecular Biology and Evolution 16: 37-48
+Implements Bandelt, Forster & Röhl (1999) as realised in the C++ code:
+the algorithm runs in condensed site-pattern space (see
+core.site_patterns), repeatedly builds a relaxed MSN over samples plus
+inferred medians, tags *feasible links* (edges joining distinct
+components of the threshold graph, whose components merge for pairs at
+distance < threshold - epsilon), prunes everything else, drops obsolete
+medians (degree < 2), and adds quasi-median vertices for triplets formed
+by feasible links sharing an endpoint whose cost is within epsilon of
+the global minimum.
 """
 
-import itertools
-from typing import List, Optional, Set, Tuple
+from collections import defaultdict
+from typing import Dict, List, Optional, Set, Tuple
+
+import networkx as nx
 
 from ..core.alignment import Alignment
-from ..core.distance import DistanceMatrix, hamming_distance
+from ..core.distance import DistanceMatrix
 from ..core.graph import HaplotypeNetwork
-from ..core.haplotype import (
-    Haplotype,
-)
+from ..core.haplotype import Haplotype
 from ..core.haplotype import identify_haplotypes_from_alignment as identify_haplotypes
 from ..core.sequence import Sequence
+from ..core.site_patterns import condense_site_patterns, is_ambiguous
 from .msn import MinimumSpanningNetwork
+
+#: Safety cap on refinement iterations; PopART loops purely on `changed`
+#: and terminates in practice, this guards a port bug from hanging.
+_MAX_ITERATIONS = 10_000
 
 
 class MedianJoiningNetwork(MinimumSpanningNetwork):
     """
-    Construct haplotype network using Median-Joining algorithm.
+    Construct a Median-Joining Network from haplotype data.
 
-    The MJN method extends MSN by inferring median vectors (ancestral or
-    unsampled haplotypes) that simplify the network structure. It combines
-    minimum spanning network principles with median vector inference to
-    create a more parsimonious representation of haplotype relationships.
+    Follows PopART's MedJoinNet: quasi-median vertices are inferred in
+    condensed site-pattern space with site-weighted costs, and network
+    pruning is driven by feasible links of a threshold graph.
 
-    This is particularly useful for datasets with missing intermediate
-    haplotypes and complex reticulation patterns.
+    Parameters
+    ----------
+    distance_method : str, default='hamming'
+        Method for calculating distances (MJN itself works on weighted
+        Hamming distances over condensed sites, as PopART does).
+    epsilon : float, default=0.0
+        Bandelt's epsilon: widens both the feasible-link threshold graph
+        (components merge below threshold - epsilon) and the accepted
+        median cost (cost <= min cost + epsilon).
+    max_median_vectors : int, optional
+        PyPopART-specific cap on the number of inferred medians
+        (default None = unlimited, matching PopART).
+    simplify : bool, default=False
+        PyPopART-specific extra (off by default): additionally smooth
+        degree-2 median vertices into a single combined edge. PopART
+        only ever removes medians of degree < 2.
+    **kwargs : dict
+        Additional parameters passed to the base class.
     """
 
     def __init__(
@@ -38,7 +64,7 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         distance_method: str = 'hamming',
         epsilon: float = 0.0,
         max_median_vectors: Optional[int] = None,
-        simplify: bool = True,
+        simplify: bool = False,
         **kwargs,
     ):
         """
@@ -46,646 +72,532 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
 
         Parameters
         ----------
-        distance_method :
+        distance_method : str, default='hamming'
             Method for calculating distances.
-        epsilon :
-            Weight parameter for controlling network complexity.
-        max_median_vectors :
-            Maximum number of median vectors to add.
-        simplify :
-            Whether to simplify network after median vector addition.
-        **kwargs :
-            Additional parameters.
+        epsilon : float, default=0.0
+            Weight parameter controlling network complexity.
+        max_median_vectors : int, optional
+            Optional cap on inferred medians (None = unlimited).
+        simplify : bool, default=False
+            Opt-in smoothing of degree-2 medians (not part of PopART).
+        **kwargs : dict
+            Additional parameters passed to the base class.
         """
         super().__init__(distance_method, epsilon=epsilon, **kwargs)
         self.max_median_vectors = max_median_vectors
         self.simplify = simplify
-        self._median_counter = 0
 
     def construct_network(
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-            Construct MJN from sequence alignment with iterative refinement.
+        Construct MJN from sequence alignment.
 
         Parameters
         ----------
-            alignment :
-                Multiple sequence alignment.
-            distance_matrix :
-                Optional pre-computed distance matrix.
+        alignment : Alignment
+            Multiple sequence alignment.
+        distance_matrix : DistanceMatrix, optional
+            Ignored; MJN computes its own weighted distances in
+            condensed site-pattern space.
 
         Returns
         -------
-            Haplotype network with inferred median vectors.
+        HaplotypeNetwork
+            Median-joining network with inferred median vertices. Median
+            node sequences are expressed over condensed site patterns
+            (as in PopART); sampled haplotypes keep their original
+            sequences.
         """
-        # Identify unique haplotypes
         haplotypes = identify_haplotypes(alignment)
 
-        if len(haplotypes) <= 2:
-            # Too few haplotypes for median vector inference
-            return super().construct_network(alignment, distance_matrix)
-
-        # Calculate or use provided distance matrix
-        if distance_matrix is None:
-            distance_matrix = self.calculate_distances(alignment)
-
-        self._distance_matrix = distance_matrix
-
-        # Iteratively refine network with median vectors (matches C++ behavior)
-        network = self._iterative_median_joining(haplotypes, alignment, distance_matrix)
-
-        return network
-
-    def _iterative_median_joining(
-        self, haplotypes: List, alignment: Alignment, distance_matrix: DistanceMatrix
-    ) -> HaplotypeNetwork:
-        """
-            Refine network iteratively by adding median vectors (C++ algorithm).
-
-            Repeatedly:
-            1. Build MSN from current haplotypes
-            2. Find quasi-median vectors for triplets
-            3. Add medians that reduce network cost
-            4. Remove obsolete vertices (degree < 2)
-            5. Repeat until no new medians are added
-
-        Parameters
-        ----------
-            haplotypes :
-                Initial list of observed haplotypes.
-            alignment :
-                Sequence alignment.
-            distance_matrix :
-                Distance matrix.
-
-        Returns
-        -------
-            Refined network with median vectors.
-        """
-        # Track all sequences seen (observed + inferred)
-        all_sequences = {h.sequence.data for h in haplotypes}
-        current_haplotypes = list(haplotypes)
-
-        iteration = 0
-        max_iterations = 50  # Prevent infinite loops
-        changed = True
-        old_msn_length = -1
-
-        while changed and iteration < max_iterations:
-            iteration += 1
-            changed = False
-
-            # Build MSN from current haplotypes
-            msn = self._build_msn_for_iteration(current_haplotypes, distance_matrix)
-
-            # Calculate MSN total length
-            msn_length = sum(
-                msn.get_edge_distance(u, v) or 0 for u, v in msn.graph.edges()
-            )
-
-            # Check for convergence
-            if old_msn_length > 0 and msn_length >= old_msn_length:
-                # Network is not improving, stop
-                break
-
-            old_msn_length = msn_length
-
-            # Remove obsolete median vectors (degree < 2)
-            current_haplotypes = self._remove_obsolete_medians(msn, current_haplotypes)
-
-            # Find minimum cost for median vectors
-            min_cost = float('inf')
-            candidate_medians = []
-
-            # Check all triplets in current MSN
-            for triplet in self._find_all_triplets_in_msn(msn):
-                h1_id, h2_id, h3_id = triplet
-
-                h1 = msn.get_haplotype(h1_id)
-                h2 = msn.get_haplotype(h2_id)
-                h3 = msn.get_haplotype(h3_id)
-
-                # Compute quasi-median sequences
-                quasi_medians = self._compute_quasi_medians(
-                    h1.sequence, h2.sequence, h3.sequence
-                )
-
-                # Check each quasi-median
-                for median_seq in quasi_medians:
-                    if median_seq not in all_sequences:
-                        # Calculate cost
-                        cost = self._compute_median_cost(
-                            h1.sequence, h2.sequence, h3.sequence, median_seq
-                        )
-
-                        if cost < min_cost:
-                            min_cost = cost
-
-                        candidate_medians.append((median_seq, cost, triplet))
-
-            # Add medians within epsilon of minimum cost
-            for median_seq, cost, _triplet in candidate_medians:
-                if cost <= min_cost + self.epsilon:
-                    # Create median haplotype
-                    median_hap = Haplotype(
-                        sequence=Sequence(
-                            id=f'Median_{self._median_counter}', data=median_seq
-                        ),
-                        sample_ids=[],
-                    )
-                    self._median_counter += 1
-
-                    # Add to working set
-                    current_haplotypes.append(median_hap)
-                    all_sequences.add(median_seq)
-                    changed = True
-
-                    if (
-                        self.max_median_vectors
-                        and self._median_counter >= self.max_median_vectors
-                    ):
-                        break
-
-            if not changed:
-                break
-
-        # Final MSN construction
-        final_network = self._build_msn_for_iteration(
-            current_haplotypes, distance_matrix
-        )
-
-        # Final cleanup
-        if self.simplify:
-            final_network = self._simplify_network(final_network)
-
-        return final_network
-
-    def _build_msn_for_iteration(
-        self, haplotypes: List, distance_matrix: DistanceMatrix
-    ) -> HaplotypeNetwork:
-        """
-            Build MSN from current haplotypes for one iteration.
-
-        Parameters
-        ----------
-            haplotypes :
-                Current list of haplotypes.
-            distance_matrix :
-                Distance matrix (may need recalculation).
-
-        Returns
-        -------
-            MSN network.
-        """
-        # Handle empty or single haplotype case
         if len(haplotypes) == 0:
             return HaplotypeNetwork()
-
         if len(haplotypes) == 1:
             network = HaplotypeNetwork()
             network.add_haplotype(haplotypes[0])
             return network
 
-        # Calculate distances between current haplotypes (including new medians)
-        haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
+        n_samples = len(haplotypes)
+        condensed, weights = condense_site_patterns([h.data for h in haplotypes])
 
-        # Build MSN with the PopART level-sweep (see MinimumSpanningNetwork)
-        labels = [h.id for h in haplotypes]
-        edges = self._msn_edges(labels, haplotype_dist_matrix)
+        seqs: List[str] = list(condensed)
+        labels: List[str] = [h.id for h in haplotypes]
 
+        graph = self._compute_mjn(seqs, labels, n_samples, weights)
+
+        # Build the HaplotypeNetwork: samples keep original sequences,
+        # medians carry their condensed-space sequence.
         network = HaplotypeNetwork()
         for haplotype in haplotypes:
-            network.add_haplotype(
-                haplotype, median_vector=haplotype.id.startswith('Median_')
-            )
-        for u, v, dist in edges:
-            network.add_edge(u, v, distance=dist)
+            if haplotype.id in graph:
+                network.add_haplotype(haplotype)
+        for idx, label in enumerate(labels):
+            if idx >= n_samples and label in graph:
+                median_seq = Sequence(
+                    id=label,
+                    data=seqs[idx],
+                    description='Inferred median vector (condensed sites)',
+                )
+                network.add_haplotype(
+                    Haplotype(sequence=median_seq, sample_ids=[]),
+                    median_vector=True,
+                )
+                network.graph.nodes[label]['is_median'] = True
+        for u, v, attrs in graph.edges(data=True):
+            network.add_edge(u, v, distance=attrs['distance'])
+
+        if self.simplify:
+            self._smooth_degree2_medians(network)
 
         return network
 
-    def _find_all_triplets_in_msn(
-        self, network: HaplotypeNetwork
-    ) -> List[Tuple[str, str, str]]:
-        """
-            Find all triplets (connected triples) in MSN.
+    # ------------------------------------------------------------------
+    # Core algorithm (indices into seqs/labels; medians appended at end)
+    # ------------------------------------------------------------------
 
-            A triplet consists of three nodes where at least two edges exist
-            between them (not necessarily a triangle).
+    def _compute_mjn(
+        self,
+        seqs: List[str],
+        labels: List[str],
+        n_samples: int,
+        weights: List[int],
+    ) -> nx.Graph:
+        """
+        Run the iterative median-joining refinement.
 
         Parameters
         ----------
-            network :
-                Current MSN.
+        seqs : list of str
+            Condensed sequences; medians are appended in place.
+        labels : list of str
+            Node labels parallel to seqs; medians are appended in place.
+        n_samples : int
+            Number of sampled haplotypes (prefix of seqs).
+        weights : list of int
+            Site weights for the condensed columns.
 
         Returns
         -------
-            List of triplets.
+        nx.Graph
+            Final pruned graph over node labels with 'distance' edges.
+
+        Raises
+        ------
+        RuntimeError
+            If refinement fails to converge within the safety cap.
         """
-        triplets = []
-        hap_ids = list({h.id for h in network.haplotypes})
+        all_seq_set: Set[str] = set(seqs)
+        removed: Set[int] = set()
+        median_counter = 0
 
-        for i, h1 in enumerate(hap_ids):
-            neighbors_h1 = set(network.get_neighbors(h1))
-
-            for j in range(i + 1, len(hap_ids)):
-                h2 = hap_ids[j]
-
-                if h2 in neighbors_h1:
-                    # h1 and h2 are connected
-                    neighbors_h2 = set(network.get_neighbors(h2))
-
-                    # Find common neighbors
-                    for h3 in neighbors_h1.intersection(neighbors_h2):
-                        if h3 != h1 and h3 != h2:
-                            triplets.append((h1, h2, h3))
-
-        return triplets
-
-    def _compute_quasi_medians(
-        self, seq1: Sequence, seq2: Sequence, seq3: Sequence
-    ) -> Set[str]:
-        """
-            Compute quasi-median sequences (Steiner tree approach).
-
-            For positions where all three sequences differ, generates all
-            possible combinations (creating a set of quasi-medians).
-
-            This matches the C++ computeQuasiMedianSeqs implementation.
-
-        Parameters
-        ----------
-                seq1, seq2, seq3: Three sequences
-
-        Returns
-        -------
-            Set of quasi-median sequence strings.
-        """
-        if len(seq1) != len(seq2) or len(seq1) != len(seq3):
-            return set()
-
-        # Build initial quasi-median with '*' at ambiguous positions
-        qm_seq = []
-        has_star = False
-
-        for i in range(len(seq1)):
-            c1, c2, c3 = seq1.data[i], seq2.data[i], seq3.data[i]
-
-            if c1 == c2 or c1 == c3:
-                qm_seq.append(c1)
-            elif c2 == c3:
-                qm_seq.append(c2)
-            else:
-                # All three differ
-                qm_seq.append('*')
-                has_star = True
-
-        if not has_star:
-            # Simple median exists
-            return {''.join(qm_seq)}
-
-        # Resolve '*' positions by generating all combinations
-        medians = set()
-        stack = [''.join(qm_seq)]
-
-        while stack:
-            current = stack.pop()
-            first_star = current.find('*')
-
-            if first_star == -1:
-                # No more stars, add to result
-                medians.add(current)
-            else:
-                # Replace star with each of the three bases
-                for base in [
-                    seq1.data[first_star],
-                    seq2.data[first_star],
-                    seq3.data[first_star],
-                ]:
-                    new_seq = current[:first_star] + base + current[first_star + 1 :]
-                    stack.append(new_seq)
-
-        return medians
-
-    def _compute_median_cost(
-        self, seq1: Sequence, seq2: Sequence, seq3: Sequence, median_seq: str
-    ) -> int:
-        """
-            Compute cost of a median vector.
-
-            Cost is sum of distances from median to the three sequences.
-
-        Parameters
-        ----------
-                seq1, seq2, seq3: Three sequences forming the triplet
-            median_seq :
-                Candidate median sequence string.
-
-        Returns
-        -------
-            Total cost (sum of Hamming distances).
-        """
-        median = Sequence(id='temp', data=median_seq)
-
-        dist1 = hamming_distance(seq1, median, ignore_gaps=True)
-        dist2 = hamming_distance(seq2, median, ignore_gaps=True)
-        dist3 = hamming_distance(seq3, median, ignore_gaps=True)
-
-        return dist1 + dist2 + dist3
-
-    def _remove_obsolete_medians(
-        self, network: HaplotypeNetwork, haplotypes: List
-    ) -> List:
-        """
-            Remove median vectors with degree < 2 (obsolete).
-
-            Matches C++ removeObsoleteVerts behavior.
-
-        Parameters
-        ----------
-            network :
-                Current network.
-            haplotypes :
-                List of all haplotypes.
-
-        Returns
-        -------
-            Updated list with obsolete medians removed.
-        """
-        changed = True
-
-        while changed:
+        for _ in range(_MAX_ITERATIONS):
             changed = False
-            to_remove = []
 
-            for haplotype in haplotypes:
-                if haplotype.frequency == 0:  # Only check inferred medians
-                    # Check if haplotype exists in network before getting degree
-                    if network.has_node(haplotype.id):
-                        degree = network.get_degree(haplotype.id)
-                        if degree < 2:
-                            to_remove.append(haplotype)
-                            changed = True
+            active = [i for i in range(len(seqs)) if i not in removed]
+            matrix = self._weighted_matrix(seqs, weights, active)
+            edges, feasible = self._msn_with_feasible_links(active, matrix)
+
+            graph = nx.Graph()
+            graph.add_nodes_from(active)
+            for i, j, dist in edges:
+                if (i, j) in feasible or (j, i) in feasible:
+                    graph.add_edge(i, j, distance=dist)
+
+            if self._remove_obsolete(graph, n_samples, seqs, all_seq_set, removed):
+                changed = True
+
+            # Pass 1: global minimum cost over quasi-medians of every
+            # path v-u-w through a shared vertex u
+            min_cost = float('inf')
+            for u in graph.nodes:
+                neighbours = list(graph.neighbors(u))
+                for a in range(len(neighbours)):
+                    for b in range(a):
+                        v, w = neighbours[a], neighbours[b]
+                        for median in self._quasi_medians(seqs[u], seqs[v], seqs[w]):
+                            if median not in all_seq_set:
+                                cost = self._median_cost(
+                                    seqs[u], seqs[v], seqs[w], median, weights
+                                )
+                                min_cost = min(min_cost, cost)
+
+            # Pass 2: add medians for feasible-link pairs sharing a vertex
+            feasible_list = [(i, j) for i, j in feasible if graph.has_edge(i, j)]
+            at_cap = (
+                self.max_median_vectors is not None
+                and sum(1 for i in range(n_samples, len(seqs)) if i not in removed)
+                >= self.max_median_vectors
+            )
+            for e1 in range(len(feasible_list)):
+                u, v = feasible_list[e1]
+                for e2 in range(e1):
+                    a, b = feasible_list[e2]
+                    if a in (u, v):
+                        w = b
+                    elif b in (u, v):
+                        w = a
                     else:
-                        # Haplotype not in network, remove it
-                        to_remove.append(haplotype)
-                        changed = True
+                        continue
 
-            # Remove obsolete medians
-            for hap in to_remove:
-                haplotypes = [h for h in haplotypes if h.id != hap.id]
+                    for median in self._quasi_medians(seqs[u], seqs[v], seqs[w]):
+                        if median in all_seq_set or at_cap:
+                            continue
+                        cost = self._median_cost(
+                            seqs[u], seqs[v], seqs[w], median, weights
+                        )
+                        if cost <= min_cost + self.epsilon:
+                            labels.append(f'Median_{median_counter}')
+                            median_counter += 1
+                            seqs.append(median)
+                            all_seq_set.add(median)
+                            changed = True
+                            at_cap = (
+                                self.max_median_vectors is not None
+                                and sum(
+                                    1
+                                    for i in range(n_samples, len(seqs))
+                                    if i not in removed
+                                )
+                                >= self.max_median_vectors
+                            )
 
-        return haplotypes
+            if not changed:
+                break
+        else:
+            raise RuntimeError('MJN refinement failed to converge')
 
-    def _add_median_vectors(
-        self, network: HaplotypeNetwork, sequence_length: int
-    ) -> HaplotypeNetwork:
-        """
-            Infer and add median vectors to the network.
+        # Final phase (computeGraph): rebuild and prune until stable
+        while True:
+            active = [i for i in range(len(seqs)) if i not in removed]
+            matrix = self._weighted_matrix(seqs, weights, active)
+            edges, feasible = self._msn_with_feasible_links(active, matrix)
 
-        Parameters
-        ----------
-            network :
-                Initial haplotype network.
-            sequence_length :
-                Length of sequences.
+            graph = nx.Graph()
+            graph.add_nodes_from(active)
+            for i, j, dist in edges:
+                if (i, j) in feasible or (j, i) in feasible:
+                    graph.add_edge(i, j, distance=dist)
 
-        Returns
-        -------
-            Network with median vectors added.
-        """
-        self._median_counter = 0
-        median_vectors_added = 0
-
-        # Get all triangles (3-cliques) in the network
-        triangles = self._find_triplets(network)
-
-        for hap1_id, hap2_id, hap3_id in triangles:
-            if (
-                self.max_median_vectors
-                and median_vectors_added >= self.max_median_vectors
-            ):
+            if not self._remove_obsolete(graph, n_samples, seqs, all_seq_set, removed):
                 break
 
-            # Get the three haplotypes
-            hap1 = network.get_haplotype(hap1_id)
-            hap2 = network.get_haplotype(hap2_id)
-            hap3 = network.get_haplotype(hap3_id)
+        return nx.relabel_nodes(graph, {i: labels[i] for i in graph.nodes})
 
-            # Calculate median vector
-            median_seq = self._calculate_median(
-                hap1.sequence, hap2.sequence, hap3.sequence
-            )
-
-            if median_seq is None:
-                continue
-
-            # Check if median already exists in network
-            if self._sequence_in_network(median_seq, network):
-                continue
-
-            # Calculate distances from median to the three haplotypes
-            median_hap = Haplotype(
-                sequence=Sequence(id=f'Median_{self._median_counter}', data=median_seq),
-                sample_ids=[],
-            )
-            self._median_counter += 1
-
-            dist1 = hamming_distance(
-                median_hap.sequence, hap1.sequence, ignore_gaps=True
-            )
-            dist2 = hamming_distance(
-                median_hap.sequence, hap2.sequence, ignore_gaps=True
-            )
-            dist3 = hamming_distance(
-                median_hap.sequence, hap3.sequence, ignore_gaps=True
-            )
-
-            # Check if median vector simplifies the network
-            # (reduces total edge weight)
-            original_edges = [
-                network.get_edge_distance(hap1_id, hap2_id) or 0,
-                network.get_edge_distance(hap1_id, hap3_id) or 0,
-                network.get_edge_distance(hap2_id, hap3_id) or 0,
-            ]
-            original_weight = sum(d for d in original_edges if d > 0)
-            new_weight = dist1 + dist2 + dist3
-
-            if new_weight < original_weight:
-                # Add median vector to network
-                network.add_haplotype(median_hap)
-
-                # Connect median to the three haplotypes
-                if dist1 > 0:
-                    network.add_edge(median_hap.id, hap1_id, distance=dist1)
-                if dist2 > 0:
-                    network.add_edge(median_hap.id, hap2_id, distance=dist2)
-                if dist3 > 0:
-                    network.add_edge(median_hap.id, hap3_id, distance=dist3)
-
-                median_vectors_added += 1
-
-        return network
-
-    def _find_triplets(self, network: HaplotypeNetwork) -> List[Tuple[str, str, str]]:
+    def _weighted_matrix(
+        self, seqs: List[str], weights: List[int], active: List[int]
+    ) -> Dict[Tuple[int, int], float]:
         """
-            Find all triplets (triangles) in the network.
+        Compute weighted pairwise distances between active sequences.
 
         Parameters
         ----------
-            network :
-                Haplotype network.
+        seqs : list of str
+            All condensed sequences.
+        weights : list of int
+            Site weights.
+        active : list of int
+            Indices of live sequences.
 
         Returns
         -------
-            List of triplets (id1, id2, id3).
+        dict
+            Mapping (i, j) with i > j to weighted distance.
         """
-        triplets = []
-        hap_ids = list({h.id for h in network.haplotypes})
+        matrix: Dict[Tuple[int, int], float] = {}
+        for a_pos, i in enumerate(active):
+            for j in active[:a_pos]:
+                matrix[(i, j)] = matrix[(j, i)] = self._weighted_distance(
+                    seqs[i], seqs[j], weights
+                )
+        return matrix
 
-        # Check all combinations of 3 haplotypes
-        for hap1, hap2, hap3 in itertools.combinations(hap_ids, 3):
-            # Check if they form a triangle (all three edges exist)
-            has_12 = network.has_edge(hap1, hap2)
-            has_13 = network.has_edge(hap1, hap3)
-            has_23 = network.has_edge(hap2, hap3)
-
-            if has_12 and has_13 and has_23:
-                triplets.append((hap1, hap2, hap3))
-
-        return triplets
-
-    def _calculate_median(
-        self, seq1: Sequence, seq2: Sequence, seq3: Sequence
-    ) -> Optional[Sequence]:
+    @staticmethod
+    def _weighted_distance(s1: str, s2: str, weights: List[int]) -> float:
         """
-            Calculate median sequence of three sequences.
+        Site-weighted Hamming distance over condensed sequences.
 
-            For each position, the median is the most common nucleotide
-            among the three sequences. If all three are different, no
-            clear median exists for that position.
+        Matches HapNet::pairwiseDistance: ambiguous positions are
+        skipped; a mismatch at column i contributes weights[i].
 
         Parameters
         ----------
-                seq1, seq2, seq3: Three Sequence objects
+        s1 : str
+            First condensed sequence.
+        s2 : str
+            Second condensed sequence.
+        weights : list of int
+            Site weights per condensed column.
 
         Returns
         -------
-            Median Sequence, or None if no clear median exists.
+        float
+            Weighted distance.
         """
-        if len(seq1) != len(seq2) or len(seq1) != len(seq3):
-            return None
+        total = 0
+        for c1, c2, w in zip(s1, s2, weights):
+            if is_ambiguous(c1) or is_ambiguous(c2):
+                continue
+            if c1 != c2:
+                total += w
+        return float(total)
 
-        median_data = []
+    def _msn_with_feasible_links(
+        self, active: List[int], matrix: Dict[Tuple[int, int], float]
+    ) -> Tuple[List[Tuple[int, int, float]], Set[Tuple[int, int]]]:
+        """
+        Build the relaxed MSN and tag feasible links.
 
-        for i in range(len(seq1)):
-            c1, c2, c3 = seq1.data[i], seq2.data[i], seq3.data[i]
+        Port of MedJoinNet::computeMSN: every pair at each accepted
+        distance level becomes an edge; an edge is a *feasible link*
+        when its endpoints lie in different components of the threshold
+        graph, whose components merge for pairs at distance strictly
+        below (threshold - epsilon).
 
-            # Find most common nucleotide
-            if c1 == c2:
-                median_data.append(c1)
-            elif c1 == c3:
-                median_data.append(c1)
-            elif c2 == c3:
-                median_data.append(c2)
-            else:
-                # All three different - no clear median
-                # Use majority rule or first sequence's base
-                # For simplicity, we'll say no median exists for this triplet
-                return None
+        Parameters
+        ----------
+        active : list of int
+            Indices of live sequences.
+        matrix : dict
+            Pairwise distances keyed by index pairs.
 
-        median_seq = Sequence(id='median_temp', data=''.join(median_data))
+        Returns
+        -------
+        tuple of (list, set)
+            All edges as (i, j, distance), and the feasible subset as
+            (i, j) pairs.
 
-        return median_seq
+        Raises
+        ------
+        RuntimeError
+            If the pair queue empties before the graph connects.
+        """
+        n = len(active)
+        position = {node: pos for pos, node in enumerate(active)}
 
-    def _sequence_in_network(
-        self, sequence: Sequence, network: HaplotypeNetwork
+        levels = defaultdict(list)
+        for a_pos, i in enumerate(active):
+            for j in active[:a_pos]:
+                levels[matrix[(i, j)]].append((i, j))
+
+        msn_comp = list(range(n))
+        threshold_comp = list(range(n))
+        ncomps = n
+        max_value = float('inf')
+        edges: List[Tuple[int, int, float]] = []
+        feasible: Set[Tuple[int, int]] = set()
+
+        def merge(components: List[int], i: int, j: int) -> None:
+            high = max(components[i], components[j])
+            low = min(components[i], components[j])
+            for k in range(n):
+                if components[k] == high:
+                    components[k] = low
+                elif components[k] > high:
+                    components[k] -= 1
+
+        for dist in sorted(levels):
+            if dist > max_value:
+                break
+
+            # Update the threshold graph for this level
+            for a_pos, i in enumerate(active):
+                for j in active[:a_pos]:
+                    pi, pj = position[i], position[j]
+                    if threshold_comp[pi] != threshold_comp[pj] and matrix[(i, j)] < (
+                        dist - self.epsilon
+                    ):
+                        merge(threshold_comp, pi, pj)
+
+            pairs = levels[dist]
+            for i, j in pairs:
+                edges.append((i, j, dist))
+                if threshold_comp[position[i]] != threshold_comp[position[j]]:
+                    feasible.add((i, j))
+
+            for i, j in pairs:
+                pi, pj = position[i], position[j]
+                if msn_comp[pi] != msn_comp[pj]:
+                    merge(msn_comp, pi, pj)
+                    ncomps -= 1
+                if ncomps == 1 and max_value == float('inf'):
+                    max_value = dist + self.epsilon
+
+        if ncomps > 1:
+            raise RuntimeError('Pair queue empty before the graph is connected')
+
+        return edges, feasible
+
+    @staticmethod
+    def _remove_obsolete(
+        graph: nx.Graph,
+        n_samples: int,
+        seqs: List[str],
+        all_seq_set: Set[str],
+        removed: Set[int],
     ) -> bool:
         """
-            Check if a sequence already exists in the network.
+        Remove median vertices of degree < 2, iterating to a fixpoint.
+
+        Port of MedJoinNet::removeObsoleteVerts (sampled haplotypes are
+        never removed).
 
         Parameters
         ----------
-            sequence :
-                Sequence to check.
-            network :
-                Haplotype network.
+        graph : nx.Graph
+            Current graph over sequence indices (modified in place).
+        n_samples : int
+            Number of sampled haplotypes.
+        seqs : list of str
+            All condensed sequences.
+        all_seq_set : set of str
+            Live sequence strings (updated in place).
+        removed : set of int
+            Indices removed so far (updated in place).
 
         Returns
         -------
-            True if sequence exists in network.
+        bool
+            True when any vertex was removed.
         """
-        seq_data = sequence.data
+        removed_any = False
+        while True:
+            obsolete = [
+                node
+                for node in graph.nodes
+                if node >= n_samples and graph.degree(node) < 2
+            ]
+            if not obsolete:
+                return removed_any
+            for node in obsolete:
+                graph.remove_node(node)
+                all_seq_set.discard(seqs[node])
+                removed.add(node)
+                removed_any = True
 
-        for haplotype in network.haplotypes:
-            if haplotype.sequence.data == seq_data:
-                return True
-
-        return False
-
-    def _simplify_network(self, network: HaplotypeNetwork) -> HaplotypeNetwork:
+    @staticmethod
+    def _quasi_medians(seq_a: str, seq_b: str, seq_c: str) -> Set[str]:
         """
-            Simplify network by removing unnecessary median vectors.
+        Compute the quasi-median sequences of a triplet.
 
-            Iteratively removes median vectors that:
-            - Have degree < 2 (disconnected or terminal nodes)
-            - Have degree 2 and can be replaced by a direct edge
-
-            Matches the C++ implementation's removeObsoleteVerts behavior.
+        Port of MedJoinNet::computeQuasiMedianSeqs: per position, take
+        the majority character; positions where all three differ become
+        stars, which are resolved recursively three ways.
 
         Parameters
         ----------
-            network :
-                Network with median vectors.
+        seq_a : str
+            First sequence.
+        seq_b : str
+            Second sequence.
+        seq_c : str
+            Third sequence.
 
         Returns
         -------
-            Simplified network.
+        set of str
+            All quasi-median sequences of the triplet.
         """
+        qm = []
+        has_star = False
+        for a, b, c in zip(seq_a, seq_b, seq_c):
+            if a == b or a == c:
+                qm.append(a)
+            elif b == c:
+                qm.append(b)
+            else:
+                qm.append('*')
+                has_star = True
+
+        seed = ''.join(qm)
+        if not has_star:
+            return {seed}
+
+        medians: Set[str] = set()
+        stack = [seed]
+        while stack:
+            seq = stack.pop()
+            star = seq.find('*')
+            resolved = [
+                seq[:star] + source[star] + seq[star + 1 :]
+                for source in (seq_a, seq_b, seq_c)
+            ]
+            if '*' in resolved[0]:
+                stack.extend(resolved)
+            else:
+                medians.update(resolved)
+        return medians
+
+    def _median_cost(
+        self, seq_u: str, seq_v: str, seq_w: str, median: str, weights: List[int]
+    ) -> float:
+        """
+        Cost of a candidate median (MedJoinNet::computeCost).
+
+        Parameters
+        ----------
+        seq_u : str
+            First triplet sequence.
+        seq_v : str
+            Second triplet sequence.
+        seq_w : str
+            Third triplet sequence.
+        median : str
+            Candidate median sequence.
+        weights : list of int
+            Site weights.
+
+        Returns
+        -------
+        float
+            Sum of weighted distances from the median to the triplet.
+        """
+        return (
+            self._weighted_distance(seq_u, median, weights)
+            + self._weighted_distance(seq_v, median, weights)
+            + self._weighted_distance(seq_w, median, weights)
+        )
+
+    def _smooth_degree2_medians(self, network: HaplotypeNetwork) -> None:
+        """
+        Opt-in smoothing: collapse degree-2 medians into single edges.
+
+        Not part of PopART's MJN (removeObsoleteVerts only drops medians
+        of degree < 2); enabled via simplify=True.
+
+        Parameters
+        ----------
+        network : HaplotypeNetwork
+            Network to smooth in place.
+        """
+        graph = network.graph
         changed = True
-
-        # Iterate until no more changes (matches C++ while loop)
         while changed:
             changed = False
-            to_remove = []
-
-            for hap_id in list({h.id for h in network.haplotypes}):
-                if not hap_id.startswith('Median_'):
+            for node in list(graph.nodes):
+                if not graph.nodes[node].get('is_median'):
                     continue
-
-                degree = network.get_degree(hap_id)
-
-                # Remove obsolete median vectors (degree < 2) - matches C++ behavior
-                if degree < 2:
-                    to_remove.append(hap_id)
-                    changed = True
-                elif degree == 2:
-                    # Get the two neighbors
-                    neighbors = network.get_neighbors(hap_id)
-                    if len(neighbors) == 2:
-                        n1, n2 = neighbors
-
-                        # Get distances
-                        d1 = network.get_edge_distance(hap_id, n1) or 0
-                        d2 = network.get_edge_distance(hap_id, n2) or 0
-
-                        # Check if direct connection exists between the two neighbors
-                        if not network.has_edge(n1, n2):
-                            # No direct connection - add it with combined distance
-                            network.add_edge(n1, n2, distance=d1 + d2)
-
-                        # Remove the median vector
-                        to_remove.append(hap_id)
-                        changed = True
-
-            # Remove marked median vectors
-            for hap_id in to_remove:
-                network.remove_haplotype(hap_id)
-
-        return network
+                if graph.degree(node) != 2:
+                    continue
+                n1, n2 = graph.neighbors(node)
+                combined = graph[node][n1].get('distance', 1) + graph[node][n2].get(
+                    'distance', 1
+                )
+                network.remove_haplotype(node)
+                if not graph.has_edge(n1, n2):
+                    network.add_edge(n1, n2, distance=combined)
+                changed = True
+                break
 
     def get_parameters(self) -> dict:
-        """Get algorithm parameters."""
+        """
+        Get algorithm parameters.
+
+        Returns
+        -------
+        dict
+            Parameters including epsilon, max_median_vectors, simplify.
+        """
         params = super().get_parameters()
         params['max_median_vectors'] = self.max_median_vectors
         params['simplify'] = self.simplify
