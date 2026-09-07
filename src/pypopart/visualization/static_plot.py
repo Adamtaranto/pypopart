@@ -62,6 +62,10 @@ class StaticNetworkPlotter:
         median_vector_marker: str = 's',
         figsize: Tuple[float, float] = (12, 10),
         title: Optional[str] = None,
+        node_labels: Optional[Dict[str, str]] = None,
+        show_edge_ticks: bool = True,
+        edge_tick_threshold: int = 10,
+        show_title: bool = True,
         **kwargs,
     ) -> Tuple[plt.Figure, plt.Axes]:
         """
@@ -93,6 +97,19 @@ class StaticNetworkPlotter:
             Figure size (width, height) in inches.
         title : str, optional
             Plot title.
+        node_labels : Dict[str, str], optional
+            Labels to draw on nodes, keyed by node ID. Defaults to the node
+            IDs themselves; the GUI passes its H numbers so an exported
+            figure is labelled the same way as the screen.
+        show_edge_ticks : bool, default=True
+            Draw mutation counts as perpendicular tick marks, the PopART
+            convention, instead of a numeral.
+        edge_tick_threshold : int, default=10
+            Edges with more mutations than this get a numeral regardless,
+            because a long comb of ticks is unreadable.
+        show_title : bool, default=True
+            Draw a heading above the figure. The GUI turns this off, since
+            the network's internal name is not a figure caption.
         **kwargs : dict
             Additional arguments passed to networkx drawing functions.
 
@@ -175,7 +192,7 @@ class StaticNetworkPlotter:
 
         # Draw labels if requested
         if show_labels:
-            labels = {n: n for n in graph.nodes()}
+            labels = {n: (node_labels or {}).get(n, n) for n in graph.nodes()}
             nx.draw_networkx_labels(
                 graph,
                 layout,
@@ -187,13 +204,17 @@ class StaticNetworkPlotter:
 
         # Draw mutation counts on edges if requested
         if show_mutations:
-            self._draw_edge_labels(graph, layout)
+            self._draw_edge_labels(graph, layout, show_edge_ticks, edge_tick_threshold)
 
         # Add title
         if title:
             self.ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
-        elif self.network.name:
+        elif show_title and self.network.name:
             self.ax.set_title(self.network.name, fontsize=14, fontweight='bold', pad=20)
+
+        # Node markers are drawn in points, so they overhang the data
+        # limits; without a margin the outermost node is clipped in half.
+        self.ax.margins(0.08)
 
         # Remove axes
         self.ax.axis('off')
@@ -495,6 +516,60 @@ class StaticNetworkPlotter:
 
         return sizes
 
+    def _draw_edge_ticks(
+        self,
+        source: Tuple[float, float],
+        target: Tuple[float, float],
+        count: int,
+    ) -> None:
+        """
+        Draw one short stroke across an edge per mutation.
+
+        The PopART convention, and what the interactive view shows, so a
+        figure exported from the app matches what was on screen.
+
+        Parameters
+        ----------
+        source : Tuple[float, float]
+            Position of one end of the edge.
+        target : Tuple[float, float]
+            Position of the other end.
+        count : int
+            Number of strokes to draw.
+        """
+        import numpy as _np
+
+        x1, y1 = float(source[0]), float(source[1])
+        x2, y2 = float(target[0]), float(target[1])
+        dx, dy = x2 - x1, y2 - y1
+        length = _np.hypot(dx, dy)
+        if length == 0:
+            return
+
+        # Unit vector along the edge, and its perpendicular.
+        ux, uy = dx / length, dy / length
+        px, py = -uy, ux
+
+        # Ticks occupy the middle of the edge, evenly spaced, and are
+        # scaled to the edge so they stay legible at any layout size.
+        half = min(length * 0.04, length / (2 * (count + 1)))
+        span = length * 0.4
+        offsets = (
+            _np.linspace(-span / 2, span / 2, count) if count > 1 else _np.array([0.0])
+        )
+        mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
+
+        for offset in offsets:
+            cx, cy = mid_x + ux * offset, mid_y + uy * offset
+            self.ax.plot(
+                [cx - px * half, cx + px * half],
+                [cy - py * half, cy + py * half],
+                color=POP_INK,
+                linewidth=1.2,
+                solid_capstyle='butt',
+                zorder=1,
+            )
+
     def _compute_node_colors(
         self,
         node_color_map: Optional[Dict[str, str]],
@@ -560,10 +635,14 @@ class StaticNetworkPlotter:
         return widths
 
     def _draw_edge_labels(
-        self, graph: nx.Graph, layout: Dict[str, Tuple[float, float]]
+        self,
+        graph: nx.Graph,
+        layout: Dict[str, Tuple[float, float]],
+        show_ticks: bool = True,
+        tick_threshold: int = 10,
     ) -> None:
         """
-        Draw mutation counts on edges.
+        Mark each edge with the number of mutations along it.
 
         Parameters
         ----------
@@ -571,12 +650,24 @@ class StaticNetworkPlotter:
             NetworkX graph.
         layout : Dict[str, Tuple[float, float]]
             Node positions.
+        show_ticks : bool, default=True
+            Draw short perpendicular strokes, one per mutation.
+        tick_threshold : int, default=10
+            Above this many mutations a numeral is drawn instead.
         """
         edge_labels = {}
         for u, v in graph.edges():
-            weight = graph[u][v].get('weight', 1)
-            if weight > 0:
-                edge_labels[(u, v)] = int(weight)
+            # 'weight' defaults to 1.0 for every edge; the mutation count
+            # lives in 'distance'. Reading weight here labelled every edge
+            # '1' no matter how far apart the haplotypes were.
+            distance = graph[u][v].get('distance', graph[u][v].get('weight', 0))
+            distance = int(distance)
+            if distance <= 0:
+                continue
+            if show_ticks and distance <= tick_threshold:
+                self._draw_edge_ticks(layout[u], layout[v], distance)
+            else:
+                edge_labels[(u, v)] = distance
 
         if edge_labels:
             nx.draw_networkx_edge_labels(

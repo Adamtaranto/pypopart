@@ -8,10 +8,12 @@
  * cannot import. tests/unit/test_style.py pins the two together.
  */
 
+/* Jost is Futura's descendant -- Renner drew Futura alongside the
+   Bauhaus, and its geometry is the closest OFL face to that lettering. */
 @font-face {
-  font-family: "Archivo Black";
-  src: url("fonts/ArchivoBlack-Regular.woff2") format("woff2");
-  font-weight: 400;
+  font-family: "Jost";
+  src: url("fonts/Jost.woff2") format("woff2");
+  font-weight: 100 900;
   font-display: swap;
 }
 
@@ -37,9 +39,18 @@
   --pp-ink: #1d1d1b;
   --pp-paper: #ffffff;
   --pp-teal: #2a9d8f;
+  --pp-orange: #e8871e;
+  --pp-green: #2e7d5b;
+  --pp-gold: #d9a521;
+  --pp-pink: #d9678a;
+  --pp-blue: #2d6a9f;
+
+  /* Screens are not paper: an off-white ground reads calmer behind a
+     figure than pure white, which is reserved for exports. */
+  --pp-parchment: #f6f2e9;
 
   --pp-sans: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --pp-display: "Archivo Black", "Helvetica Neue", Impact, sans-serif;
+  --pp-display: "Jost", "Century Gothic", "Futura", sans-serif;
   --pp-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
   --pp-rule: 3px solid var(--pp-ink);
@@ -65,62 +76,42 @@
 body {
   font-family: var(--pp-sans);
   color: var(--pp-ink);
-  background-color: var(--pp-paper);
+  background-color: var(--pp-parchment);
 }
 
 /* ------------------------------------------------------------- title bar */
 
 .pp-titlebar {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 16px;
-  padding: 14px 24px;
-  background-color: var(--pp-paper);
+  padding: 16px 24px 12px;
+  background-color: var(--pp-parchment);
   border-bottom: 5px solid var(--pp-ink);
 }
 
-/* Three primaries as three primitives: the whole Bauhaus joke in 40px. */
-.pp-mark {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-}
-
-.pp-mark span {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
-
-.pp-mark .pp-mark-circle {
-  border-radius: 50%;
-  background-color: var(--pp-red);
-}
-
-.pp-mark .pp-mark-square {
-  background-color: var(--pp-navy);
-}
-
-.pp-mark .pp-mark-triangle {
-  width: 0;
-  height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-bottom: 18px solid var(--pp-amber);
-}
-
+/* The wordmark carries the identity on its own, so the geometric marks
+   that used to sit beside it are gone. */
 .pp-title {
   font-family: var(--pp-display);
-  font-size: 26px;
-  letter-spacing: -0.5px;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 6px;
   text-transform: uppercase;
   margin: 0;
-  color: var(--pp-ink);
 }
 
-.pp-title .pp-title-accent {
-  color: var(--pp-red);
+.pp-title .pp-t1 {
+  color: var(--pp-blue);
+}
+
+.pp-title .pp-t2 {
+  color: var(--pp-orange);
+}
+
+.pp-title .pp-t3 {
+  color: var(--pp-pink);
 }
 
 .pp-subtitle {
@@ -128,7 +119,7 @@ body {
   font-size: 12px;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--pp-navy);
+  color: var(--pp-green);
   margin-left: auto;
 }
 
@@ -140,7 +131,7 @@ body {
 }
 
 .pp-main {
-  background-color: var(--pp-paper);
+  background-color: var(--pp-parchment);
 }
 
 /* Collapse button on top, drag grip centred on the panel edge. */
@@ -183,7 +174,7 @@ body {
 .card {
   border: var(--pp-rule);
   border-radius: 0;
-  background-color: var(--pp-paper);
+  background-color: var(--pp-parchment);
 }
 
 .card-header {
@@ -265,7 +256,7 @@ label.fw-bold {
 }
 
 .btn-light {
-  background-color: var(--pp-paper);
+  background-color: var(--pp-parchment);
   border-color: var(--pp-ink);
   color: var(--pp-ink);
 }
@@ -324,12 +315,18 @@ label.fw-bold {
 
 /* ------------------------------------------------- overlays on the canvas */
 
+/* The plot area and its overlays sit on parchment; only an exported
+   figure gets a true white ground. */
 .pp-overlay {
   position: absolute;
   z-index: 1000;
-  background: var(--pp-paper);
+  background: var(--pp-parchment);
   border: var(--pp-rule);
   padding: 10px 12px;
+}
+
+#network-graph {
+  background-color: var(--pp-parchment);
 }
 
 .pp-legend {
@@ -411,7 +408,7 @@ input.pp-color-swatch[type="color"] {
   border: 2px solid var(--pp-ink);
   border-radius: 0;
   cursor: pointer;
-  background: var(--pp-paper);
+  background: var(--pp-parchment);
 }
 
 /* ------------------------------------------------------------ alignment  */
@@ -487,15 +484,15 @@ input.pp-color-swatch[type="color"] {
   min-width: 300px;
   max-width: 420px;
   border: var(--pp-rule);
-  border-left: 8px solid var(--pp-teal);
+  border-left: 8px solid var(--pp-green);
   border-radius: 0;
-  background-color: var(--pp-paper);
+  background-color: var(--pp-parchment);
   box-shadow: 6px 6px 0 rgba(29, 29, 27, 0.18);
 }
 
 .pp-toast .toast-header {
   background-color: var(--pp-ink);
-  color: var(--pp-paper);
+  color: var(--pp-parchment);
   border-bottom: none;
   border-radius: 0;
   font-family: var(--pp-display);
@@ -512,6 +509,18 @@ input.pp-color-swatch[type="color"] {
 
 /* Filled for observed, hollow for inferred: the distinction survives
    greyscale printing, which two coloured dots would not. */
+/* Bootstrap's switch keeps its own blue unless the checked state is
+   restyled, which left the one coloured control in the sidebar off-theme. */
+.form-check-input:checked {
+  background-color: var(--pp-green);
+  border-color: var(--pp-ink);
+}
+
+.form-check-input:focus {
+  border-color: var(--pp-ink);
+  box-shadow: none;
+}
+
 .pp-chip {
   display: inline-block;
   width: 12px;

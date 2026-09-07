@@ -23,8 +23,33 @@ POP_INK = '#1d1d1b'
 POP_PAPER = '#ffffff'
 POP_TEAL = '#2a9d8f'
 
+#: Bauhaus accent shades, used for the wordmark and app chrome.
+POP_ORANGE = '#e8871e'
+POP_GREEN = '#2e7d5b'
+POP_GOLD = '#d9a521'
+POP_PINK = '#d9678a'
+POP_BLUE = '#2d6a9f'
+
+#: Off-white ground for the app. Screens are not paper, and a page of
+#: pure white behind a figure is glare; exports still get true white.
+POP_PARCHMENT = '#f6f2e9'
+
 #: Every palette colour, in the order the CSS declares them.
-PALETTE = (POP_RED, POP_NAVY, POP_AMBER, POP_BONE, POP_INK, POP_PAPER, POP_TEAL)
+PALETTE = (
+    POP_RED,
+    POP_NAVY,
+    POP_AMBER,
+    POP_BONE,
+    POP_INK,
+    POP_PAPER,
+    POP_TEAL,
+    POP_ORANGE,
+    POP_GREEN,
+    POP_GOLD,
+    POP_PINK,
+    POP_BLUE,
+    POP_PARCHMENT,
+)
 
 #: Lowest Rec. 601 luma a node fill may have. Node labels are ink with a
 #: thin paper outline, so a dark fill makes them hard to read.
@@ -188,6 +213,7 @@ def apply_pop_art_rcparams() -> Dict[str, object]:
         The rcParams that were set, so callers can restore them.
     """
     import matplotlib as mpl
+    from matplotlib import font_manager
 
     params = {
         'figure.facecolor': POP_PAPER,
@@ -199,10 +225,19 @@ def apply_pop_art_rcparams() -> Dict[str, object]:
         'text.color': POP_INK,
         'xtick.color': POP_INK,
         'ytick.color': POP_INK,
-        'font.family': ['Space Grotesk', 'DejaVu Sans', 'sans-serif'],
         'legend.frameon': True,
         'legend.edgecolor': POP_INK,
         'legend.facecolor': POP_PAPER,
     }
+
+    # The app's own faces ship as woff2 for the browser, which matplotlib
+    # cannot load. Ask for them only if the system happens to have them
+    # installed; otherwise say nothing and let matplotlib use its default,
+    # rather than emitting a findfont warning per label.
+    available = {font.name for font in font_manager.fontManager.ttflist}
+    preferred = [name for name in ('Jost', 'Space Grotesk') if name in available]
+    if preferred:
+        params['font.family'] = [*preferred, 'DejaVu Sans', 'sans-serif']
+
     mpl.rcParams.update(params)
     return params

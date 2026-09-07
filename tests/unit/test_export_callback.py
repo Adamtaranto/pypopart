@@ -204,3 +204,119 @@ class TestExportGuards:
         handled = set(TEXT_EXPORTERS) | set(IMAGE_FORMATS)
 
         assert offered == handled
+
+
+@pytest.fixture
+def coloured_store():
+    """Build a network plus metadata whose populations drive the colours."""
+    network = HaplotypeNetwork(name='ColourTest')
+    network.add_haplotype(Haplotype(Sequence('A', 'ATCG'), sample_ids=['s1', 's2']))
+    network.add_haplotype(Haplotype(Sequence('B', 'ATGG'), sample_ids=['s3']))
+    network.add_edge('A', 'B', distance=4)
+    metadata = {
+        'populations': {'s1': 'Alpha', 's2': 'Alpha', 's3': 'Beta'},
+        'population_colors': {'Alpha': '#123456', 'Beta': '#abcdef'},
+    }
+    return network_to_store(network), metadata
+
+
+class TestFigureFidelity:
+    """The exported figure must match what the canvas shows."""
+
+    def test_h_numbers_are_supplied(self, export_network_callback, network_store):
+        """Raw node IDs are meaningless to a reader of the figure.
+
+        Asserted on the labels handed to the plotter rather than on the
+        SVG text, because matplotlib writes glyph outlines, not
+        characters -- checking the output for 'H1' passes by accident.
+        """
+        from pypopart.gui.callbacks.export import _default_h_numbers
+
+        # Real node IDs are sequence names, not H numbers.
+        network = HaplotypeNetwork()
+        network.add_haplotype(Haplotype(Sequence('Zeta_02', 'ATCG'), sample_ids=['a']))
+        network.add_haplotype(Haplotype(Sequence('Alpha_01', 'ATGG'), sample_ids=['b']))
+
+        assert _default_h_numbers(network) == {'Alpha_01': 'H1', 'Zeta_02': 'H2'}
+
+    def test_population_colours_reach_the_figure(
+        self, export_network_callback, coloured_store
+    ):
+        """Colours come from the metadata store, not the haplotypes.
+
+        A network rebuilt from the store usually has no population data of
+        its own, so resolving from the haplotypes alone left every node
+        the default colour.
+        """
+        store, metadata = coloured_store
+        payload, _, _, _, _ = export_network_callback(
+            1, store, 'svg', None, None, metadata
+        )
+
+        content = payload['content'].lower()
+        assert '#123456' in content or '123456' in content
+
+    def test_legend_is_optional(self, export_network_callback, coloured_store):
+        """The legend switch controls whether a key is drawn."""
+        store, metadata = coloured_store
+        with_legend, _, _, _, _ = export_network_callback(
+            1, store, 'svg', None, None, metadata, None, True, 10, True
+        )
+        without, _, _, _, _ = export_network_callback(
+            1, store, 'svg', None, None, metadata, None, True, 10, False
+        )
+
+        assert len(with_legend['content']) > len(without['content'])
+
+    def test_legend_names_the_populations(
+        self, export_network_callback, coloured_store
+    ):
+        """A key is only useful if it carries the population labels."""
+        store, metadata = coloured_store
+        payload, _, _, _, _ = export_network_callback(
+            1, store, 'svg', None, None, metadata, None, True, 10, True
+        )
+
+        assert 'Alpha' in payload['content']
+        assert 'Beta' in payload['content']
+
+
+class TestResolveNodeColors:
+    """Mapping nodes to population colours for the figure."""
+
+    def test_dominant_population_wins(self):
+        """Matplotlib cannot draw a pie, so a mixed node takes the mode."""
+        from pypopart.gui.callbacks.export import resolve_node_colors
+
+        network = HaplotypeNetwork()
+        network.add_haplotype(
+            Haplotype(Sequence('A', 'ATCG'), sample_ids=['s1', 's2', 's3'])
+        )
+        colors = resolve_node_colors(
+            network,
+            {'Alpha': '#111111', 'Beta': '#222222'},
+            {'s1': 'Alpha', 's2': 'Alpha', 's3': 'Beta'},
+        )
+
+        assert colors['A'] == '#111111'
+
+    def test_unassigned_is_not_a_population(self):
+        """Samples with no metadata must not out-vote a real population."""
+        from pypopart.gui.callbacks.export import resolve_node_colors
+
+        network = HaplotypeNetwork()
+        network.add_haplotype(
+            Haplotype(Sequence('A', 'ATCG'), sample_ids=['s1', 's2', 's3'])
+        )
+        colors = resolve_node_colors(network, {'Alpha': '#111111'}, {'s1': 'Alpha'})
+
+        assert colors['A'] == '#111111'
+
+    def test_no_colours_yields_nothing(self):
+        """Without a palette there is nothing to resolve."""
+        from pypopart.gui.callbacks.export import resolve_node_colors
+
+        network = HaplotypeNetwork()
+        network.add_haplotype(Haplotype(Sequence('A', 'ATCG'), sample_ids=['s1']))
+
+        assert resolve_node_colors(network, None, {'s1': 'Alpha'}) == {}

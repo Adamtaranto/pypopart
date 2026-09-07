@@ -14,6 +14,11 @@ from pypopart.core.graph import HaplotypeNetwork
 from pypopart.gui.callbacks.feedback import toast
 from pypopart.gui.serialization import merge_node_positions
 from pypopart.io.network_export import GMLExporter, GraphMLExporter, JSONExporter
+from pypopart.visualization.cytoscape_plot import (
+    DEFAULT_TICK_THRESHOLD,
+    resolve_population_counts,
+)
+from pypopart.visualization.style import POP_PAPER
 
 #: Formats written server-side, as ``{value: (exporter, suffix, mimetype)}``.
 TEXT_EXPORTERS = {
@@ -35,11 +40,89 @@ FIGURE_FORMATS = ('svg',)
 IMAGE_FORMATS = CANVAS_FORMATS + FIGURE_FORMATS
 
 
+def _default_h_numbers(network: HaplotypeNetwork) -> Dict[str, str]:
+    """
+    Label haplotypes the way the interactive view numbers them.
+
+    Mirrors the fallback the display callbacks use when no custom label
+    mapping has been uploaded: H1, H2, ... over the sorted node IDs.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        Network being labelled.
+
+    Returns
+    -------
+    Dict[str, str]
+        Node ID to H number.
+    """
+    return {
+        node: f'H{i}' for i, node in enumerate(sorted(network.graph.nodes()), start=1)
+    }
+
+
+def resolve_node_colors(
+    network: HaplotypeNetwork,
+    population_colors: Optional[Dict],
+    population_mapping: Optional[Dict],
+) -> Dict[str, str]:
+    """
+    Colour each node the way the interactive view colours it.
+
+    The static plotter resolves colours from the haplotype's own
+    population counts, but a network rebuilt from the store often has
+    none -- the metadata is uploaded separately and lives in its own
+    store. Resolving here from the same sample-to-population mapping the
+    canvas uses keeps an exported figure in step with the screen.
+
+    Mixed-population nodes are drawn as a pie on the canvas; a figure
+    gets the dominant population's colour instead.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        Network being drawn.
+    population_colors : Dict, optional
+        Population to hex colour mapping.
+    population_mapping : Dict, optional
+        Sample ID to population mapping.
+
+    Returns
+    -------
+    Dict[str, str]
+        Node ID to hex colour, for nodes with a resolvable population.
+    """
+    if not population_colors:
+        return {}
+
+    colors = {}
+    for node in network.graph.nodes():
+        if network.is_median_vector(node):
+            continue
+        hap = network.get_haplotype(node)
+        if hap is None:
+            continue
+        counts = resolve_population_counts(hap, population_mapping)
+        counts.pop('Unassigned', None)
+        if not counts:
+            continue
+        dominant = max(counts.items(), key=lambda item: item[1])[0]
+        if dominant in population_colors:
+            colors[node] = population_colors[dominant]
+    return colors
+
+
 def _export_figure(
     network: HaplotypeNetwork,
     positions: Dict,
     population_colors: Optional[Dict],
     export_format: str,
+    node_labels: Optional[Dict] = None,
+    population_mapping: Optional[Dict] = None,
+    show_edge_ticks: bool = True,
+    edge_tick_threshold: int = DEFAULT_TICK_THRESHOLD,
+    include_legend: bool = False,
 ) -> Dict:
     """
     Render the network to a vector figure with matplotlib.
@@ -54,6 +137,16 @@ def _export_figure(
         Population to hex colour mapping.
     export_format : str
         A matplotlib-supported format, currently only ``'svg'``.
+    node_labels : Dict, optional
+        H number labels, so the figure is labelled like the screen.
+    population_mapping : Dict, optional
+        Sample ID to population mapping, used to colour nodes.
+    show_edge_ticks : bool, default=True
+        Draw mutation counts as tick marks rather than numerals.
+    edge_tick_threshold : int, default=DEFAULT_TICK_THRESHOLD
+        Above this many mutations a numeral is drawn instead.
+    include_legend : bool, default=False
+        Draw a key mapping colours to population names.
 
     Returns
     -------
@@ -68,13 +161,33 @@ def _export_figure(
 
     from pypopart.visualization.static_plot import StaticNetworkPlotter
 
-    figure, _ = StaticNetworkPlotter(network).plot(
+    plotter = StaticNetworkPlotter(network)
+    figure, _ = plotter.plot(
         layout=positions or None,
         population_colors=population_colors or None,
+        node_color_map=resolve_node_colors(
+            network, population_colors, population_mapping
+        ),
+        node_labels=node_labels or None,
+        show_edge_ticks=show_edge_ticks,
+        edge_tick_threshold=edge_tick_threshold,
+        show_title=False,
     )
+    if include_legend and population_colors:
+        plotter.add_legend(
+            population_colors=population_colors,
+            show_size_scale=False,
+        )
     try:
         buffer = io.StringIO()
-        figure.savefig(buffer, format=export_format, bbox_inches='tight')
+        # Exports get a true white ground even though the app sits on
+        # parchment, since figures end up on a printed page.
+        figure.savefig(
+            buffer,
+            format=export_format,
+            bbox_inches='tight',
+            facecolor=POP_PAPER,
+        )
         content = buffer.getvalue()
     finally:
         plt.close(figure)
@@ -141,6 +254,10 @@ def register(app, logger) -> None:
             State('layout-store', 'data'),
             State('node-positions-store', 'data'),
             State('metadata-store', 'data'),
+            State('h-number-mapping-store', 'data'),
+            State('edge-tick-toggle', 'value'),
+            State('edge-tick-threshold', 'value'),
+            State('export-legend', 'value'),
         ],
         prevent_initial_call=True,
     )
@@ -151,6 +268,10 @@ def register(app, logger) -> None:
         layout_data: Optional[Dict] = None,
         dragged_positions: Optional[Dict] = None,
         metadata_data: Optional[Dict] = None,
+        h_number_mapping: Optional[Dict] = None,
+        show_edge_ticks: Optional[bool] = True,
+        edge_tick_threshold: Optional[int] = None,
+        include_legend: Optional[bool] = False,
     ) -> Tuple:
         """
         Export the network in the selected format.
@@ -169,6 +290,14 @@ def register(app, logger) -> None:
             Manually dragged node positions, which win over the layout.
         metadata_data : Dict, optional
             Serialized metadata, used for population colours.
+        h_number_mapping : Dict, optional
+            Custom haplotype labels, if uploaded.
+        show_edge_ticks : bool, optional
+            Whether mutation counts render as tick marks.
+        edge_tick_threshold : int, optional
+            Mutation count above which an edge shows a numeral.
+        include_legend : bool, optional
+            Whether to draw a population key on the figure.
 
         Returns
         -------
@@ -196,6 +325,11 @@ def register(app, logger) -> None:
                     merge_node_positions(layout_data, dragged_positions),
                     (metadata_data or {}).get('population_colors'),
                     export_format,
+                    node_labels=h_number_mapping or _default_h_numbers(network),
+                    population_mapping=(metadata_data or {}).get('populations'),
+                    show_edge_ticks=bool(show_edge_ticks),
+                    edge_tick_threshold=edge_tick_threshold or DEFAULT_TICK_THRESHOLD,
+                    include_legend=bool(include_legend),
                 )
                 return (
                     payload,

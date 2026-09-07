@@ -370,27 +370,9 @@ pypopart visualize network.graphml -o network.html \
     --layout kamada_kawai --interactive
 ```
 
-## Examples and Tutorials
-
-Example data and Jupyter notebooks can be found in the `examples/` directory:
-
-- `01_basic_workflow.ipynb` - Complete workflow from sequences to network
-- `02_algorithm_comparison.ipynb` - Comparing different network algorithms
-- `03_visualization_options.ipynb` - Customizing network plots
-
 ## Documentation
 
-Full documentation is available at [https://pypopart.readthedocs.io](https://pypopart.readthedocs.io) (coming soon)
-
-Topics covered:
-
-- Installation and setup
-- Detailed API reference
-- Algorithm descriptions and parameters
-- Visualization customization
-- Population genetics measures
-- File format specifications
-- Troubleshooting guide
+Full documentation is available at [https://adamtaranto.github.io/pypopart](https://adamtaranto.github.io/pypopart/)
 
 ## Citation
 
@@ -437,9 +419,3 @@ pre-commit install
 ## Acknowledgments
 
 PyPopART is a python port of the original PopART software developed by Jessica Leigh.
-
-## Contact
-
-- Author: Adam Taranto
-- GitHub: [@adamtaranto](https://github.com/adamtaranto)
-- Issues: [GitHub Issues](https://github.com/adamtaranto/pypopart/issues)

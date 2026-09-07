@@ -22,18 +22,11 @@ def build_layout(app) -> None:
             # Header
             html.Div(
                 [
-                    html.Div(
-                        [
-                            html.Span(className='pp-mark-circle'),
-                            html.Span(className='pp-mark-square'),
-                            html.Span(className='pp-mark-triangle'),
-                        ],
-                        className='pp-mark',
-                    ),
                     html.H1(
                         [
-                            'PyPop',
-                            html.Span('ART', className='pp-title-accent'),
+                            html.Span('Py', className='pp-t1'),
+                            html.Span('Pop', className='pp-t2'),
+                            html.Span('ART', className='pp-t3'),
                         ],
                         className='pp-title',
                     ),
@@ -549,6 +542,23 @@ def create_export_card() -> dbc.Card:
                         style={'whiteSpace': 'nowrap'},
                     ),
                     html.Br(),
+                    dbc.Checklist(
+                        id='export-legend',
+                        options=[
+                            {
+                                'label': 'Include population legend',
+                                'value': 'legend',
+                            }
+                        ],
+                        value=['legend'],
+                        switch=True,
+                        className='mb-2',
+                    ),
+                    html.Small(
+                        'Drawn into SVG figures only; the PNG captures the '
+                        'on-screen legend already.',
+                        className='text-muted d-block mb-2',
+                    ),
                     dbc.Button(
                         'Download',
                         id='export-button',
