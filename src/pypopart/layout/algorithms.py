@@ -4,8 +4,8 @@ Layout algorithms for network visualization in PyPopART.
 Provides various layout algorithms for positioning nodes in haplotype networks,
 including force-directed, hierarchical, spectral, and custom layouts.
 
-Algorithm Selection Guide
--------------------------
+Algorithm selection guide:
+
 For small networks (<50 nodes):
 - KamadaKawaiLayout: Best quality, slow
 - ForceDirectedLayout: Good quality, moderate speed
@@ -123,15 +123,15 @@ class ForceDirectedLayout(LayoutAlgorithm):
     aesthetically pleasing layouts. Uses the Fruchterman-Reingold algorithm
     implemented in NetworkX's spring_layout.
 
-    Performance
-    -----------
+    Notes
+    -----
+    **Performance**
+
     - Time complexity: O(iterations * N^2) where N is number of nodes
     - Typical runtime: ~25ms for 100 nodes, 50 iterations
     - Best for: Networks with 10-500 nodes
     - Quality: Good balance between speed and aesthetic quality
 
-    Notes
-    -----
     For very large networks (>500 nodes), consider using:
     - HierarchicalLayout (fastest, ~0.1ms for 100 nodes)
     - CircularLayout (very fast, ~0.2ms for 100 nodes)
@@ -385,15 +385,15 @@ class KamadaKawaiLayout(LayoutAlgorithm):
     distances. Produces high-quality layouts but is computationally expensive
     for large networks.
 
-    Performance
-    -----------
+    Notes
+    -----
+    **Performance**
+
     - Time complexity: O(N^3) where N is number of nodes
     - Typical runtime: ~190ms for 100 nodes
     - Best for: Small networks (<50 nodes) where layout quality is critical
     - Quality: Excellent, minimizes stress based on graph distances
 
-    Notes
-    -----
     For large networks, use ForceDirectedLayout or SpectralLayout instead.
     Kamada-Kawai can be very slow for networks with >100 nodes.
     """
@@ -438,15 +438,15 @@ class SpectralLayout(LayoutAlgorithm):
     This is a fast alternative to force-directed layouts that works well
     for large networks.
 
-    Performance
-    -----------
+    Notes
+    -----
+    **Performance**
+
     - Time complexity: O(N^2) where N is number of nodes
     - Typical runtime: ~5-10ms for 100 nodes
     - Best for: Large networks (100-1000+ nodes)
     - Quality: Good, respects graph structure efficiently
 
-    Notes
-    -----
     Spectral layout is much faster than Kamada-Kawai and comparable
     to force-directed layouts while maintaining good quality.
     Particularly effective for networks with clear clustering structure.

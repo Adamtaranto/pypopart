@@ -123,6 +123,15 @@ def p_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True) -> floa
     N and ? characters are treated as ambiguous and do not count as
     mutations when compared to any base (A, T, G, C) or to each other.
 
+    Parameters
+    ----------
+    seq1 : Sequence
+        First sequence.
+    seq2 : Sequence
+        Second sequence.
+    ignore_gaps : bool, default=True
+        Whether to skip gap positions.
+
     Returns
     -------
     float
@@ -156,6 +165,15 @@ def jukes_cantor_distance(
     """
     Calculate Jukes-Cantor corrected distance.
 
+    Parameters
+    ----------
+    seq1 : Sequence
+        First sequence.
+    seq2 : Sequence
+        Second sequence.
+    ignore_gaps : bool, default=True
+        Whether to skip gap positions.
+
     Returns
     -------
     float
@@ -177,6 +195,15 @@ def kimura_2p_distance(
 ) -> float:
     """
     Calculate Kimura 2-parameter distance.
+
+    Parameters
+    ----------
+    seq1 : Sequence
+        First sequence.
+    seq2 : Sequence
+        Second sequence.
+    ignore_gaps : bool, default=True
+        Whether to skip gap positions.
 
     Returns
     -------
@@ -388,10 +415,34 @@ def tamura_nei_distance(
 
 
 class DistanceMatrix:
-    """Store and manage pairwise distance matrix."""
+    """
+    Store and manage a pairwise distance matrix.
+
+    Parameters
+    ----------
+    labels : List[str]
+        Sequence labels, in matrix order.
+    matrix : np.ndarray, optional
+        Square matrix of pairwise distances. A zero matrix of the
+        right shape is created when omitted.
+
+    Raises
+    ------
+    ValueError
+        If the matrix shape does not match the number of labels.
+    """
 
     def __init__(self, labels: List[str], matrix: Optional[np.ndarray] = None):
-        """Initialize distance matrix."""
+        """
+        Initialize distance matrix.
+
+        Parameters
+        ----------
+        labels : List[str]
+            Sequence labels, in matrix order.
+        matrix : np.ndarray, optional
+            Square matrix of pairwise distances.
+        """
         self.labels = labels
         self.n = len(labels)
         self._label_index = {label: i for i, label in enumerate(labels)}
@@ -409,6 +460,13 @@ class DistanceMatrix:
         """
         Get distance between two sequences by label.
 
+        Parameters
+        ----------
+        label1 : str
+            First sequence label.
+        label2 : str
+            Second sequence label.
+
         Returns
         -------
         float
@@ -419,7 +477,18 @@ class DistanceMatrix:
         return self.matrix[i, j]
 
     def set_distance(self, label1: str, label2: str, distance: float) -> None:
-        """Set distance between two sequences."""
+        """
+        Set distance between two sequences.
+
+        Parameters
+        ----------
+        label1 : str
+            First sequence label.
+        label2 : str
+            Second sequence label.
+        distance : float
+            Distance value.
+        """
         i = self._label_index[label1]
         j = self._label_index[label2]
         self.matrix[i, j] = distance
@@ -428,6 +497,11 @@ class DistanceMatrix:
     def get_row(self, label: str) -> np.ndarray:
         """
         Get all distances for a sequence.
+
+        Parameters
+        ----------
+        label : str
+            Sequence label.
 
         Returns
         -------
@@ -440,6 +514,11 @@ class DistanceMatrix:
     def get_min_distance(self, exclude_zero: bool = True) -> float:
         """
         Get minimum distance in matrix.
+
+        Parameters
+        ----------
+        exclude_zero : bool, default=True
+            Whether to ignore zero distances.
 
         Returns
         -------
@@ -478,6 +557,11 @@ class DistanceMatrix:
     def from_dict(cls, data: dict) -> 'DistanceMatrix':
         """
         Create distance matrix from dictionary.
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary with 'labels' and 'matrix' entries.
 
         Returns
         -------
@@ -645,6 +729,15 @@ def calculate_distance_matrix(
 ) -> DistanceMatrix:
     """
     Calculate pairwise distance matrix for alignment.
+
+    Parameters
+    ----------
+    alignment : Alignment
+        Multiple sequence alignment.
+    distance_func : Callable[[Sequence, Sequence], float], optional
+        Pairwise distance function to apply.
+    **kwargs : dict
+        Additional arguments passed to the distance function.
 
     Returns
     -------
@@ -875,6 +968,15 @@ def calculate_pairwise_distances(
 ) -> DistanceMatrix:
     """
     Calculate pairwise distances using specified method.
+
+    Parameters
+    ----------
+    alignment : Alignment
+        Multiple sequence alignment.
+    method : str, default='hamming'
+        Distance method name or alias.
+    ignore_gaps : bool, default=True
+        Whether to skip gap positions.
 
     Returns
     -------

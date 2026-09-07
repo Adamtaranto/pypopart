@@ -45,24 +45,31 @@ class MinimumSpanningTree(NetworkAlgorithm):
 
     Parameters
     ----------
-    distance_method :
-        Str, default='hamming'.
-        Method for calculating pairwise distances between sequences.
-    Options :
-        'hamming', 'jukes_cantor', 'kimura_2p', 'tamura_nei'.
-    algorithm :
-        Str, default='prim'.
+    distance_method : str, default='hamming'
+        Method for calculating pairwise distances between sequences:
+        'hamming', 'jukes_cantor', 'kimura_2p' or 'tamura_nei'.
+    algorithm : str, default='prim'
         MST construction algorithm to use: 'prim' or 'kruskal'.
-    **kwargs :
-        Dict.
+    **kwargs : dict
         Additional parameters passed to base NetworkAlgorithm.
 
     Attributes
     ----------
     algorithm : str
-        The selected MST algorithm
+        The selected MST algorithm.
     _distance_matrix : DistanceMatrix
-        Cached distance matrix from last construction
+        Cached distance matrix from the last construction.
+
+    See Also
+    --------
+    MinimumSpanningNetwork : Extension of MST allowing alternative connections.
+    TCS : Statistical parsimony network construction.
+
+    Notes
+    -----
+    For most applications, Prim's algorithm is preferred as it's typically
+    faster and uses less memory. Kruskal's algorithm can be advantageous
+    when the graph is sparse or when edges are already sorted.
 
     Examples
     --------
@@ -79,17 +86,6 @@ class MinimumSpanningTree(NetworkAlgorithm):
     >>> # Construct using Kruskal's algorithm
     >>> mst = MinimumSpanningTree(algorithm='kruskal')
     >>> network = mst.build_network(alignment)
-
-    Notes
-    -----
-    For most applications, Prim's algorithm is preferred as it's typically
-    faster and uses less memory. Kruskal's algorithm can be advantageous
-    when the graph is sparse or when edges are already sorted.
-
-    See Also
-    --------
-    MinimumSpanningNetwork : Extension of MST allowing alternative connections
-    TCS : Statistical parsimony network construction
     """
 
     def __init__(
@@ -255,13 +251,39 @@ class MinimumSpanningTree(NetworkAlgorithm):
         rank = dict.fromkeys(hap_ids, 0)
 
         def find(x):
-            """Find root of x with path compression."""
+            """
+            Find root of x with path compression.
+
+            Parameters
+            ----------
+            x : str
+                Element to look up.
+
+            Returns
+            -------
+            str
+                The representative element of x's set.
+            """
             if parent[x] != x:
                 parent[x] = find(parent[x])
             return parent[x]
 
         def union(x, y):
-            """Union sets containing x and y."""
+            """
+            Union sets containing x and y.
+
+            Parameters
+            ----------
+            x : str
+                Element to look up.
+            y : str
+                Second element to union with x.
+
+            Returns
+            -------
+            bool
+                True if the two sets were distinct and got merged.
+            """
             root_x = find(x)
             root_y = find(y)
 
