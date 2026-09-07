@@ -56,9 +56,9 @@ def calculate_haplotype_frequencies(
     Returns
     -------
     Dict[str, Dict[str, float]]
-        Dictionary with:.
-        'overall': Dict[haplotype_id -> frequency/count]
-        'by_population': Dict[population -> Dict[haplotype_id -> frequency/count]]
+        Dictionary with an 'overall' entry mapping haplotype_id to
+        frequency or count, and a 'by_population' entry mapping each
+        population to its own haplotype_id mapping.
     """
     overall_counts: Dict[str, int] = defaultdict(int)
     pop_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
@@ -174,6 +174,15 @@ def _calculate_nucleotide_diversity(
 
     where p_i is the frequency of haplotype i and d_ij is the
     number of differences between haplotypes i and j.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        Network holding the haplotypes.
+    alignment : Alignment
+        Alignment the haplotypes came from.
+    frequencies : Dict[str, float]
+        Relative frequency per haplotype id.
 
     Returns
     -------

@@ -39,7 +39,8 @@ def load_alignment(filepath: Union[str, Path], format: Optional[str] = None):
 
     Returns
     -------
-    Alignment        Alignment object with sequences.
+    Alignment
+        Alignment object with the file's sequences.
     """
     filepath = Path(filepath)
 

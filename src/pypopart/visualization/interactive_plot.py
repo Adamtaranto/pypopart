@@ -538,13 +538,15 @@ def plot_interactive_network(network: HaplotypeNetwork, **kwargs) -> Figure:
     -------
     Figure
         Plotly Figure object.
-        Example:
-        >>> from pypopart.core.graph import HaplotypeNetwork
-        >>> from pypopart.visualization.interactive_plot import plot_interactive_network
-        >>> network = HaplotypeNetwork()
-        >>> # ... build network ...
-        >>> fig = plot_interactive_network(network, layout_algorithm='spring')
-        >>> fig.show()
+
+    Examples
+    --------
+    >>> from pypopart.core.graph import HaplotypeNetwork
+    >>> from pypopart.visualization.interactive_plot import plot_interactive_network
+    >>> network = HaplotypeNetwork()
+    >>> # ... build network ...
+    >>> fig = plot_interactive_network(network, layout_algorithm='spring')
+    >>> fig.show()
     """
     plotter = InteractiveNetworkPlotter(network)
     return plotter.plot(**kwargs)
@@ -577,12 +579,14 @@ def create_interactive_figure(
     -------
     Figure
         Plotly Figure object.
-        Example:
-        >>> fig = create_interactive_figure(
-        ...     network,
-        ...     population_colors={'PopA': 'red', 'PopB': 'blue'},
-        ...     filename='network.html'
-        ... )
+
+    Examples
+    --------
+    >>> fig = create_interactive_figure(
+    ...     network,
+    ...     population_colors={'PopA': 'red', 'PopB': 'blue'},
+    ...     filename='network.html'
+    ... )
     """
     plotter = InteractiveNetworkPlotter(network)
 

@@ -29,10 +29,9 @@ repos:
     rev: v1.9.0
     hooks:
       - id: numpydoc-validation
-        # The second group is the legacy-docstring backlog (~800
-        # violations, mostly untyped "param :" lines). Fix a file's
-        # docstrings, remove it here, and the hook enforces it forever.
-        exclude: '^(tests/.*|docs/.*|src/pypopart/algorithms/mst\.py|src/pypopart/core/(alignment|distance|distance_optimized|graph|haplotype|sequence)\.py|src/pypopart/gui/(callbacks/.*|layout/cards\.py)|src/pypopart/io/.*|src/pypopart/layout/algorithms\.py|src/pypopart/stats/.*|src/pypopart/visualization/(cytoscape_plot|interactive_plot|static_plot)\.py)$'
+        # Remaining legacy-docstring backlog. Fix a file's docstrings,
+        # remove it from this list, and the hook enforces it forever.
+        exclude: '^(tests/.*|docs/.*|src/pypopart/algorithms/mst\.py|src/pypopart/core/distance\.py|src/pypopart/gui/(callbacks/.*|layout/cards\.py)|src/pypopart/layout/algorithms\.py)$'
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.8
     hooks:

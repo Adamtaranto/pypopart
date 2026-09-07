@@ -406,6 +406,13 @@ def calculate_amova(
         """
         Get number of differences between two haplotypes.
 
+        Parameters
+        ----------
+        hap_id1 : str
+            First haplotype id.
+        hap_id2 : str
+            Second haplotype id.
+
         Returns
         -------
         int

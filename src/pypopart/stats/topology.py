@@ -174,9 +174,8 @@ def calculate_node_centrality(
     network : HaplotypeNetwork
         HaplotypeNetwork object.
     methods : List[str], optional
-        List of centrality methods to calculate.
-        ('degree', 'betweenness', 'closeness', 'eigenvector')
-        If None, calculates all methods
+        Centrality methods to calculate: 'degree', 'betweenness',
+        'closeness', 'eigenvector'. If None, all methods are used.
 
     Returns
     -------
@@ -416,8 +415,8 @@ def find_central_hub_nodes(
     network : HaplotypeNetwork
         HaplotypeNetwork object.
     degree_threshold : int, optional
-        Minimum degree to be considered a hub.
-        If None, uses mean degree + 1 std dev
+        Minimum degree for a node to count as a hub. If None, the
+        mean degree plus one standard deviation is used.
 
     Returns
     -------

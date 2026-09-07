@@ -599,13 +599,15 @@ def plot_network(network: HaplotypeNetwork, **kwargs) -> Tuple[plt.Figure, plt.A
     -------
     Tuple[plt.Figure, plt.Axes]
         Figure and axes objects.
-        Example:
-        >>> from pypopart.core.graph import HaplotypeNetwork
-        >>> from pypopart.visualization.static_plot import plot_network
-        >>> network = HaplotypeNetwork()
-        >>> # ... build network ...
-        >>> fig, ax = plot_network(network, layout_algorithm='spring')
-        >>> plt.show()
+
+    Examples
+    --------
+    >>> from pypopart.core.graph import HaplotypeNetwork
+    >>> from pypopart.visualization.static_plot import plot_network
+    >>> network = HaplotypeNetwork()
+    >>> # ... build network ...
+    >>> fig, ax = plot_network(network, layout_algorithm='spring')
+    >>> plt.show()
     """
     plotter = StaticNetworkPlotter(network)
     return plotter.plot(**kwargs)
@@ -635,12 +637,14 @@ def create_publication_figure(
     -------
     Tuple[plt.Figure, plt.Axes]
         Figure and axes objects.
-        Example:
-        >>> fig, ax = create_publication_figure(
-        ...     network,
-        ...     population_colors={'PopA': 'red', 'PopB': 'blue'},
-        ...     filename='network.pdf'
-        ... )
+
+    Examples
+    --------
+    >>> fig, ax = create_publication_figure(
+    ...     network,
+    ...     population_colors={'PopA': 'red', 'PopB': 'blue'},
+    ...     filename='network.pdf'
+    ... )
     """
     plotter = StaticNetworkPlotter(network)
 

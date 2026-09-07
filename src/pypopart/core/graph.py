@@ -127,11 +127,37 @@ class HaplotypeNetwork:
         """
 
         def _as_bool(value) -> bool:
+            """
+            Coerce a possibly-stringified flag to a bool.
+
+            Parameters
+            ----------
+            value : Any
+                Attribute value from the graph.
+
+            Returns
+            -------
+            bool
+                True when the value represents a true flag.
+            """
             if isinstance(value, str):
                 return value.strip().lower() in ('true', '1', 'yes')
             return bool(value)
 
         def _as_list(value) -> list:
+            """
+            Coerce a possibly-serialised sequence to a list.
+
+            Parameters
+            ----------
+            value : Any
+                Attribute value from the graph.
+
+            Returns
+            -------
+            list
+                The value as a list, empty when absent.
+            """
             if value is None:
                 return []
             if isinstance(value, str):
@@ -254,7 +280,9 @@ class HaplotypeNetwork:
         target : str
             Target haplotype ID.
         distance : int, default=0
-            Genetic distance (weight).
+            Genetic distance between the two haplotypes.
+        weight : float, default=1.0
+            Edge weight used by layout and drawing code.
         **attributes : dict
             Additional edge attributes.
         """
@@ -563,6 +591,14 @@ class HaplotypeNetwork:
         """
 
         def compute() -> int:
+            """
+            Compute the diameter, ignoring the cache.
+
+            Returns
+            -------
+            int
+                Network diameter, or -1 when disconnected.
+            """
             if not self.is_connected():
                 return -1
             return nx.diameter(self._graph)
@@ -584,8 +620,11 @@ class HaplotypeNetwork:
         -------
         List[str]
             List of node IDs in the shortest path.
-            Raises :
-            nx.NetworkXNoPath: If no path exists
+
+        Raises
+        ------
+        networkx.NetworkXNoPath
+            If no path exists between the nodes.
         """
         return nx.shortest_path(self._graph, source, target)
 
