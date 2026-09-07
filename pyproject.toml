@@ -22,6 +22,8 @@ dependencies = [
     "click",
     "networkx",
     "numpy",
+    # networkx needs scipy at runtime for kamada-kawai/spectral layouts
+    "scipy",
 ]
 
 [project.optional-dependencies]
