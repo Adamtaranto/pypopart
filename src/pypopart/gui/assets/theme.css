@@ -1,0 +1,463 @@
+/*
+ * PyPopART app theme — Bauhaus-flavoured pop art.
+ *
+ * Flat colour, heavy rules, no gradients and no soft shadows: the network
+ * is the only thing on screen allowed to look round and organic.
+ *
+ * The palette below is mirrored from visualization/style.py, which CSS
+ * cannot import. tests/unit/test_style.py pins the two together.
+ */
+
+@font-face {
+  font-family: "Archivo Black";
+  src: url("fonts/ArchivoBlack-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("fonts/SpaceGrotesk.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("fonts/JetBrainsMono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+:root {
+  --pp-red: #d62828;
+  --pp-navy: #003049;
+  --pp-amber: #fcbf49;
+  --pp-bone: #eae2b7;
+  --pp-ink: #1d1d1b;
+  --pp-paper: #ffffff;
+
+  --pp-sans: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --pp-display: "Archivo Black", "Helvetica Neue", Impact, sans-serif;
+  --pp-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --pp-rule: 3px solid var(--pp-ink);
+
+  /* Bootstrap semantics, remapped onto the palette. */
+  --bs-primary: #003049;
+  --bs-secondary: #1d1d1b;
+  --bs-success: #d62828;
+  --bs-info: #003049;
+  --bs-warning: #fcbf49;
+  --bs-danger: #d62828;
+  --bs-light: #eae2b7;
+  --bs-dark: #1d1d1b;
+  --bs-body-font-family: var(--pp-sans);
+  --bs-body-color: var(--pp-ink);
+  --bs-link-color: #003049;
+  --bs-link-hover-color: #d62828;
+  --bs-border-radius: 0;
+  --bs-border-radius-sm: 0;
+  --bs-border-radius-lg: 0;
+}
+
+body {
+  font-family: var(--pp-sans);
+  color: var(--pp-ink);
+  background-color: var(--pp-paper);
+}
+
+/* ------------------------------------------------------------- title bar */
+
+.pp-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background-color: var(--pp-paper);
+  border-bottom: 5px solid var(--pp-ink);
+}
+
+/* Three primaries as three primitives: the whole Bauhaus joke in 40px. */
+.pp-mark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.pp-mark span {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.pp-mark .pp-mark-circle {
+  border-radius: 50%;
+  background-color: var(--pp-red);
+}
+
+.pp-mark .pp-mark-square {
+  background-color: var(--pp-navy);
+}
+
+.pp-mark .pp-mark-triangle {
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 18px solid var(--pp-amber);
+}
+
+.pp-title {
+  font-family: var(--pp-display);
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--pp-ink);
+}
+
+.pp-title .pp-title-accent {
+  color: var(--pp-red);
+}
+
+.pp-subtitle {
+  font-family: var(--pp-sans);
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pp-navy);
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------------- panels */
+
+.pp-sidebar {
+  background-color: var(--pp-bone);
+  border-right: var(--pp-rule);
+}
+
+.pp-main {
+  background-color: var(--pp-paper);
+}
+
+/* Collapse button on top, drag grip centred on the panel edge. */
+.pp-sidebar-resizer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 0;
+  width: 20px;
+  flex: 0 0 20px;
+  background-color: var(--pp-bone);
+}
+
+.pp-sidebar-toggle {
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+}
+
+.pp-sidebar-grip {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  cursor: col-resize;
+  color: var(--pp-navy);
+  font-size: 22px;
+  line-height: 1;
+  user-select: none;
+}
+
+.pp-sidebar-grip:hover {
+  background-color: var(--pp-amber);
+  color: var(--pp-ink);
+}
+
+/* ----------------------------------------------------------------- cards */
+
+.card {
+  border: var(--pp-rule);
+  border-radius: 0;
+  background-color: var(--pp-paper);
+}
+
+.card-header {
+  background-color: var(--pp-ink);
+  color: var(--pp-paper);
+  border-bottom: none;
+  border-radius: 0;
+  font-family: var(--pp-display);
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+}
+
+/* A keyline instead of a shadow — flat, but the eye still reads depth. */
+.card-body {
+  border-left: 6px solid var(--pp-amber);
+}
+
+.form-label,
+label.fw-bold {
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------- buttons */
+
+.btn {
+  border-radius: 0;
+  border: 2px solid var(--pp-ink);
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-size: 13px;
+  transition: transform 0.04s ease-out;
+}
+
+.btn:active {
+  transform: translate(1px, 1px);
+}
+
+.btn-primary,
+.btn-info {
+  background-color: var(--pp-navy);
+  border-color: var(--pp-ink);
+  color: var(--pp-paper);
+}
+
+.btn-success {
+  background-color: var(--pp-red);
+  border-color: var(--pp-ink);
+  color: var(--pp-paper);
+}
+
+.btn-secondary {
+  background-color: var(--pp-ink);
+  border-color: var(--pp-ink);
+  color: var(--pp-paper);
+}
+
+.btn-warning {
+  background-color: var(--pp-amber);
+  border-color: var(--pp-ink);
+  color: var(--pp-ink);
+}
+
+.btn-light {
+  background-color: var(--pp-paper);
+  border-color: var(--pp-ink);
+  color: var(--pp-ink);
+}
+
+.btn-outline-secondary,
+.btn-outline-info,
+.btn-outline-warning {
+  background-color: transparent;
+  border-color: var(--pp-ink);
+  color: var(--pp-ink);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-info:hover,
+.btn-outline-warning:hover {
+  background-color: var(--pp-amber);
+  color: var(--pp-ink);
+}
+
+.btn:disabled {
+  border-color: #9a9a95;
+  background-color: #d8d8d2;
+  color: #6a6a66;
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ tabs */
+
+.nav-tabs {
+  border-bottom: var(--pp-rule);
+  gap: 4px;
+}
+
+.nav-tabs .nav-link {
+  border: 2px solid var(--pp-ink);
+  border-bottom: none;
+  border-radius: 0;
+  margin-bottom: -3px;
+  background-color: var(--pp-bone);
+  color: var(--pp-ink);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.nav-tabs .nav-link:hover {
+  background-color: var(--pp-amber);
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--pp-ink);
+  color: var(--pp-paper);
+  border-color: var(--pp-ink);
+}
+
+/* ------------------------------------------------- overlays on the canvas */
+
+.pp-overlay {
+  position: absolute;
+  z-index: 1000;
+  background: var(--pp-paper);
+  border: var(--pp-rule);
+  padding: 10px 12px;
+}
+
+.pp-legend {
+  top: 10px;
+  right: 10px;
+  max-width: 220px;
+}
+
+.pp-legend h6 {
+  font-family: var(--pp-display);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.pp-search {
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+}
+
+#node-tooltip {
+  position: absolute;
+  z-index: 2000;
+  display: none;
+  pointer-events: none;
+  max-width: 320px;
+  padding: 10px 12px;
+  background: var(--pp-ink);
+  color: var(--pp-paper);
+  border-left: 6px solid var(--pp-amber);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* ---------------------------------------------------------------- tables */
+
+.table {
+  --bs-table-color: var(--pp-ink);
+  border-color: var(--pp-ink);
+}
+
+/* Bootstrap paints each cell from --bs-table-bg rather than the row, so
+   the header has to be set on the cells themselves. */
+.table > thead th {
+  --bs-table-bg: var(--pp-ink);
+  background-color: var(--pp-ink);
+  color: var(--pp-paper);
+  border-color: var(--pp-ink);
+  font-size: 12px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th {
+  font-family: var(--pp-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
+  font-family: var(--pp-mono);
+}
+
+/* --------------------------------------------------- population swatches */
+
+.pp-population-colors {
+  border-left: 6px solid var(--pp-amber);
+  padding-left: 12px;
+}
+
+/* Native colour inputs collapse to a sliver without an explicit box. */
+input.pp-color-swatch[type="color"] {
+  width: 34px;
+  height: 26px;
+  min-width: 34px;
+  padding: 2px;
+  border: 2px solid var(--pp-ink);
+  border-radius: 0;
+  cursor: pointer;
+  background: var(--pp-paper);
+}
+
+/* ------------------------------------------------------------ alignment  */
+
+.pp-alignment {
+  font-family: var(--pp-mono);
+}
+
+/* ------------------------------------------------------------- messaging */
+
+/* Bootstrap tints each alert variant from its own set of variables, so
+   the palette has to be applied per variant rather than through --bs-*. */
+.alert {
+  border: 2px solid var(--pp-ink);
+  border-radius: 0;
+  border-left-width: 6px;
+  color: var(--pp-ink);
+}
+
+.alert-success {
+  background-color: var(--pp-bone);
+  border-left-color: var(--pp-navy);
+}
+
+.alert-info {
+  background-color: var(--pp-bone);
+  border-left-color: var(--pp-navy);
+}
+
+.alert-warning {
+  background-color: #fdf0d0;
+  border-left-color: var(--pp-amber);
+}
+
+.alert-danger {
+  background-color: #f8dcdc;
+  border-left-color: var(--pp-red);
+}
+
+.badge {
+  border-radius: 0;
+  border: 2px solid var(--pp-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pp-error {
+  color: var(--pp-red);
+  font-weight: 700;
+}
+
+.pp-muted {
+  color: #6a6a66;
+}
+
+.pp-traceback {
+  background: var(--pp-bone);
+  border-left: 6px solid var(--pp-red);
+  padding: 10px;
+  font-family: var(--pp-mono);
+  font-size: 11px;
+  overflow-x: auto;
+}

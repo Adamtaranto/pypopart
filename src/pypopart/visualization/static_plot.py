@@ -14,6 +14,12 @@ import networkx as nx
 import numpy as np
 
 from ..core.graph import HaplotypeNetwork
+from .style import (
+    DEFAULT_MEDIAN_COLOR,
+    POP_INK,
+    POP_NAVY,
+    apply_pop_art_rcparams,
+)
 
 
 class StaticNetworkPlotter:
@@ -52,7 +58,7 @@ class StaticNetworkPlotter:
         edge_width_scale: float = 1.0,
         show_labels: bool = True,
         show_mutations: bool = True,
-        median_vector_color: str = 'lightgray',
+        median_vector_color: str = DEFAULT_MEDIAN_COLOR,
         median_vector_marker: str = 's',
         figsize: Tuple[float, float] = (12, 10),
         title: Optional[str] = None,
@@ -79,7 +85,7 @@ class StaticNetworkPlotter:
             Whether to show node labels.
         show_mutations : bool, default=True
             Whether to show mutation counts on edges.
-        median_vector_color : str, default='lightgray'
+        median_vector_color : str, default=DEFAULT_MEDIAN_COLOR
             Color for median vector nodes.
         median_vector_marker : str, default='s'
             Marker shape for median vectors ('s'=square, 'o'=circle).
@@ -95,6 +101,10 @@ class StaticNetworkPlotter:
         Tuple[plt.Figure, plt.Axes]
             Figure and axes objects.
         """
+        # Exported figures carry the same palette and typography as the
+        # on-screen network.
+        apply_pop_art_rcparams()
+
         # Create figure and axes
         self.figure, self.ax = plt.subplots(figsize=figsize)
 
@@ -129,7 +139,7 @@ class StaticNetworkPlotter:
                 node_size=hap_sizes,
                 node_color=hap_colors,
                 node_shape='o',
-                edgecolors='black',
+                edgecolors=POP_INK,
                 linewidths=1.5,
                 ax=self.ax,
                 **{k: v for k, v in kwargs.items() if k.startswith('node_')},
@@ -146,7 +156,7 @@ class StaticNetworkPlotter:
                 node_size=med_sizes,
                 node_color=med_colors,
                 node_shape=median_vector_marker,
-                edgecolors='black',
+                edgecolors=POP_INK,
                 linewidths=1.5,
                 ax=self.ax,
                 **{k: v for k, v in kwargs.items() if k.startswith('node_')},
@@ -157,7 +167,7 @@ class StaticNetworkPlotter:
             graph,
             layout,
             width=edge_widths,
-            edge_color='gray',
+            edge_color=POP_NAVY,
             alpha=0.6,
             ax=self.ax,
             **{k: v for k, v in kwargs.items() if k.startswith('edge_')},
@@ -235,9 +245,9 @@ class StaticNetworkPlotter:
                     [0],
                     marker='s',
                     color='w',
-                    markerfacecolor='lightgray',
+                    markerfacecolor=DEFAULT_MEDIAN_COLOR,
                     markersize=10,
-                    markeredgecolor='black',
+                    markeredgecolor=POP_INK,
                     markeredgewidth=1.5,
                     label='Median Vector',
                     linestyle='None',
@@ -268,7 +278,7 @@ class StaticNetworkPlotter:
                             color='w',
                             markerfacecolor='gray',
                             markersize=5,
-                            markeredgecolor='black',
+                            markeredgecolor=POP_INK,
                             markeredgewidth=1,
                             label=f'n={min_freq}',
                             linestyle='None',
@@ -282,7 +292,7 @@ class StaticNetworkPlotter:
                             color='w',
                             markerfacecolor='gray',
                             markersize=12,
-                            markeredgecolor='black',
+                            markeredgecolor=POP_INK,
                             markeredgewidth=1,
                             label=f'n={max_freq}',
                             linestyle='None',

@@ -8,11 +8,12 @@ of population assignments never repaints the network.
 
 from typing import Dict, List, Optional, Tuple
 
-from dash import Input, Output, State, html
+from dash import ALL, Input, Output, State, callback_context, html
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from ..metadata_edit import (
+    apply_population_color,
     build_metadata_rows,
     diff_metadata_rows,
     rows_to_metadata_store,
@@ -197,3 +198,56 @@ def register(app, logger) -> None:
             Always clears the draft.
         """
         return None
+
+    @app.callback(
+        Output('metadata-table', 'data', allow_duplicate=True),
+        Input({'type': 'pop-color', 'pop': ALL}, 'value'),
+        State('metadata-table', 'data'),
+        prevent_initial_call=True,
+    )
+    def apply_population_swatch(
+        colors: List[Optional[str]],
+        rows: Optional[List[Dict]],
+    ) -> List[Dict]:
+        """
+        Recolour every row of a population when its swatch changes.
+
+        Writing back into the table means the change flows through the same
+        draft-and-commit path as a typed edit, so the figure still only
+        moves on Compute Network.
+
+        Parameters
+        ----------
+        colors : list of str
+            Current value of every population swatch.
+        rows : list of dict, optional
+            Current contents of the metadata table.
+
+        Returns
+        -------
+        list of dict
+            The table rows with the new colour applied.
+        """
+        if not rows or not colors:
+            raise PreventUpdate
+
+        triggered = callback_context.triggered_id
+        if not isinstance(triggered, dict) or triggered.get('type') != 'pop-color':
+            raise PreventUpdate
+
+        population = triggered.get('pop')
+        # The swatch ids and their values share an order, so the changed
+        # population's value can be read back positionally.
+        new_color = None
+        for control, value in zip(callback_context.inputs_list[0], colors):
+            if control.get('id', {}).get('pop') == population:
+                new_color = value
+                break
+
+        if not new_color:
+            raise PreventUpdate
+
+        updated = apply_population_color(rows, population, new_color)
+        if updated == rows:
+            raise PreventUpdate
+        return updated

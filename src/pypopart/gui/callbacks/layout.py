@@ -7,17 +7,43 @@ from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 
 from pypopart.core.graph import HaplotypeNetwork
-from pypopart.layout.algorithms import LayoutManager
+from pypopart.layout.algorithms import LayoutManager, snap_to_grid
 from pypopart.visualization.cytoscape_plot import (
     DEFAULT_TICK_THRESHOLD,
     InteractiveCytoscapePlotter,
     create_cytoscape_network,
     create_edge_tick_stylesheet,
 )
+from pypopart.visualization.style import DEFAULT_MEDIAN_COLOR
 
 #: Node size the base stylesheet is authored against, used to turn the
 #: slider value into a proportional scale factor.
 BASE_NODE_SIZE = 40.0
+
+#: Cytoscape renders stored layout coordinates multiplied by this, so a grid
+#: expressed in Cytoscape pixels divides by it to reach stored units.
+CYTOSCAPE_POSITION_SCALE = 100.0
+
+
+def _grid_step(snap_enabled: Optional[bool], grid_size: Optional[float]) -> float:
+    """
+    Convert the grid controls into a step in stored layout units.
+
+    Parameters
+    ----------
+    snap_enabled : bool, optional
+        Whether the snap-to-grid switch is on.
+    grid_size : float, optional
+        Grid spacing in Cytoscape pixels.
+
+    Returns
+    -------
+    float
+        Grid step in stored units, or 0.0 when snapping is off.
+    """
+    if not snap_enabled or not grid_size:
+        return 0.0
+    return float(grid_size) / CYTOSCAPE_POSITION_SCALE
 
 
 def _apply_size_overrides(
@@ -114,6 +140,8 @@ def register(app, logger) -> None:
             State('layout-select', 'value'),
             State('metadata-store', 'data'),
             State('map-projection', 'value'),
+            State('snap-to-grid-toggle', 'value'),
+            State('grid-size', 'value'),
         ],
         prevent_initial_call=False,
     )
@@ -124,6 +152,8 @@ def register(app, logger) -> None:
         layout_method: str,
         metadata_data: Optional[Dict],
         projection: str,
+        snap_enabled: Optional[bool],
+        grid_size: Optional[float],
     ) -> Optional[Dict]:
         """
         Apply layout algorithm to network.
@@ -142,6 +172,10 @@ def register(app, logger) -> None:
             Serialized metadata from the metadata store.
         projection : str
             Map projection name.
+        snap_enabled : bool, optional
+            Whether computed positions are quantised to the grid.
+        grid_size : float, optional
+            Grid spacing in Cytoscape pixels.
 
         Returns
         -------
@@ -236,6 +270,10 @@ def register(app, logger) -> None:
                         node: (pos[0] * spacing_factor, pos[1] * spacing_factor)
                         for node, pos in positions.items()
                     }
+
+            # Snap after the spacing multiply, so the grid is what the user
+            # sees rather than what the algorithm happened to produce.
+            positions = snap_to_grid(positions, _grid_step(snap_enabled, grid_size))
 
             # Convert to serializable format
             layout_data = {node: list(pos) for node, pos in positions.items()}
@@ -426,7 +464,7 @@ def register(app, logger) -> None:
                             html.Span(
                                 '■',
                                 style={
-                                    'color': '#D3D3D3',
+                                    'color': DEFAULT_MEDIAN_COLOR,
                                     'fontSize': '20px',
                                     'marginRight': '5px',
                                 },
@@ -449,7 +487,7 @@ def register(app, logger) -> None:
                     html.Br(),
                     str(e),
                 ],
-                style={'color': 'red'},
+                className='pp-error',
             )
             return [], [], error_msg
 
@@ -459,15 +497,26 @@ def register(app, logger) -> None:
             Output('manual-edit-flag', 'data', allow_duplicate=True),
         ],
         Input('network-graph', 'elements'),
-        State('layout-store', 'data'),
+        [
+            State('layout-store', 'data'),
+            State('snap-to-grid-toggle', 'value'),
+            State('grid-size', 'value'),
+        ],
         prevent_initial_call=True,
     )
     def update_node_positions(
         elements: Optional[List[Dict]],
         current_layout: Optional[Dict],
+        snap_enabled: Optional[bool],
+        grid_size: Optional[float],
     ) -> Tuple[Optional[Dict], bool]:
         """
         Update node positions when user drags nodes in Cytoscape.
+
+        Snapping is applied here as well as in the browser: the clientside
+        handler moves the node so the user sees it land on the grid, and
+        this guarantees the *stored* layout is quantised even if that
+        reposition does not make it back into the elements prop.
 
         Parameters
         ----------
@@ -475,6 +524,10 @@ def register(app, logger) -> None:
             Current Cytoscape elements.
         current_layout : Dict, optional
             Current layout positions.
+        snap_enabled : bool, optional
+            Whether dragged positions are quantised to the grid.
+        grid_size : float, optional
+            Grid spacing in Cytoscape pixels.
 
         Returns
         -------
@@ -486,22 +539,31 @@ def register(app, logger) -> None:
 
         try:
             updated_layout = current_layout.copy()
-            position_changed = False
+            step = _grid_step(snap_enabled, grid_size)
 
-            # Extract positions from Cytoscape elements
+            dragged = {}
             for element in elements:
                 if 'position' in element and 'data' in element:
                     node_id = element['data'].get('id')
                     if node_id:
                         # Cytoscape positions are scaled by 100
-                        x = element['position']['x'] / 100
-                        y = element['position']['y'] / 100
-                        # Check if position actually changed
-                        if node_id in current_layout:
-                            old_pos = current_layout[node_id]
-                            if abs(old_pos[0] - x) > 0.01 or abs(old_pos[1] - y) > 0.01:
-                                position_changed = True
-                        updated_layout[node_id] = [x, y]
+                        dragged[node_id] = (
+                            element['position']['x'] / CYTOSCAPE_POSITION_SCALE,
+                            element['position']['y'] / CYTOSCAPE_POSITION_SCALE,
+                        )
+
+            # Idempotent, so re-running it on an already-snapped layout is a
+            # no-op -- this callback fires on every elements change, not only
+            # at the end of a drag.
+            dragged = snap_to_grid(dragged, step)
+
+            position_changed = False
+            for node_id, (x, y) in dragged.items():
+                if node_id in current_layout:
+                    old_pos = current_layout[node_id]
+                    if abs(old_pos[0] - x) > 0.01 or abs(old_pos[1] - y) > 0.01:
+                        position_changed = True
+                updated_layout[node_id] = [x, y]
 
             # Set manual edit flag to True if positions changed
             return updated_layout, position_changed

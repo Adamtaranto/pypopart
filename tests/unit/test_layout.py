@@ -649,3 +649,50 @@ class TestSingleNodeNetwork:
         layout = algo.compute()
 
         assert len(layout) == 1
+
+
+class TestSnapToGrid:
+    """Quantising node positions onto a regular grid."""
+
+    def test_rounds_to_nearest_intersection(self):
+        """Coordinates move to the closest multiple, up or down."""
+        from pypopart.layout.algorithms import snap_to_grid
+
+        snapped = snap_to_grid({'a': (0.24, 0.26), 'b': (1.4, 1.6)}, 0.5)
+
+        assert snapped['a'] == (0.0, 0.5)
+        assert snapped['b'] == (1.5, 1.5)
+
+    def test_handles_negative_coordinates(self):
+        """Layouts are centred on the origin, so negatives are the norm."""
+        from pypopart.layout.algorithms import snap_to_grid
+
+        snapped = snap_to_grid({'a': (-0.24, -0.76)}, 0.5)
+
+        assert snapped['a'] == (-0.0, -1.0)
+
+    def test_is_idempotent(self):
+        """It runs on every elements change, so re-running must be a no-op."""
+        from pypopart.layout.algorithms import snap_to_grid
+
+        once = snap_to_grid({'a': (0.31, -1.2), 'b': (2.7, 0.0)}, 0.25)
+        twice = snap_to_grid(once, 0.25)
+
+        assert once == twice
+
+    @pytest.mark.parametrize('grid', [0, -1, 0.0])
+    def test_zero_grid_passes_through(self, grid):
+        """A grid of zero is how the feature is switched off."""
+        from pypopart.layout.algorithms import snap_to_grid
+
+        positions = {'a': (0.123, 4.567)}
+        assert snap_to_grid(positions, grid) == positions
+
+    def test_does_not_mutate_input(self):
+        """Callers keep their own copy of the layout."""
+        from pypopart.layout.algorithms import snap_to_grid
+
+        positions = {'a': (0.31, 0.62)}
+        snap_to_grid(positions, 0.5)
+
+        assert positions == {'a': (0.31, 0.62)}

@@ -753,3 +753,38 @@ class LayoutManager:
             List of algorithm names.
         """
         return list(self._algorithms.keys())
+
+
+def snap_to_grid(
+    positions: Dict[str, Tuple[float, float]], grid_size: float
+) -> Dict[str, Tuple[float, float]]:
+    """
+    Quantise node positions onto a regular grid.
+
+    Applied both to computed layouts and to positions persisted after a
+    manual drag, so a snapped network stays snapped either way.
+
+    Parameters
+    ----------
+    positions : Dict[str, Tuple[float, float]]
+        Node positions to quantise.
+    grid_size : float
+        Grid spacing in the same units as ``positions``. Values of zero or
+        less return the positions unchanged, which is how the feature is
+        switched off.
+
+    Returns
+    -------
+    Dict[str, Tuple[float, float]]
+        New mapping with every coordinate on the nearest grid intersection.
+    """
+    if grid_size <= 0:
+        return dict(positions)
+
+    return {
+        node: (
+            round(float(pos[0]) / grid_size) * grid_size,
+            round(float(pos[1]) / grid_size) * grid_size,
+        )
+        for node, pos in positions.items()
+    }

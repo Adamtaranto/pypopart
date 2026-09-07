@@ -20,11 +20,28 @@ def build_layout(app) -> None:
         [
             # Header
             html.Div(
-                html.H1(
-                    'PyPopART: Haplotype Network Analysis',
-                    className='text-center mb-4',
-                ),
-                style={'padding': '20px', 'backgroundColor': 'white'},
+                [
+                    html.Div(
+                        [
+                            html.Span(className='pp-mark-circle'),
+                            html.Span(className='pp-mark-square'),
+                            html.Span(className='pp-mark-triangle'),
+                        ],
+                        className='pp-mark',
+                    ),
+                    html.H1(
+                        [
+                            'PyPop',
+                            html.Span('ART', className='pp-title-accent'),
+                        ],
+                        className='pp-title',
+                    ),
+                    html.Span(
+                        'Haplotype Network Analysis',
+                        className='pp-subtitle',
+                    ),
+                ],
+                className='pp-titlebar',
             ),
             # Main resizable container
             html.Div(
@@ -41,6 +58,10 @@ def build_layout(app) -> None:
                             create_export_card(),
                         ],
                         id='sidebar-panel',
+                        className='pp-sidebar',
+                        # The width is dragged by assets/pypopart.js, which
+                        # writes it straight onto this node's inline style.
+                        # 'minWidth'/'maxWidth' are the drag clamps.
                         style={
                             'minWidth': '250px',
                             'width': '300px',
@@ -48,28 +69,31 @@ def build_layout(app) -> None:
                             'height': '90vh',
                             'overflowY': 'auto',
                             'padding': '20px',
-                            'backgroundColor': '#f8f9fa',
-                            'resize': 'horizontal',
-                            'overflow': 'auto',
                         },
                     ),
-                    # Slim rail so the sidebar can be hidden entirely.
-                    # Drag-resize (the CSS 'resize' above) still works.
+                    # Collapse button at the top, drag grip at the centre of
+                    # the edge. The browser's native 'resize' corner sat at
+                    # the bottom of a 90vh scrolling panel and was almost
+                    # always off-screen.
                     html.Div(
-                        dbc.Button(
-                            '«',
-                            id='sidebar-toggle',
-                            color='light',
-                            size='sm',
-                            title='Hide the control panel',
-                            className='border',
-                        ),
-                        style={
-                            'display': 'flex',
-                            'alignItems': 'flex-start',
-                            'padding': '20px 2px',
-                            'backgroundColor': '#f8f9fa',
-                        },
+                        [
+                            dbc.Button(
+                                '«',
+                                id='sidebar-toggle',
+                                color='light',
+                                size='sm',
+                                title='Hide the control panel',
+                                className='border pp-sidebar-toggle',
+                            ),
+                            html.Div(
+                                '⋮',
+                                id='sidebar-grip',
+                                className='pp-sidebar-grip',
+                                title='Drag to resize the control panel',
+                            ),
+                        ],
+                        id='sidebar-resizer',
+                        className='pp-sidebar-resizer',
                     ),
                     # Right panel - Visualization
                     html.Div(
@@ -100,6 +124,7 @@ def build_layout(app) -> None:
                             )
                         ],
                         id='main-panel',
+                        className='pp-main',
                         style={
                             'flex': '1',
                             'padding': '20px',
@@ -440,6 +465,27 @@ def create_layout_card() -> dbc.Card:
                         tooltip={'placement': 'bottom', 'always_visible': False},
                     ),
                     html.Br(),
+                    dbc.Label('Snap to Grid', className='fw-bold'),
+                    html.Small(
+                        'Align nodes to a grid when dragged or laid out',
+                        className='text-muted d-block mb-2',
+                    ),
+                    dbc.Switch(
+                        id='snap-to-grid-toggle',
+                        label='Snap to grid',
+                        value=False,
+                        className='mb-2',
+                    ),
+                    dcc.Slider(
+                        id='grid-size',
+                        min=25,
+                        max=200,
+                        step=25,
+                        value=50,
+                        marks={25: '25', 50: '50', 100: '100', 200: '200'},
+                        tooltip={'placement': 'bottom', 'always_visible': False},
+                    ),
+                    html.Br(),
                     dbc.Button(
                         '🎨 Apply Layout',
                         id='apply-layout-button',
@@ -531,57 +577,19 @@ def create_network_tab() -> html.Div:
                     ),
                     html.Div(
                         id='search-feedback',
-                        style={
-                            'display': 'inline-block',
-                            'marginLeft': '10px',
-                            'color': 'red',
-                        },
+                        className='pp-error ms-2',
                     ),
                 ],
-                style={
-                    'position': 'absolute',
-                    'bottom': '10px',
-                    'right': '10px',
-                    'background': 'white',
-                    'padding': '10px',
-                    'border': '1px solid #ccc',
-                    'borderRadius': '5px',
-                    'zIndex': 1000,
-                    'display': 'flex',
-                    'alignItems': 'center',
-                },
+                className='pp-overlay pp-search',
             ),
             # Legend display
             html.Div(
                 id='network-legend',
-                style={
-                    'position': 'absolute',
-                    'top': '10px',
-                    'right': '10px',
-                    'background': 'white',
-                    'padding': '10px',
-                    'border': '1px solid #ccc',
-                    'borderRadius': '5px',
-                    'zIndex': 1000,
-                    'maxWidth': '200px',
-                },
+                className='pp-overlay pp-legend',
             ),
-            # Tooltip display on hover
-            html.Div(
-                id='node-tooltip',
-                style={
-                    'position': 'absolute',
-                    'display': 'none',
-                    'background': 'rgba(0, 0, 0, 0.8)',
-                    'color': 'white',
-                    'padding': '10px',
-                    'borderRadius': '5px',
-                    'zIndex': 2000,
-                    'pointerEvents': 'none',
-                    'maxWidth': '300px',
-                    'fontSize': '12px',
-                },
-            ),
+            # Tooltip display on hover. Presentation lives in theme.css so
+            # the clientside renderer only has to toggle 'display'.
+            html.Div(id='node-tooltip'),
             dcc.Loading(
                 id='loading-network',
                 type='default',
@@ -639,11 +647,11 @@ def create_alignment_tab() -> html.Div:
         [
             html.Div(
                 id='alignment-display',
+                className='pp-alignment',
                 style={
                     'padding': '20px',
                     'height': '85vh',
                     'overflow': 'auto',
-                    'fontFamily': 'monospace',
                     'whiteSpace': 'pre',
                 },
             )
@@ -737,6 +745,10 @@ def create_metadata_tab() -> html.Div:
             html.Div(
                 id='metadata-warnings',
                 style={'padding': '10px 20px'},
+            ),
+            html.Div(
+                id='population-colors',
+                style={'padding': '0 20px 10px 20px'},
             ),
             html.Div(
                 id='metadata-display',

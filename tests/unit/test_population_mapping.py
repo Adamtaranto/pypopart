@@ -191,10 +191,10 @@ class TestPopulationMapping:
                 assert segment['value'] > 0
                 assert 0 < segment['percent'] <= 100
 
-    def test_hover_text_includes_population_data(
+    def test_tooltip_includes_population_data(
         self, sample_network, population_mapping, population_colors
     ):
-        """Test that hover text includes population information."""
+        """Test that the hover tooltip carries population information."""
         plotter = InteractiveCytoscapePlotter(sample_network)
 
         elements = plotter.create_elements(
@@ -210,11 +210,12 @@ class TestPopulationMapping:
             and not e['data'].get('is_median', False)
         ]
 
-        # Check that hover text exists and contains population info
+        assert nodes
         for node in nodes:
-            # Verify hover text exists
-            assert 'hover' in node['data']
-            # Should contain 'Populations:' if there's population data
-            if population_mapping and 'Populations:' in node['data']['hover']:
-                # Verify population info is in the hover text
-                assert node['data']['hover'] is not None
+            tooltip = node['data']['tooltip']
+            assert tooltip['kind'] == 'haplotype'
+            # Every sample is attributed to some population, and the counts
+            # must add up to the haplotype's frequency.
+            assert tooltip['populations']
+            counted = sum(count for _, count in tooltip['populations'])
+            assert counted == tooltip['frequency']

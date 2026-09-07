@@ -166,6 +166,7 @@ class TestPyPopARTApp:
         from pypopart.core.haplotype import Haplotype
         from pypopart.core.sequence import Sequence
         from pypopart.visualization.cytoscape_plot import InteractiveCytoscapePlotter
+        from pypopart.visualization.style import POP_AMBER
 
         # Create a simple test network
         network = HaplotypeNetwork()
@@ -185,11 +186,12 @@ class TestPyPopARTApp:
             'Stylesheet should have exactly one node:selected style'
         )
 
-        # Verify the selected style has proper red border
+        # Selection is an amber halo, thicker than the ink node border.
+        # The constant is shared so the theme cannot drift from the test.
         selected_style = selected_styles[0]
         assert 'style' in selected_style
-        assert selected_style['style']['border-color'] == '#ff0000'
-        assert selected_style['style']['border-width'] == 4
+        assert selected_style['style']['border-color'] == POP_AMBER
+        assert selected_style['style']['border-width'] == 6
         assert selected_style['style']['z-index'] == 999
 
 
@@ -306,8 +308,8 @@ class TestSidebarCollapse:
         assert 'sidebar-toggle' in ids
         assert 'sidebar-collapsed' in ids
 
-    def test_sidebar_keeps_drag_resize(self):
-        """Collapsing must not cost the user the CSS drag handle."""
+    def test_sidebar_has_a_reachable_resize_grip(self):
+        """The native corner handle sat off-screen on a 90vh panel."""
         from pypopart.gui.app import PyPopARTApp
 
         app = PyPopARTApp(debug=False)
@@ -327,7 +329,15 @@ class TestSidebarCollapse:
 
         sidebar = find(app.app.layout, 'sidebar-panel')
         assert sidebar is not None
-        assert sidebar.style['resize'] == 'horizontal'
+        # Replaced by the centre-edge grip driven from assets/pypopart.js.
+        assert 'resize' not in sidebar.style
+        # The clamps the drag handler reads.
+        assert sidebar.style['minWidth'] == '250px'
+        assert sidebar.style['maxWidth'] == '600px'
+
+        ids = _collect_ids(app.app.layout)
+        assert 'sidebar-resizer' in ids
+        assert 'sidebar-grip' in ids
 
 
 class TestEdgeTickControls:
@@ -339,3 +349,16 @@ class TestEdgeTickControls:
 
         assert 'edge-tick-toggle' in ids
         assert 'edge-tick-threshold' in ids
+
+    def test_layout_card_has_grid_controls(self):
+        """Snap-to-grid needs both a switch and a spacing slider."""
+        ids = _collect_ids(cards.create_layout_card())
+
+        assert 'snap-to-grid-toggle' in ids
+        assert 'grid-size' in ids
+
+    def test_metadata_tab_has_colour_swatch_slot(self):
+        """The per-population pickers render under the table."""
+        ids = _collect_ids(cards.create_metadata_tab())
+
+        assert 'population-colors' in ids

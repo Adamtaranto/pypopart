@@ -1,5 +1,7 @@
 """Tests for Cytoscape-based interactive network visualization."""
 
+import json
+
 import pytest
 
 from pypopart.core.alignment import Sequence
@@ -8,10 +10,13 @@ from pypopart.core.haplotype import Haplotype
 from pypopart.visualization.cytoscape_plot import (
     DEFAULT_TICK_THRESHOLD,
     MAX_TICK_MARKS,
+    MAX_TOOLTIP_SAMPLES,
     InteractiveCytoscapePlotter,
+    build_node_tooltip,
     create_cytoscape_network,
     create_edge_tick_stylesheet,
     format_edge_ticks,
+    resolve_population_counts,
 )
 
 
@@ -443,3 +448,131 @@ class TestMedianVectorSelector:
         assert median_rules
         for rule in median_rules:
             assert rule['selector'].startswith('node[?')
+
+
+class TestNodeTooltip:
+    """The hover tooltip payload carried in each node's data."""
+
+    def test_haplotype_tooltip(self, simple_network):
+        """A haplotype node reports its label, count and populations."""
+        plotter = InteractiveCytoscapePlotter(simple_network)
+        nodes = {
+            el['data']['id']: el['data']['tooltip']
+            for el in plotter.create_elements()
+            if 'source' not in el.get('data', {})
+        }
+
+        assert nodes['H1']['kind'] == 'haplotype'
+        assert nodes['H1']['label'] == 'H1'
+        assert nodes['H1']['frequency'] == 2
+        assert nodes['H1']['populations'] == [['PopA', 2]]
+        assert nodes['H1']['samples'] == ['S1', 'S2']
+        assert nodes['H1']['extra'] == 0
+
+    def test_tooltip_uses_custom_label(self, simple_network):
+        """The tooltip title follows the H-number mapping, not the node id."""
+        plotter = InteractiveCytoscapePlotter(simple_network)
+        elements = plotter.create_elements(node_labels={'H1': 'Hap-One'})
+
+        tooltips = {
+            el['data']['id']: el['data']['tooltip']
+            for el in elements
+            if 'source' not in el.get('data', {})
+        }
+        assert tooltips['H1']['label'] == 'Hap-One'
+
+    def test_tooltip_falls_back_to_node_id(self, simple_network):
+        """With labels hidden the tooltip still names the node."""
+        plotter = InteractiveCytoscapePlotter(simple_network)
+        elements = plotter.create_elements(show_labels=False)
+
+        tooltips = [
+            el['data']['tooltip']
+            for el in elements
+            if 'source' not in el.get('data', {})
+        ]
+        assert all(t['label'] for t in tooltips)
+
+    def test_median_vector_tooltip(self):
+        """A median vector says so instead of listing samples."""
+        tooltip = build_node_tooltip('H9', None, True)
+
+        assert tooltip['kind'] == 'median'
+        assert tooltip['samples'] == []
+        assert tooltip['frequency'] == 0
+
+    def test_sample_list_is_truncated(self):
+        """Long sample lists are capped and the remainder is counted."""
+
+        class FakeHap:
+            sample_ids = [f'S{i}' for i in range(25)]
+            frequency = 25
+
+            @staticmethod
+            def get_frequency_by_population():
+                return {'PopA': 25}
+
+        tooltip = build_node_tooltip('H1', FakeHap(), False)
+
+        assert len(tooltip['samples']) == MAX_TOOLTIP_SAMPLES
+        assert tooltip['extra'] == 25 - MAX_TOOLTIP_SAMPLES
+
+    def test_tooltip_is_json_safe(self, simple_network):
+        """The payload rides to the browser inside the elements prop."""
+        plotter = InteractiveCytoscapePlotter(simple_network)
+        elements = plotter.create_elements()
+
+        json.dumps(elements)
+
+    def test_hover_string_is_gone(self, simple_network):
+        """The old unused hover string must not come back."""
+        plotter = InteractiveCytoscapePlotter(simple_network)
+
+        for el in plotter.create_elements():
+            assert 'hover' not in el.get('data', {})
+
+
+class TestResolvePopulationCounts:
+    """Shared population counting for pie charts and tooltips."""
+
+    def test_prefers_haplotype_counts(self):
+        """A haplotype that knows its populations is trusted."""
+
+        class FakeHap:
+            sample_ids = ['S1', 'S2']
+
+            @staticmethod
+            def get_frequency_by_population():
+                return {'PopA': 2}
+
+        counts = resolve_population_counts(FakeHap(), {'S1': 'PopZ', 'S2': 'PopZ'})
+
+        assert counts == {'PopA': 2}
+
+    def test_falls_back_to_mapping(self):
+        """Unassigned-only counts mean the metadata arrived later."""
+
+        class FakeHap:
+            sample_ids = ['S1', 'S2']
+
+            @staticmethod
+            def get_frequency_by_population():
+                return {'Unassigned': 2}
+
+        counts = resolve_population_counts(FakeHap(), {'S1': 'PopA', 'S2': 'PopB'})
+
+        assert counts == {'PopA': 1, 'PopB': 1}
+
+    def test_samples_missing_from_mapping_are_unassigned(self):
+        """A sample with no metadata row still gets counted."""
+
+        class FakeHap:
+            sample_ids = ['S1', 'S2']
+
+            @staticmethod
+            def get_frequency_by_population():
+                return {}
+
+        counts = resolve_population_counts(FakeHap(), {'S1': 'PopA'})
+
+        assert counts == {'PopA': 1, 'Unassigned': 1}

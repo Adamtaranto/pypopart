@@ -15,8 +15,13 @@ from pypopart.stats import (
     calculate_node_centrality,
     identify_central_haplotypes,
 )
+from pypopart.visualization.style import POP_AMBER, POP_RED
 
-from ..metadata_edit import build_metadata_datatable, build_metadata_rows
+from ..metadata_edit import (
+    build_metadata_datatable,
+    build_metadata_rows,
+    build_population_color_controls,
+)
 
 #: How many haplotypes the Central Haplotypes table lists.
 CENTRAL_HAPLOTYPE_COUNT = 5
@@ -54,7 +59,8 @@ def register(app, logger) -> None:
         if not network_data:
             return html.Div(
                 'Compute a network to see statistics',
-                style={'color': 'gray', 'padding': '20px'},
+                className='pp-muted',
+                style={'padding': '20px'},
             )
         return _statistics_for(json.dumps(network_data, sort_keys=True))
 
@@ -130,24 +136,20 @@ def register(app, logger) -> None:
             logger.error(traceback.format_exc())
             return html.Div(
                 [
-                    html.H5('Error calculating statistics', style={'color': 'red'}),
+                    html.H5('Error calculating statistics', className='pp-error'),
                     html.P(str(e)),
                     html.Details(
                         [
                             html.Summary('Show traceback'),
                             html.Pre(
                                 traceback.format_exc(),
-                                style={
-                                    'background': '#f5f5f5',
-                                    'padding': '10px',
-                                    'overflow': 'auto',
-                                    'font-size': '12px',
-                                },
+                                className='pp-traceback',
                             ),
                         ]
                     ),
                 ],
-                style={'color': 'red', 'padding': '20px'},
+                className='pp-error',
+                style={'padding': '20px'},
             )
 
     @app.callback(
@@ -252,11 +254,7 @@ def register(app, logger) -> None:
                 rows.append(
                     html.Div(
                         f'\n... ({len(alignment_data["sequences"]) - 50} more sequences)',
-                        style={
-                            'color': 'gray',
-                            'fontStyle': 'italic',
-                            'marginTop': '10px',
-                        },
+                        className='pp-muted fst-italic mt-2',
                     )
                 )
 
@@ -421,24 +419,20 @@ def register(app, logger) -> None:
             logger.error(traceback.format_exc())
             return html.Div(
                 [
-                    html.H5('Error creating haplotype summary', style={'color': 'red'}),
+                    html.H5('Error creating haplotype summary', className='pp-error'),
                     html.P(str(e)),
                     html.Details(
                         [
                             html.Summary('Show traceback'),
                             html.Pre(
                                 traceback.format_exc(),
-                                style={
-                                    'background': '#f5f5f5',
-                                    'padding': '10px',
-                                    'overflow': 'auto',
-                                    'font-size': '12px',
-                                },
+                                className='pp-traceback',
                             ),
                         ]
                     ),
                 ],
-                style={'color': 'red', 'padding': '20px'},
+                className='pp-error',
+                style={'padding': '20px'},
             )
 
     @app.callback(
@@ -510,7 +504,7 @@ def register(app, logger) -> None:
                 if not (
                     s.get('selector', '').startswith('node[id = "')
                     and 'border-color' in s.get('style', {})
-                    and s.get('style', {}).get('border-color') == '#FF0000'
+                    and s.get('style', {}).get('border-color') == POP_RED
                     and s.get('style', {}).get('border-width')
                     == '5px'  # Only remove search highlights (5px)
                 )
@@ -530,8 +524,8 @@ def register(app, logger) -> None:
                     {
                         'selector': 'node:selected',
                         'style': {
-                            'border-width': 4,
-                            'border-color': '#ff0000',
+                            'border-width': 6,
+                            'border-color': POP_AMBER,
                             'z-index': 999,
                         },
                     }
@@ -544,8 +538,8 @@ def register(app, logger) -> None:
                     {
                         'selector': 'node[pie_svg]:selected',
                         'style': {
-                            'border-width': 4,
-                            'border-color': '#ff0000',
+                            'border-width': 6,
+                            'border-color': POP_AMBER,
                             'z-index': 999,
                         },
                     }
@@ -567,7 +561,7 @@ def register(app, logger) -> None:
                                 'selector': f'node[id = "{node_id}"]',
                                 'style': {
                                     'border-width': '5px',
-                                    'border-color': '#FF0000',
+                                    'border-color': POP_RED,
                                     'border-style': 'solid',
                                 },
                             }
@@ -585,12 +579,13 @@ def register(app, logger) -> None:
     @app.callback(
         Output('metadata-display', 'children'),
         Output('metadata-warnings', 'children'),
+        Output('population-colors', 'children'),
         [Input('alignment-store', 'data'), Input('metadata-store', 'data')],
     )
     def update_metadata_tab(
         alignment_data: Optional[Dict],
         metadata_data: Optional[Dict],
-    ) -> Tuple[html.Div, html.Div]:
+    ) -> Tuple[html.Div, html.Div, html.Div]:
         """
         Display metadata with all sequence IDs.
 
@@ -603,11 +598,16 @@ def register(app, logger) -> None:
 
         Returns
         -------
-        Tuple[html.Div, html.Div]
-            The metadata table and its summary panel.
+        Tuple[html.Div, html.Div, html.Div]
+            The metadata table, its warnings panel, and the per-population
+            colour swatches.
         """
         if not alignment_data:
-            return html.Div('Upload alignment to view metadata'), html.Div()
+            return (
+                html.Div('Upload alignment to view metadata'),
+                html.Div(),
+                html.Div(),
+            )
 
         try:
             # Get sequence IDs from alignment
@@ -661,112 +661,24 @@ def register(app, logger) -> None:
 
             rows = build_metadata_rows(alignment_ids, metadata_data)
             table = build_metadata_datatable(rows, population_colors)
+            swatches = build_population_color_controls(rows)
 
-            return table, html.Div(warnings)
+            return table, html.Div(warnings), swatches
 
         except Exception as e:
             logger.error(f'Error creating metadata display: {e}')
             logger.error(traceback.format_exc())
-            return html.Div(f'Error: {str(e)}'), html.Div()
+            return html.Div(f'Error: {str(e)}'), html.Div(), html.Div()
 
-    @app.callback(
-        Output('node-tooltip', 'children'),
-        [
-            Input('network-graph', 'mouseoverNodeData'),
-            Input('network-graph', 'mouseoverEdgeData'),
-        ],
-        [State('network-store', 'data'), State('h-number-mapping-store', 'data')],
-    )
-    def update_tooltip_content(
-        hover_data: Optional[Dict],
-        edge_hover_data: Optional[Dict],
-        network_data: Optional[Dict],
-        h_number_mapping: Optional[Dict],
-    ) -> html.Div:
-        """
-        Update tooltip content based on hovered node.
-
-        Parameters
-        ----------
-        hover_data : Dict, optional
-            Hovered node data from Cytoscape.
-        edge_hover_data : Dict, optional
-            Hovered edge data from Cytoscape.
-        network_data : Dict, optional
-            Serialized network from the network store.
-        h_number_mapping : Dict, optional
-            Custom haplotype label mapping, if uploaded.
-
-        Returns
-        -------
-        html.Div
-            The tooltip content for the hovered node or edge.
-        """
-        # Hide tooltip if hovering over edge instead of node
-        if edge_hover_data and not hover_data:
-            return html.Div()
-
-        if not hover_data or not network_data:
-            return html.Div()
-
-        try:
-            # Reconstruct network
-            network = HaplotypeNetwork.from_serialized(network_data)
-
-            # Get node data
-            node_id = hover_data.get('id')
-            if not node_id:
-                return html.Div()
-
-            node_data = network.graph.nodes.get(node_id, {})
-            sample_ids = node_data.get('sample_ids', [])
-            is_median = node_data.get('median_vector', False)
-
-            # Find H number for this node
-            if h_number_mapping and node_id in h_number_mapping:
-                h_label = h_number_mapping[node_id]
-            else:
-                h_label = None
-                for i, nid in enumerate(sorted(network.graph.nodes()), start=1):
-                    if nid == node_id:
-                        h_label = f'H{i}'
-                        break
-
-            # Build tooltip content
-            if is_median or len(sample_ids) == 0:
-                content = html.Div(
-                    [
-                        html.Strong(h_label or 'Unknown'),
-                        html.Br(),
-                        html.Span('Inferred median vector'),
-                    ]
-                )
-            else:
-                content = html.Div(
-                    [
-                        html.Strong(h_label or 'Unknown'),
-                        html.Br(),
-                        html.Span(f'Sequences ({len(sample_ids)}):'),
-                        html.Br(),
-                        html.Span(
-                            ', '.join(sample_ids[:10])
-                            + ('...' if len(sample_ids) > 10 else '')
-                        ),
-                    ]
-                )
-
-            return content
-
-        except Exception as e:
-            logger.error(f'Error showing tooltip: {e}')
-            return html.Div()
-
-    # Use clientside callback for tooltip positioning
-    # This gets the actual rendered position from Cytoscape
+    # The tooltip is rendered entirely in the browser from the payload each
+    # node already carries in its Cytoscape data. It used to be split across
+    # a clientside callback that showed the box and a server callback that
+    # filled it; the box appeared instantly on hover while the content was a
+    # round trip behind and returned an empty div on several paths, so users
+    # saw an empty black rectangle.
     app.clientside_callback(
         """
         function() {
-            // Set up event listeners once when page loads
             if (window.tooltipSetup) {
                 return window.dash_clientside.no_update;
             }
@@ -776,41 +688,78 @@ def register(app, logger) -> None:
                 try {
                     const cy = document.getElementById('network-graph')._cyreg.cy;
                     const tooltip = document.getElementById('node-tooltip');
-
                     if (!cy || !tooltip) {
-                        console.log('Could not find cytoscape or tooltip element');
                         return;
                     }
 
-                    // Hide tooltip on mouseover edge or background
-                    cy.on('mouseover', 'edge', function(evt) {
-                        tooltip.style.display = 'none';
-                    });
+                    // textContent everywhere: sample IDs come from
+                    // user-supplied FASTA headers and must never be parsed
+                    // as markup.
+                    function line(text, bold) {
+                        const el = document.createElement('div');
+                        el.textContent = text;
+                        if (bold) { el.style.fontWeight = 'bold'; }
+                        return el;
+                    }
 
-                    cy.on('mouseover', function(evt) {
-                        // If target is cy (background), hide tooltip
-                        if (evt.target === cy) {
-                            tooltip.style.display = 'none';
+                    function render(data) {
+                        tooltip.textContent = '';
+                        if (!data) {
+                            tooltip.appendChild(line('No details available'));
+                            return;
                         }
+                        tooltip.appendChild(line(data.label, true));
+
+                        if (data.kind === 'median') {
+                            tooltip.appendChild(line('Inferred median vector'));
+                            return;
+                        }
+
+                        const n = data.frequency;
+                        tooltip.appendChild(
+                            line(n + (n === 1 ? ' sample' : ' samples'))
+                        );
+
+                        (data.populations || []).forEach(function(pair) {
+                            tooltip.appendChild(line('  ' + pair[0] + ': ' + pair[1]));
+                        });
+
+                        const samples = data.samples || [];
+                        if (samples.length) {
+                            let text = samples.join(', ');
+                            if (data.extra > 0) {
+                                text += ' (+' + data.extra + ' more)';
+                            }
+                            tooltip.appendChild(line(text));
+                        }
+                    }
+
+                    function hide() {
+                        tooltip.style.display = 'none';
+                    }
+
+                    cy.on('mouseover', 'edge', hide);
+                    cy.on('mouseout', 'node', hide);
+                    cy.on('mouseover', function(evt) {
+                        if (evt.target === cy) { hide(); }
                     });
 
-                    // Show tooltip on node hover
                     cy.on('mouseover', 'node', function(evt) {
                         const node = evt.target;
-                        const renderedPos = node.renderedPosition();
-
+                        render(node.data('tooltip'));
                         tooltip.style.display = 'block';
-                        tooltip.style.left = (renderedPos.x + 15) + 'px';
-                        tooltip.style.top = (renderedPos.y - 40) + 'px';
+
+                        // Measure after filling, then keep the box inside
+                        // the container instead of letting it run off-edge.
+                        const pos = node.renderedPosition();
+                        const box = tooltip.getBoundingClientRect();
+                        const host = cy.container().getBoundingClientRect();
+                        const maxLeft = Math.max(0, host.width - box.width - 10);
+                        const left = Math.min(Math.max(0, pos.x + 15), maxLeft);
+                        const top = Math.max(0, pos.y - 40);
+                        tooltip.style.left = left + 'px';
+                        tooltip.style.top = top + 'px';
                     });
-
-                    // Hide tooltip when mouse leaves node
-                    cy.on('mouseout', 'node', function(evt) {
-                        tooltip.style.display = 'none';
-                    });
-
-                    console.log('Tooltip event listeners installed');
-
                 } catch (e) {
                     console.log('Error setting up tooltip:', e);
                 }
@@ -850,7 +799,7 @@ def _format_central_haplotypes(
         the network has no nodes to rank.
     """
     if not ranked:
-        return html.Div('No haplotypes to rank.', style={'color': 'gray'})
+        return html.Div('No haplotypes to rank.', className='pp-muted')
 
     measures = ('degree', 'betweenness', 'closeness', 'eigenvector')
     header = html.Thead(
@@ -881,6 +830,6 @@ def _format_central_haplotypes(
                 striped=True,
                 size='sm',
             ),
-            html.Small(caption, style={'color': 'gray'}),
+            html.Small(caption, className='pp-muted'),
         ]
     )

@@ -12,6 +12,21 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from ..core.graph import HaplotypeNetwork
+from .style import (
+    DEFAULT_MEDIAN_COLOR,
+    DEFAULT_NODE_COLOR,
+    POP_AMBER,
+    POP_INK,
+    POP_NAVY,
+    POP_PAPER,
+)
+
+#: Type stack for network labels, matching the app chrome. Cytoscape falls
+#: back through the list itself when a family is not available.
+LABEL_FONT = 'Space Grotesk, Helvetica, Arial, sans-serif'
+
+#: Monospace stack for the mutation tick marks.
+TICK_FONT = 'JetBrains Mono, ui-monospace, monospace'
 
 #: Hard ceiling on tick marks drawn for one edge. Beyond this the comb is
 #: unreadable at any zoom, so the numeral is shown instead.
@@ -78,11 +93,12 @@ def create_edge_tick_stylesheet(
     numeral_style = {
         'label': 'data(label)',
         'text-rotation': 'none',
+        'font-family': LABEL_FONT,
         'font-size': '10px',
-        'text-background-color': '#ffffff',
+        'text-background-color': POP_PAPER,
         'text-background-opacity': 0.7,
         'text-background-padding': '3px',
-        'color': '#333333',
+        'color': POP_INK,
     }
 
     if not show_ticks:
@@ -94,9 +110,9 @@ def create_edge_tick_stylesheet(
             'style': {
                 'label': 'data(ticks)',
                 'text-rotation': 'autorotate',
-                'font-family': 'monospace',
+                'font-family': TICK_FONT,
                 'font-size': '14px',
-                'color': '#333333',
+                'color': POP_INK,
                 # no pill behind tick marks (overrides edge[label])
                 'text-background-opacity': 0,
             },
@@ -106,6 +122,104 @@ def create_edge_tick_stylesheet(
             'style': numeral_style,
         },
     ]
+
+
+def resolve_population_counts(
+    hap, population_mapping: Optional[Dict]
+) -> Dict[str, int]:
+    """
+    Count a haplotype's samples per population.
+
+    Prefers the counts the haplotype carries itself and falls back to the
+    GUI's sample-to-population mapping, which is the only source when the
+    metadata arrived after the alignment was parsed.
+
+    Parameters
+    ----------
+    hap : Haplotype
+        Haplotype whose samples are being counted.
+    population_mapping : Dict[str, str], optional
+        Mapping of sample_id to population.
+
+    Returns
+    -------
+    Dict[str, int]
+        Population name to sample count. Samples with no population land
+        under 'Unassigned'.
+    """
+    counts = hap.get_frequency_by_population()
+
+    # 'Unassigned'-only counts mean the haplotype never saw the metadata,
+    # so the mapping is the better source.
+    stale = not counts or (len(counts) == 1 and 'Unassigned' in counts)
+    if not (stale and population_mapping and hap.sample_ids):
+        return counts
+
+    counts = {}
+    for sample_id in hap.sample_ids:
+        pop = population_mapping.get(sample_id, 'Unassigned')
+        counts[pop] = counts.get(pop, 0) + 1
+    return counts
+
+
+#: Sample IDs listed in a node tooltip before it starts counting the rest.
+MAX_TOOLTIP_SAMPLES = 10
+
+
+def build_node_tooltip(
+    label: str,
+    hap,
+    is_median: bool,
+    population_mapping: Optional[Dict] = None,
+    max_samples: int = MAX_TOOLTIP_SAMPLES,
+) -> Dict:
+    """
+    Build the hover tooltip payload for one node.
+
+    Returns plain JSON-safe data rather than markup: it travels to the
+    browser inside the node's Cytoscape data, and the tooltip is rendered
+    there. Sample IDs come from user-supplied FASTA headers, so the
+    renderer must insert them as text, never as HTML.
+
+    Parameters
+    ----------
+    label : str
+        Display label for the node, typically its H number.
+    hap : Haplotype or None
+        Haplotype at this node, if it has one.
+    is_median : bool
+        Whether the node is an inferred median vector.
+    population_mapping : Dict[str, str], optional
+        Mapping of sample_id to population.
+    max_samples : int, default=MAX_TOOLTIP_SAMPLES
+        Sample IDs to list before summarising the remainder.
+
+    Returns
+    -------
+    Dict
+        Keys: ``label``, ``kind`` ('median' or 'haplotype'), ``frequency``,
+        ``populations`` (list of ``[name, count]`` pairs), ``samples`` and
+        ``extra`` (how many sample IDs were not listed).
+    """
+    tooltip = {
+        'label': label,
+        'kind': 'median' if is_median or hap is None else 'haplotype',
+        'frequency': 0,
+        'populations': [],
+        'samples': [],
+        'extra': 0,
+    }
+    if tooltip['kind'] == 'median':
+        return tooltip
+
+    sample_ids = list(hap.sample_ids or [])
+    counts = resolve_population_counts(hap, population_mapping)
+
+    tooltip['frequency'] = hap.frequency
+    tooltip['populations'] = [[pop, counts[pop]] for pop in sorted(counts)]
+    tooltip['samples'] = sample_ids[:max_samples]
+    tooltip['extra'] = max(0, len(sample_ids) - max_samples)
+    return tooltip
 
 
 class InteractiveCytoscapePlotter:
@@ -211,7 +325,7 @@ class InteractiveCytoscapePlotter:
         population_mapping: Optional[Dict[str, str]] = None,
         show_labels: bool = True,
         show_edge_labels: bool = True,
-        median_vector_color: str = '#D3D3D3',
+        median_vector_color: str = DEFAULT_MEDIAN_COLOR,
         node_labels: Optional[Dict[str, str]] = None,
         max_tick_marks: int = MAX_TICK_MARKS,
     ) -> List[Dict]:
@@ -232,7 +346,7 @@ class InteractiveCytoscapePlotter:
             Whether to show node labels.
         show_edge_labels : bool, default=True
             Whether to show edge labels with mutation counts.
-        median_vector_color : str, default='#D3D3D3'
+        median_vector_color : str, default=DEFAULT_MEDIAN_COLOR
             Color for median vector nodes.
         node_labels : Dict[str, str], optional
             Custom labels for nodes {node_id: label}.
@@ -285,30 +399,7 @@ class InteractiveCytoscapePlotter:
 
             # Add population pie chart data if available
             if not is_median and hap and population_colors:
-                # Try to get population counts from haplotype first
-                pop_counts = hap.get_frequency_by_population()
-
-                # If haplotype doesn't have population data but we have a mapping,
-                # manually compute population counts from sample_ids
-                # Only recalculate if pop_counts is empty or only contains 'Unassigned'
-                if (
-                    (
-                        not pop_counts
-                        or (len(pop_counts) == 1 and 'Unassigned' in pop_counts)
-                    )
-                    and population_mapping
-                    and hap.sample_ids
-                ):
-                    pop_counts = {}
-                    for sample_id in hap.sample_ids:
-                        if sample_id in population_mapping:
-                            pop = population_mapping[sample_id]
-                            pop_counts[pop] = pop_counts.get(pop, 0) + 1
-                        else:
-                            # Track unassigned samples
-                            pop_counts['Unassigned'] = (
-                                pop_counts.get('Unassigned', 0) + 1
-                            )
+                pop_counts = resolve_population_counts(hap, population_mapping)
 
                 # Pie charts only make sense for mixed-population nodes;
                 # single-population nodes get that population's solid colour.
@@ -322,9 +413,9 @@ class InteractiveCytoscapePlotter:
                     for pop, count in sorted(pop_counts.items()):
                         if count > 0:
                             percent = (count / total) * 100
-                            # Use light grey (#D3D3D3) for Unassigned, otherwise use population color
+                            # Unassigned samples take the median grey, not a population colour
                             if pop == 'Unassigned':
-                                color = '#D3D3D3'  # Light grey for unassigned
+                                color = DEFAULT_MEDIAN_COLOR  # unassigned samples
                             else:
                                 color = population_colors.get(pop, '#cccccc')
 
@@ -355,56 +446,26 @@ class InteractiveCytoscapePlotter:
                     node_data['has_pie'] = False
                     (pop,) = pop_counts
                     if pop == 'Unassigned':
-                        node_data['color'] = '#D3D3D3'
+                        node_data['color'] = DEFAULT_MEDIAN_COLOR
                     else:
-                        node_data['color'] = population_colors.get(pop, '#87CEEB')
+                        node_data['color'] = population_colors.get(
+                            pop, DEFAULT_NODE_COLOR
+                        )
                 else:
                     node_data['has_pie'] = False
-                    node_data['color'] = '#87CEEB'
+                    node_data['color'] = DEFAULT_NODE_COLOR
             else:
                 node_data['has_pie'] = False
                 if is_median:
                     node_data['color'] = median_vector_color
                 else:
-                    node_data['color'] = '#87CEEB'  # lightblue
+                    node_data['color'] = DEFAULT_NODE_COLOR  # lightblue
 
-            # Add hover information
-            if is_median:
-                node_data['hover'] = f'{node} (Median Vector)'
-            elif hap:
-                hover_lines = [f'{node}', f'Frequency: {hap.frequency}']
-                # Get population counts (using same logic as above)
-                hover_pop_counts = hap.get_frequency_by_population()
-                # Only recalculate if hover_pop_counts is empty or only contains 'Unassigned'
-                if (
-                    (
-                        not hover_pop_counts
-                        or (
-                            len(hover_pop_counts) == 1
-                            and 'Unassigned' in hover_pop_counts
-                        )
-                    )
-                    and population_mapping
-                    and hap.sample_ids
-                ):
-                    hover_pop_counts = {}
-                    for sample_id in hap.sample_ids:
-                        if sample_id in population_mapping:
-                            pop = population_mapping[sample_id]
-                            hover_pop_counts[pop] = hover_pop_counts.get(pop, 0) + 1
-                        else:
-                            # Track unassigned samples in hover text too
-                            hover_pop_counts['Unassigned'] = (
-                                hover_pop_counts.get('Unassigned', 0) + 1
-                            )
-
-                if hover_pop_counts:
-                    hover_lines.append('Populations:')
-                    for pop, count in sorted(hover_pop_counts.items()):
-                        hover_lines.append(f'  {pop}: {count}')
-                node_data['hover'] = '\n'.join(hover_lines)
-            else:
-                node_data['hover'] = node
+            # Everything the hover tooltip needs, rendered entirely in the
+            # browser from this payload -- no server round trip per hover.
+            node_data['tooltip'] = build_node_tooltip(
+                label or node, hap, is_median, population_mapping
+            )
 
             # Create element with position
             element = {
@@ -447,7 +508,7 @@ class InteractiveCytoscapePlotter:
     def create_stylesheet(
         self,
         population_colors: Optional[Dict[str, str]] = None,
-        median_vector_color: str = '#D3D3D3',
+        median_vector_color: str = DEFAULT_MEDIAN_COLOR,
     ) -> List[Dict]:
         """
         Create Cytoscape stylesheet for network visualization.
@@ -456,7 +517,7 @@ class InteractiveCytoscapePlotter:
         ----------
         population_colors : Dict[str, str], optional
             Color mapping for populations.
-        median_vector_color : str, default='#D3D3D3'
+        median_vector_color : str, default=DEFAULT_MEDIAN_COLOR
             Color for median vector nodes.
 
         Returns
@@ -476,12 +537,14 @@ class InteractiveCytoscapePlotter:
                     'width': 'data(size)',
                     'height': 'data(size)',
                     'shape': 'ellipse',
-                    'border-width': 2,
-                    'border-color': '#000000',
+                    'border-width': 3,
+                    'border-color': POP_INK,
+                    'font-family': LABEL_FONT,
                     'font-size': '10px',
                     'font-weight': 'bold',
+                    'color': POP_INK,
                     'text-outline-width': 2,
-                    'text-outline-color': '#ffffff',
+                    'text-outline-color': POP_PAPER,
                 },
             },
             # Median vector style - also circular but distinguished by color.
@@ -500,10 +563,10 @@ class InteractiveCytoscapePlotter:
                 'selector': 'edge',
                 'style': {
                     'width': 'mapData(weight, 1, 10, 3, 1)',
-                    'line-color': '#969696',
-                    'target-arrow-color': '#969696',
+                    'line-color': POP_NAVY,
+                    'target-arrow-color': POP_NAVY,
                     'curve-style': 'bezier',
-                    'opacity': 0.6,
+                    'opacity': 0.75,
                 },
             },
             # Edge label style
@@ -511,19 +574,20 @@ class InteractiveCytoscapePlotter:
                 'selector': 'edge[label]',
                 'style': {
                     'label': 'data(label)',
+                    'font-family': LABEL_FONT,
                     'font-size': '10px',
-                    'text-background-color': '#ffffff',
+                    'text-background-color': POP_PAPER,
                     'text-background-opacity': 0.7,
                     'text-background-padding': '3px',
-                    'color': '#333333',
+                    'color': POP_INK,
                 },
             },
             # Highlighted/selected node style
             {
                 'selector': 'node:selected',
                 'style': {
-                    'border-width': 4,
-                    'border-color': '#ff0000',
+                    'border-width': 6,
+                    'border-color': POP_AMBER,
                     'z-index': 999,  # Bring to front
                 },
             },
@@ -559,7 +623,7 @@ class InteractiveCytoscapePlotter:
                     'background-fit': 'contain',
                     'background-clip': 'node',
                     'border-width': 2,
-                    'border-color': '#000000',
+                    'border-color': POP_INK,
                 },
             }
         )
@@ -571,7 +635,7 @@ class InteractiveCytoscapePlotter:
                 'selector': 'node[pie_svg]:selected',
                 'style': {
                     'border-width': 4,
-                    'border-color': '#ff0000',
+                    'border-color': POP_AMBER,
                     'z-index': 999,
                 },
             }
@@ -606,7 +670,7 @@ def create_cytoscape_network(
     node_size_scale: float = 20.0,
     show_labels: bool = True,
     show_edge_labels: bool = True,
-    median_vector_color: str = '#D3D3D3',
+    median_vector_color: str = DEFAULT_MEDIAN_COLOR,
     node_labels: Optional[Dict[str, str]] = None,
     show_edge_ticks: bool = True,
     edge_tick_threshold: int = DEFAULT_TICK_THRESHOLD,
@@ -631,7 +695,7 @@ def create_cytoscape_network(
         Whether to show node labels.
     show_edge_labels : bool, default=True
         Whether to show edge labels with mutation counts.
-    median_vector_color : str, default='#D3D3D3'
+    median_vector_color : str, default=DEFAULT_MEDIAN_COLOR
         Color for median vector nodes.
     node_labels : Dict[str, str], optional
         Custom labels for nodes {node_id: label}.

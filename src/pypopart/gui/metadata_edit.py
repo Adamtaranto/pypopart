@@ -7,9 +7,15 @@ without a running Dash app.
 
 from typing import Dict, Iterable, List, Optional, Tuple
 
-from dash import dash_table
+from dash import dash_table, html
+import dash_bootstrap_components as dbc
 
-from ..visualization.style import generate_population_colors
+from ..visualization.style import (
+    POP_BONE,
+    POP_INK,
+    POP_PAPER,
+    generate_population_colors,
+)
 
 #: Columns the user may type into. Everything else is derived.
 EDITABLE_COLUMNS = ('population', 'color', 'latitude', 'longitude')
@@ -146,12 +152,18 @@ def build_metadata_datatable(
         page_size=50,
         style_table={'overflowX': 'auto'},
         style_cell={
-            'fontSize': '14px',
-            'padding': '6px',
+            'fontSize': '13px',
+            'padding': '6px 8px',
             'textAlign': 'left',
             'fontFamily': 'inherit',
+            'border': f'1px solid {POP_BONE}',
         },
-        style_header={'fontWeight': 'bold', 'backgroundColor': '#f8f9fa'},
+        style_header={
+            'fontWeight': 'bold',
+            'backgroundColor': POP_INK,
+            'color': POP_PAPER,
+            'border': f'1px solid {POP_INK}',
+        },
         style_data_conditional=style_data_conditional,
     )
 
@@ -336,3 +348,129 @@ def _parse_coordinate(
         warnings.append(f'{sid}: {kind} {number} is outside [{low}, {high}]')
         return None
     return number
+
+
+def population_colors_from_rows(
+    rows: List[Dict[str, str]],
+) -> Dict[str, str]:
+    """
+    Read the colour currently assigned to each population.
+
+    Colours are stored per population, but the table holds one per row, so
+    the first non-empty value for a population wins -- the same rule
+    :func:`rows_to_metadata_store` applies on commit.
+
+    Parameters
+    ----------
+    rows : list of dict
+        Rows from the metadata table.
+
+    Returns
+    -------
+    dict
+        Population name to hex colour, for every named population.
+    """
+    colors: Dict[str, str] = {}
+    for row in rows or []:
+        pop = _as_text(row.get('population')).strip()
+        if not pop:
+            continue
+        color = _as_text(row.get('color')).strip()
+        if color and pop not in colors:
+            colors[pop] = color
+
+    missing = sorted(
+        {
+            _as_text(row.get('population')).strip()
+            for row in rows or []
+            if _as_text(row.get('population')).strip()
+        }
+        - set(colors)
+    )
+    if missing:
+        generated = generate_population_colors(sorted(set(missing) | set(colors)))
+        for pop in missing:
+            colors[pop] = generated[pop]
+    return colors
+
+
+def build_population_color_controls(rows: List[Dict[str, str]]) -> html.Div:
+    """
+    Build one colour swatch per population.
+
+    A native colour input is used rather than a per-cell editor because
+    colours belong to the population, not the row: editing them per row
+    lets two rows of one population disagree, and the disagreement is then
+    silently resolved first-wins on commit.
+
+    Parameters
+    ----------
+    rows : list of dict
+        Rows from the metadata table.
+
+    Returns
+    -------
+    html.Div
+        A swatch per population, or an empty div when none are named.
+    """
+    colors = population_colors_from_rows(rows)
+    if not colors:
+        return html.Div()
+
+    swatches = [
+        html.Div(
+            [
+                dbc.Input(
+                    type='color',
+                    id={'type': 'pop-color', 'pop': pop},
+                    value=color,
+                    className='pp-color-swatch',
+                ),
+                html.Span(pop, className='fw-bold ms-2'),
+                html.Small(color, className='text-muted ms-2'),
+            ],
+            className='d-flex align-items-center me-4 mb-2',
+        )
+        for pop, color in sorted(colors.items())
+    ]
+
+    return html.Div(
+        [
+            html.Strong('Population colours'),
+            html.Small(
+                ' — a swatch recolours every row of that population.',
+                className='text-muted',
+            ),
+            html.Div(swatches, className='d-flex flex-wrap mt-2'),
+        ],
+        className='pp-population-colors',
+    )
+
+
+def apply_population_color(
+    rows: List[Dict[str, str]], population: str, hex_color: str
+) -> List[Dict[str, str]]:
+    """
+    Recolour every row belonging to one population.
+
+    Parameters
+    ----------
+    rows : list of dict
+        Rows from the metadata table.
+    population : str
+        Population whose rows are recoloured.
+    hex_color : str
+        New colour as ``#rrggbb``.
+
+    Returns
+    -------
+    list of dict
+        New rows; the originals are left untouched.
+    """
+    updated = []
+    for row in rows or []:
+        new_row = dict(row)
+        if _as_text(new_row.get('population')).strip() == population:
+            new_row['color'] = hex_color
+        updated.append(new_row)
+    return updated

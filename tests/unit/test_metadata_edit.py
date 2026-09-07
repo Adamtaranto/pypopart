@@ -3,9 +3,12 @@
 import pytest
 
 from pypopart.gui.metadata_edit import (
+    apply_population_color,
     build_metadata_datatable,
     build_metadata_rows,
+    build_population_color_controls,
     diff_metadata_rows,
+    population_colors_from_rows,
     rows_to_metadata_store,
 )
 
@@ -213,3 +216,99 @@ class TestMetadataDataTable:
         table = build_metadata_datatable([], None)
 
         assert table.style_data_conditional == []
+
+
+def _collect_swatches(component, found=None):
+    """Recursively collect the pattern-matching colour input ids."""
+    if found is None:
+        found = []
+    cid = getattr(component, 'id', None)
+    if isinstance(cid, dict) and cid.get('type') == 'pop-color':
+        found.append((cid['pop'], component.value))
+    children = getattr(component, 'children', None)
+    if isinstance(children, (list, tuple)):
+        for child in children:
+            _collect_swatches(child, found)
+    elif children is not None:
+        _collect_swatches(children, found)
+    return found
+
+
+class TestPopulationColorPicker:
+    """Per-population colour swatches under the metadata table."""
+
+    def test_one_swatch_per_population(self, metadata_store):
+        """Populations, not rows, get a control."""
+        rows = build_metadata_rows(['S1', 'S2'], metadata_store)
+        swatches = _collect_swatches(build_population_color_controls(rows))
+
+        assert dict(swatches) == {'PopA': '#ff0000', 'PopB': '#00ff00'}
+
+    def test_repeated_population_gets_one_swatch(self):
+        """Two rows of one population share a single control."""
+        rows = [
+            {'id': 'S1', 'population': 'PopA', 'color': '#111111'},
+            {'id': 'S2', 'population': 'PopA', 'color': '#111111'},
+        ]
+        swatches = _collect_swatches(build_population_color_controls(rows))
+
+        assert swatches == [('PopA', '#111111')]
+
+    def test_unnamed_populations_are_skipped(self):
+        """A row with no population has nothing to colour."""
+        rows = [{'id': 'S1', 'population': '', 'color': ''}]
+
+        assert _collect_swatches(build_population_color_controls(rows)) == []
+
+    def test_uncoloured_population_gets_a_generated_swatch(self):
+        """A picker must always open on a real colour, never blank."""
+        rows = [{'id': 'S1', 'population': 'PopA', 'color': ''}]
+        swatches = _collect_swatches(build_population_color_controls(rows))
+
+        assert len(swatches) == 1
+        assert swatches[0][0] == 'PopA'
+        assert swatches[0][1].startswith('#')
+
+    def test_colors_from_rows_is_first_wins(self):
+        """Matches how rows_to_metadata_store resolves a conflict."""
+        rows = [
+            {'id': 'S1', 'population': 'PopA', 'color': '#111111'},
+            {'id': 'S2', 'population': 'PopA', 'color': '#222222'},
+        ]
+
+        assert population_colors_from_rows(rows)['PopA'] == '#111111'
+
+
+class TestApplyPopulationColor:
+    """Recolouring every row of one population."""
+
+    def test_only_matching_rows_change(self, metadata_store):
+        """Other populations keep their colour."""
+        rows = build_metadata_rows(['S1', 'S2'], metadata_store)
+        updated = {r['id']: r for r in apply_population_color(rows, 'PopA', '#123456')}
+
+        assert updated['S1']['color'] == '#123456'
+        assert updated['S2']['color'] == '#00ff00'
+
+    def test_all_rows_of_the_population_change(self):
+        """The whole point: one pick, every row."""
+        rows = [
+            {'id': 'S1', 'population': 'PopA', 'color': '#111111'},
+            {'id': 'S2', 'population': 'PopA', 'color': '#222222'},
+        ]
+        updated = apply_population_color(rows, 'PopA', '#abcdef')
+
+        assert [r['color'] for r in updated] == ['#abcdef', '#abcdef']
+
+    def test_input_is_not_mutated(self):
+        """The draft diff compares against the originals."""
+        rows = [{'id': 'S1', 'population': 'PopA', 'color': '#111111'}]
+        apply_population_color(rows, 'PopA', '#abcdef')
+
+        assert rows[0]['color'] == '#111111'
+
+    def test_unknown_population_is_a_no_op(self):
+        """A stale swatch must not blank out the table."""
+        rows = [{'id': 'S1', 'population': 'PopA', 'color': '#111111'}]
+
+        assert apply_population_color(rows, 'PopZ', '#abcdef') == rows
