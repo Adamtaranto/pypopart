@@ -36,6 +36,7 @@
   --pp-bone: #eae2b7;
   --pp-ink: #1d1d1b;
   --pp-paper: #ffffff;
+  --pp-teal: #2a9d8f;
 
   --pp-sans: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --pp-display: "Archivo Black", "Helvetica Neue", Impact, sans-serif;
@@ -225,9 +226,16 @@ label.fw-bold {
   transform: translate(1px, 1px);
 }
 
-.btn-primary,
-.btn-info {
+/* One accent per role, so the primary action is unmistakable:
+   navy loads data, red computes, teal lays out, amber exports. */
+.btn-primary {
   background-color: var(--pp-navy);
+  border-color: var(--pp-ink);
+  color: var(--pp-paper);
+}
+
+.btn-info {
+  background-color: var(--pp-teal);
   border-color: var(--pp-ink);
   color: var(--pp-paper);
 }
@@ -239,7 +247,13 @@ label.fw-bold {
 }
 
 .btn-secondary {
-  background-color: var(--pp-ink);
+  background-color: var(--pp-amber);
+  border-color: var(--pp-ink);
+  color: var(--pp-ink);
+}
+
+.btn-danger {
+  background-color: var(--pp-red);
   border-color: var(--pp-ink);
   color: var(--pp-paper);
 }
@@ -460,4 +474,56 @@ input.pp-color-swatch[type="color"] {
   font-family: var(--pp-mono);
   font-size: 11px;
   overflow-x: auto;
+}
+
+/* ---------------------------------------------------------------- toasts */
+
+/* Transient confirmations only; errors stay inline where they happened. */
+.pp-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 3000;
+  min-width: 300px;
+  max-width: 420px;
+  border: var(--pp-rule);
+  border-left: 8px solid var(--pp-teal);
+  border-radius: 0;
+  background-color: var(--pp-paper);
+  box-shadow: 6px 6px 0 rgba(29, 29, 27, 0.18);
+}
+
+.pp-toast .toast-header {
+  background-color: var(--pp-ink);
+  color: var(--pp-paper);
+  border-bottom: none;
+  border-radius: 0;
+  font-family: var(--pp-display);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.pp-toast .toast-header .btn-close {
+  filter: invert(1);
+}
+
+/* ----------------------------------------------------------------- chips */
+
+/* Filled for observed, hollow for inferred: the distinction survives
+   greyscale printing, which two coloured dots would not. */
+.pp-chip {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--pp-ink);
+  vertical-align: baseline;
+}
+
+.pp-chip-observed {
+  background-color: var(--pp-amber);
+}
+
+.pp-chip-inferred {
+  background-color: transparent;
 }

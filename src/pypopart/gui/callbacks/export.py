@@ -1,6 +1,6 @@
 """Network and CSV export downloads."""
 
-import logging
+import io
 from pathlib import Path
 import tempfile
 import traceback
@@ -11,7 +11,107 @@ from dash import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from pypopart.core.graph import HaplotypeNetwork
+from pypopart.gui.callbacks.feedback import toast
+from pypopart.gui.serialization import merge_node_positions
 from pypopart.io.network_export import GMLExporter, GraphMLExporter, JSONExporter
+
+#: Formats written server-side, as ``{value: (exporter, suffix, mimetype)}``.
+TEXT_EXPORTERS = {
+    'graphml': (GraphMLExporter, 'graphml', 'text/xml'),
+    'gml': (GMLExporter, 'gml', 'text/plain'),
+    'json': (JSONExporter, 'json', 'application/json'),
+}
+
+#: Rendered in the browser by dash-cytoscape, straight off the canvas.
+CANVAS_FORMATS = ('png',)
+
+#: Rendered server-side with matplotlib. SVG is here rather than on the
+#: canvas because Cytoscape.js only emits vector output through the
+#: cytoscape-svg extension, which dash-cytoscape does not bundle -- asking
+#: the canvas for an SVG silently produced no file at all.
+FIGURE_FORMATS = ('svg',)
+
+#: Every image format the callback can serve.
+IMAGE_FORMATS = CANVAS_FORMATS + FIGURE_FORMATS
+
+
+def _export_figure(
+    network: HaplotypeNetwork,
+    positions: Dict,
+    population_colors: Optional[Dict],
+    export_format: str,
+) -> Dict:
+    """
+    Render the network to a vector figure with matplotlib.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        Network to draw.
+    positions : Dict
+        Node positions, so the figure matches what is on screen.
+    population_colors : Dict, optional
+        Population to hex colour mapping.
+    export_format : str
+        A matplotlib-supported format, currently only ``'svg'``.
+
+    Returns
+    -------
+    Dict
+        The ``dcc.Download`` payload.
+    """
+    import matplotlib
+
+    # There is no display attached to the server process.
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    from pypopart.visualization.static_plot import StaticNetworkPlotter
+
+    figure, _ = StaticNetworkPlotter(network).plot(
+        layout=positions or None,
+        population_colors=population_colors or None,
+    )
+    try:
+        buffer = io.StringIO()
+        figure.savefig(buffer, format=export_format, bbox_inches='tight')
+        content = buffer.getvalue()
+    finally:
+        plt.close(figure)
+
+    return {
+        'content': content,
+        'filename': f'network.{export_format}',
+        'type': 'image/svg+xml',
+    }
+
+
+def _export_text(network: HaplotypeNetwork, export_format: str) -> Dict:
+    """
+    Render a network to text and wrap it for ``dcc.Download``.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        Network to export.
+    export_format : str
+        A key of :data:`TEXT_EXPORTERS`.
+
+    Returns
+    -------
+    Dict
+        The ``dcc.Download`` payload: content, filename and MIME type.
+    """
+    exporter_cls, suffix, mimetype = TEXT_EXPORTERS[export_format]
+    filename = f'network.{suffix}'
+
+    # The exporters write to a path, so stage in a temporary directory.
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = Path(tmpdir) / filename
+        exporter_cls(path).export(network)
+        content = path.read_text()
+
+    return {'content': content, 'filename': filename, 'type': mimetype}
 
 
 def register(app, logger) -> None:
@@ -30,19 +130,30 @@ def register(app, logger) -> None:
         [
             Output('download-data', 'data'),
             Output('network-graph', 'generateImage', allow_duplicate=True),
+            Output('app-toast', 'children', allow_duplicate=True),
+            Output('app-toast', 'header', allow_duplicate=True),
+            Output('app-toast', 'is_open', allow_duplicate=True),
         ],
         Input('export-button', 'n_clicks'),
         [
             State('network-store', 'data'),
             State('export-format', 'value'),
+            State('layout-store', 'data'),
+            State('node-positions-store', 'data'),
+            State('metadata-store', 'data'),
         ],
         prevent_initial_call=True,
     )
     def export_network(
-        n_clicks: int, network_data: Dict, export_format: str
-    ) -> Tuple[Dict, Dict]:
+        n_clicks: int,
+        network_data: Dict,
+        export_format: str,
+        layout_data: Optional[Dict] = None,
+        dragged_positions: Optional[Dict] = None,
+        metadata_data: Optional[Dict] = None,
+    ) -> Tuple:
         """
-        Export network in selected format.
+        Export the network in the selected format.
 
         Parameters
         ----------
@@ -52,82 +163,81 @@ def register(app, logger) -> None:
             Serialized network from the network store.
         export_format : str
             Selected export format.
+        layout_data : Dict, optional
+            Computed node positions.
+        dragged_positions : Dict, optional
+            Manually dragged node positions, which win over the layout.
+        metadata_data : Dict, optional
+            Serialized metadata, used for population colours.
 
         Returns
         -------
-        Tuple[Dict, Dict]
-            Download payload for file formats, and the Cytoscape image
-            request for PNG/SVG.
+        tuple
+            Download payload for the text formats, the Cytoscape image
+            request for PNG/SVG, and a toast reporting the outcome.
         """
         if not network_data:
             raise PreventUpdate
 
         try:
-            # Reconstruct network
             network = HaplotypeNetwork.from_serialized(network_data)
 
-            # Export based on format
-            if export_format == 'graphml':
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    path = Path(tmpdir) / 'network.graphml'
-                    GraphMLExporter(path).export(network)
-                    content = path.read_text()
+            if export_format in TEXT_EXPORTERS:
+                payload = _export_text(network, export_format)
                 return (
-                    {
-                        'content': content,
-                        'filename': 'network.graphml',
-                        'type': 'text/xml',
-                    },
+                    payload,
                     dash.no_update,
+                    *toast(f'Saved {payload["filename"]}.', header='Network exported'),
                 )
 
-            elif export_format == 'gml':
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    path = Path(tmpdir) / 'network.gml'
-                    GMLExporter(path).export(network)
-                    content = path.read_text()
+            if export_format in FIGURE_FORMATS:
+                payload = _export_figure(
+                    network,
+                    merge_node_positions(layout_data, dragged_positions),
+                    (metadata_data or {}).get('population_colors'),
+                    export_format,
+                )
                 return (
-                    {
-                        'content': content,
-                        'filename': 'network.gml',
-                        'type': 'text/plain',
-                    },
+                    payload,
                     dash.no_update,
+                    *toast(f'Saved {payload["filename"]}.', header='Figure exported'),
                 )
 
-            elif export_format == 'json':
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    path = Path(tmpdir) / 'network.json'
-                    JSONExporter(path).export(network)
-                    content = path.read_text()
-                return (
-                    {
-                        'content': content,
-                        'filename': 'network.json',
-                        'type': 'application/json',
-                    },
-                    dash.no_update,
-                )
-
-            elif export_format in ['png', 'svg']:
-                # Use Cytoscape's built-in image generation feature
-                # This triggers client-side export with automatic download
+            if export_format in CANVAS_FORMATS:
+                # Rendered by dash-cytoscape in the browser from what is
+                # currently on screen, so it never reaches Python.
                 image_config = {
                     'type': export_format,
                     'action': 'download',
-                    'filename': f'network.{export_format}',
+                    # No extension: dash-cytoscape appends the type itself,
+                    # so 'network.png' arrived as 'network.png.png'.
+                    'filename': 'network',
                     'options': {
                         'output': 'base64uri',
                         'bg': 'white',
                         'full': True,
                     },
                 }
-                return (dash.no_update, image_config)
+                return (
+                    dash.no_update,
+                    image_config,
+                    *toast(f'Saved network.{export_format}.', header='Image exported'),
+                )
+
+            # Without this the function fell off the end returning None,
+            # and Dash errored trying to unpack it into the outputs.
+            raise ValueError(f'Unsupported export format: {export_format!r}')
 
         except Exception as e:
-            logging.error(f'Error exporting: {e}')
-            logging.error(traceback.format_exc())
-            raise PreventUpdate from None
+            logger.error(f'Error exporting as {export_format!r}: {e}')
+            logger.error(traceback.format_exc())
+            # Surfaced rather than swallowed: a bare PreventUpdate here
+            # made a failed export look like a dead button.
+            return (
+                dash.no_update,
+                dash.no_update,
+                *toast(str(e), header='Export failed'),
+            )
 
     # New callbacks for enhanced features
 

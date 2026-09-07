@@ -324,12 +324,11 @@ def register(app, logger) -> None:
                     h_label = f'H{i}'
 
                 # Determine if this is an inferred haplotype
-                if is_median or len(sample_ids) == 0:
-                    haplotype_type = '🔵 Inferred'
+                inferred = is_median or len(sample_ids) == 0
+                if inferred:
                     sample_display = 'None (inferred ancestral haplotype)'
                     populations_display = ''
                 else:
-                    haplotype_type = '🟢 Observed'
                     sample_display = ', '.join(sample_ids) if sample_ids else 'Unknown'
 
                     # Collect populations for this haplotype
@@ -348,7 +347,10 @@ def register(app, logger) -> None:
                     {
                         'h_label': h_label,
                         'node_id': node_id,
-                        'type': haplotype_type,
+                        # A flag, not a display string: the counts below
+                        # used to be derived by substring-matching an emoji
+                        # out of the rendered label.
+                        'inferred': inferred,
                         'frequency': frequency,
                         'samples': sample_display,
                         'populations': populations_display,
@@ -372,7 +374,7 @@ def register(app, logger) -> None:
             for hap in haplotype_mapping:
                 row_cells = [
                     html.Td(hap['h_label'], style={'fontWeight': 'bold'}),
-                    html.Td(hap['type']),
+                    html.Td(_haplotype_type_cell(hap['inferred'])),
                     html.Td(hap['frequency']),
                     html.Td(
                         hap['samples'],
@@ -390,8 +392,8 @@ def register(app, logger) -> None:
             table_body = [html.Tbody(table_rows)]
 
             # Count statistics
-            n_observed = sum(1 for h in haplotype_mapping if '🟢' in h['type'])
-            n_inferred = sum(1 for h in haplotype_mapping if '🔵' in h['type'])
+            n_inferred = sum(1 for h in haplotype_mapping if h['inferred'])
+            n_observed = len(haplotype_mapping) - n_inferred
 
             return html.Div(
                 [
@@ -399,7 +401,19 @@ def register(app, logger) -> None:
                     html.P(
                         [
                             f'Total haplotypes: {len(haplotype_mapping)} ',
-                            f'(🟢 {n_observed} observed, 🔵 {n_inferred} inferred)',
+                            html.Span(
+                                [
+                                    _haplotype_chip(False),
+                                    f' {n_observed} observed',
+                                ],
+                                className='me-3',
+                            ),
+                            html.Span(
+                                [
+                                    _haplotype_chip(True),
+                                    f' {n_inferred} inferred',
+                                ]
+                            ),
                         ]
                     ),
                     html.Hr(),
@@ -635,21 +649,21 @@ def register(app, logger) -> None:
             if alignment_duplicates:
                 warnings.append(
                     dbc.Alert(
-                        f'⚠️ Duplicate IDs found in alignment: {", ".join(alignment_duplicates)}',
+                        f'Duplicate IDs in alignment: {", ".join(alignment_duplicates)}',
                         color='warning',
                     )
                 )
             if only_in_alignment and metadata_data:
                 warnings.append(
                     dbc.Alert(
-                        f'⚠️ {len(only_in_alignment)} IDs only in alignment (not in metadata)',
+                        f'{len(only_in_alignment)} IDs only in alignment (not in metadata)',
                         color='info',
                     )
                 )
             if only_in_metadata:
                 warnings.append(
                     dbc.Alert(
-                        f'⚠️ {len(only_in_metadata)} IDs only in metadata (not in alignment)',
+                        f'{len(only_in_metadata)} IDs only in metadata (not in alignment)',
                         color='info',
                     )
                 )
@@ -772,6 +786,46 @@ def register(app, logger) -> None:
         Input('network-graph', 'elements'),
         prevent_initial_call=True,
     )
+
+
+def _haplotype_chip(inferred: bool) -> html.Span:
+    """
+    Build the observed/inferred marker chip.
+
+    A filled chip for observed haplotypes and a hollow one for inferred
+    median vectors: the distinction survives greyscale printing, which a
+    pair of coloured dots would not.
+
+    Parameters
+    ----------
+    inferred : bool
+        Whether the haplotype is an inferred median vector.
+
+    Returns
+    -------
+    html.Span
+        The chip element.
+    """
+    kind = 'inferred' if inferred else 'observed'
+    return html.Span(className=f'pp-chip pp-chip-{kind}')
+
+
+def _haplotype_type_cell(inferred: bool) -> html.Span:
+    """
+    Build the Type cell: a chip followed by its word.
+
+    Parameters
+    ----------
+    inferred : bool
+        Whether the haplotype is an inferred median vector.
+
+    Returns
+    -------
+    html.Span
+        The cell contents.
+    """
+    label = 'Inferred' if inferred else 'Observed'
+    return html.Span([_haplotype_chip(inferred), f' {label}'])
 
 
 def _format_central_haplotypes(

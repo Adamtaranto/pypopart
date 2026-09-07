@@ -7,6 +7,7 @@ from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 
 from pypopart.core.graph import HaplotypeNetwork
+from pypopart.gui.serialization import merge_node_positions
 from pypopart.layout.algorithms import LayoutManager, snap_to_grid
 from pypopart.visualization.cytoscape_plot import (
     DEFAULT_TICK_THRESHOLD,
@@ -23,6 +24,10 @@ BASE_NODE_SIZE = 40.0
 #: Cytoscape renders stored layout coordinates multiplied by this, so a grid
 #: expressed in Cytoscape pixels divides by it to reach stored units.
 CYTOSCAPE_POSITION_SCALE = 100.0
+
+#: How far a node must move, in stored units, to count as dragged. Below
+#: this the change is float noise from the position scaling round trip.
+POSITION_EPSILON = 0.01
 
 
 def _grid_step(snap_enabled: Optional[bool], grid_size: Optional[float]) -> float:
@@ -130,7 +135,13 @@ def register(app, logger) -> None:
             return {'display': 'none'}, False
 
     @app.callback(
-        Output('layout-store', 'data'),
+        [
+            Output('layout-store', 'data'),
+            # A freshly computed layout supersedes any manual drags, and the
+            # view should re-fit to it.
+            Output('node-positions-store', 'data', allow_duplicate=True),
+            Output('manual-edit-flag', 'data', allow_duplicate=True),
+        ],
         [
             Input('apply-layout-button', 'n_clicks'),
             Input('network-store', 'data'),
@@ -143,7 +154,7 @@ def register(app, logger) -> None:
             State('snap-to-grid-toggle', 'value'),
             State('grid-size', 'value'),
         ],
-        prevent_initial_call=False,
+        prevent_initial_call='initial_duplicate',
     )
     def apply_layout(
         n_clicks: Optional[int],
@@ -154,7 +165,7 @@ def register(app, logger) -> None:
         projection: str,
         snap_enabled: Optional[bool],
         grid_size: Optional[float],
-    ) -> Optional[Dict]:
+    ) -> Tuple[Optional[Dict], None, bool]:
         """
         Apply layout algorithm to network.
 
@@ -179,11 +190,12 @@ def register(app, logger) -> None:
 
         Returns
         -------
-        Optional[Dict]
-            Node positions for the layout store, or None on failure.
+        Tuple[Optional[Dict], None, bool]
+            Node positions for the layout store, a cleared drag store, and
+            a cleared manual-edit flag.
         """
         if not network_data:
-            return None
+            return None, None, False
 
         try:
             # Reconstruct network
@@ -278,12 +290,12 @@ def register(app, logger) -> None:
             # Convert to serializable format
             layout_data = {node: list(pos) for node, pos in positions.items()}
 
-            return layout_data
+            return layout_data, None, False
 
         except Exception as e:
             logger.error(f'Error applying layout: {e}')
             logger.error(traceback.format_exc())
-            return None
+            return None, None, False
 
     @app.callback(
         [
@@ -303,6 +315,7 @@ def register(app, logger) -> None:
             State('edge-width-slider', 'value'),
             State('edge-tick-toggle', 'value'),
             State('edge-tick-threshold', 'value'),
+            State('node-positions-store', 'data'),
         ],
     )
     def update_network_graph(
@@ -315,6 +328,7 @@ def register(app, logger) -> None:
         edge_width: Optional[float],
         show_edge_ticks: Optional[bool],
         edge_tick_threshold: Optional[int],
+        dragged_positions: Optional[Dict],
     ) -> Tuple[List[Dict], List[Dict], html.Div]:
         """
         Update network visualization with Cytoscape.
@@ -339,6 +353,8 @@ def register(app, logger) -> None:
             Whether mutation counts render as tick marks.
         edge_tick_threshold : int, optional
             Mutation count above which an edge shows a numeral.
+        dragged_positions : Dict, optional
+            Manually dragged node positions, which win over the layout.
 
         Returns
         -------
@@ -353,8 +369,8 @@ def register(app, logger) -> None:
             # Reconstruct network
             network = HaplotypeNetwork.from_serialized(network_data)
 
-            # Convert layout data
-            positions = {node: tuple(pos) for node, pos in layout_data.items()}
+            # Manual drags win over the computed layout.
+            positions = merge_node_positions(layout_data, dragged_positions)
 
             # Generate H number labels for nodes
             # Use custom mapping if available, otherwise generate default H numbers
@@ -493,11 +509,16 @@ def register(app, logger) -> None:
 
     @app.callback(
         [
-            Output('layout-store', 'data', allow_duplicate=True),
+            # Deliberately NOT layout-store. That store is an Input of
+            # update_network_graph, so writing drags there made every drag
+            # rebuild all elements, which re-fit the view and pushed the
+            # position through a lossy /100 -> *100 float round trip.
+            Output('node-positions-store', 'data', allow_duplicate=True),
             Output('manual-edit-flag', 'data', allow_duplicate=True),
         ],
         Input('network-graph', 'elements'),
         [
+            State('node-positions-store', 'data'),
             State('layout-store', 'data'),
             State('snap-to-grid-toggle', 'value'),
             State('grid-size', 'value'),
@@ -506,24 +527,28 @@ def register(app, logger) -> None:
     )
     def update_node_positions(
         elements: Optional[List[Dict]],
+        current_positions: Optional[Dict],
         current_layout: Optional[Dict],
         snap_enabled: Optional[bool],
         grid_size: Optional[float],
     ) -> Tuple[Optional[Dict], bool]:
         """
-        Update node positions when user drags nodes in Cytoscape.
+        Persist node positions when the user drags nodes in Cytoscape.
 
         Snapping is applied here as well as in the browser: the clientside
         handler moves the node so the user sees it land on the grid, and
-        this guarantees the *stored* layout is quantised even if that
+        this guarantees the *stored* position is quantised even if that
         reposition does not make it back into the elements prop.
 
         Parameters
         ----------
         elements : List[Dict], optional
             Current Cytoscape elements.
+        current_positions : Dict, optional
+            Previously stored manual positions.
         current_layout : Dict, optional
-            Current layout positions.
+            Positions from the computed layout, used as the baseline for
+            deciding whether anything actually moved.
         snap_enabled : bool, optional
             Whether dragged positions are quantised to the grid.
         grid_size : float, optional
@@ -532,14 +557,14 @@ def register(app, logger) -> None:
         Returns
         -------
         Tuple[Optional[Dict], bool]
-            Updated layout positions, and whether the update was applied.
+            The stored positions, and whether a node actually moved.
         """
         if not elements or not current_layout:
             raise PreventUpdate
 
         try:
-            updated_layout = current_layout.copy()
             step = _grid_step(snap_enabled, grid_size)
+            baseline = merge_node_positions(current_layout, current_positions)
 
             dragged = {}
             for element in elements:
@@ -552,22 +577,30 @@ def register(app, logger) -> None:
                             element['position']['y'] / CYTOSCAPE_POSITION_SCALE,
                         )
 
-            # Idempotent, so re-running it on an already-snapped layout is a
+            # Idempotent, so re-running it on already-snapped positions is a
             # no-op -- this callback fires on every elements change, not only
             # at the end of a drag.
             dragged = snap_to_grid(dragged, step)
 
+            updated = dict(current_positions or {})
             position_changed = False
             for node_id, (x, y) in dragged.items():
-                if node_id in current_layout:
-                    old_pos = current_layout[node_id]
-                    if abs(old_pos[0] - x) > 0.01 or abs(old_pos[1] - y) > 0.01:
-                        position_changed = True
-                updated_layout[node_id] = [x, y]
+                old_pos = baseline.get(node_id)
+                if old_pos is not None and (
+                    abs(old_pos[0] - x) > POSITION_EPSILON
+                    or abs(old_pos[1] - y) > POSITION_EPSILON
+                ):
+                    position_changed = True
+                # Rounded so repeated round trips cannot accumulate noise.
+                updated[node_id] = [round(x, 6), round(y, 6)]
 
-            # Set manual edit flag to True if positions changed
-            return updated_layout, position_changed
+            if not position_changed:
+                raise PreventUpdate
 
+            return updated, True
+
+        except PreventUpdate:
+            raise
         except Exception as e:
             logger.error(f'Error updating node positions: {e}')
             raise PreventUpdate from e

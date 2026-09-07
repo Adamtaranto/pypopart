@@ -696,3 +696,56 @@ class TestSnapToGrid:
         snap_to_grid(positions, 0.5)
 
         assert positions == {'a': (0.31, 0.62)}
+
+
+class TestPositionRoundTrip:
+    """Cytoscape renders stored coordinates at 100x and reports them back."""
+
+    @pytest.mark.parametrize('pixel', [137.0, -212.5, 0.0, 1e-3, 4321.25])
+    def test_scaling_is_lossless_at_six_places(self, pixel):
+        """Storing a dragged pixel position must not move the node."""
+        from pypopart.gui.callbacks.layout import CYTOSCAPE_POSITION_SCALE
+
+        stored = round(pixel / CYTOSCAPE_POSITION_SCALE, 6)
+        assert stored * CYTOSCAPE_POSITION_SCALE == pytest.approx(pixel, abs=1e-4)
+
+
+class TestMergeNodePositions:
+    """Manual drags overlay the computed layout."""
+
+    def test_drag_wins_over_layout(self):
+        """The whole point of the separate store."""
+        from pypopart.gui.serialization import merge_node_positions
+
+        merged = merge_node_positions({'a': [1.0, 2.0]}, {'a': [9.0, 9.0]})
+
+        assert merged['a'] == (9.0, 9.0)
+
+    def test_layout_used_where_no_drag(self):
+        """Untouched nodes keep their computed positions."""
+        from pypopart.gui.serialization import merge_node_positions
+
+        merged = merge_node_positions({'a': [1.0, 2.0], 'b': [3.0, 4.0]}, {'a': [9, 9]})
+
+        assert merged['b'] == (3.0, 4.0)
+
+    def test_stale_drags_are_dropped(self):
+        """A drag for a node the new layout lacks must not resurrect it."""
+        from pypopart.gui.serialization import merge_node_positions
+
+        merged = merge_node_positions({'a': [1.0, 2.0]}, {'gone': [9.0, 9.0]})
+
+        assert set(merged) == {'a'}
+
+    @pytest.mark.parametrize('dragged', [None, {}])
+    def test_no_drags_returns_the_layout(self, dragged):
+        """An empty drag store is the normal state."""
+        from pypopart.gui.serialization import merge_node_positions
+
+        assert merge_node_positions({'a': [1.0, 2.0]}, dragged) == {'a': (1.0, 2.0)}
+
+    def test_no_layout_returns_empty(self):
+        """Nothing to render before a layout exists."""
+        from pypopart.gui.serialization import merge_node_positions
+
+        assert merge_node_positions(None, {'a': [1.0, 2.0]}) == {}

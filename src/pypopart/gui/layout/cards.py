@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 
 from ...visualization.cytoscape_plot import DEFAULT_TICK_THRESHOLD, MAX_TICK_MARKS
+from ..callbacks.feedback import TOAST_DURATION_MS
 
 
 def build_layout(app) -> None:
@@ -138,6 +139,15 @@ def build_layout(app) -> None:
                     'overflow': 'hidden',
                 },
             ),
+            # Transient confirmations. Errors stay inline in their panel.
+            dbc.Toast(
+                id='app-toast',
+                header='',
+                is_open=False,
+                dismissable=True,
+                duration=TOAST_DURATION_MS,
+                className='pp-toast',
+            ),
             # Hidden stores for data
             dcc.Store(id='alignment-store'),
             dcc.Store(id='metadata-store'),
@@ -146,6 +156,9 @@ def build_layout(app) -> None:
             dcc.Store(id='computation-status'),
             dcc.Store(id='geographic-mode', data=False),
             dcc.Store(id='manual-edit-flag', data=False),
+            # Manually dragged node positions, kept apart from
+            # layout-store so a drag does not rebuild the whole graph.
+            dcc.Store(id='node-positions-store'),
             dcc.Store(id='sidebar-collapsed', data=False),
             # Uncommitted metadata edits: {'rows': [...], 'edited': [[id, col]]}
             dcc.Store(id='metadata-draft-store'),
@@ -182,7 +195,7 @@ def create_upload_card() -> dbc.Card:
                     dcc.Upload(
                         id='upload-data',
                         children=dbc.Button(
-                            '📁 Select Sequence File',
+                            'Select Sequence File',
                             color='primary',
                             className='w-100',
                         ),
@@ -198,7 +211,7 @@ def create_upload_card() -> dbc.Card:
                     dcc.Upload(
                         id='upload-metadata',
                         children=dbc.Button(
-                            '📊 Select Metadata File',
+                            'Select Metadata File',
                             color='secondary',
                             outline=True,
                             className='w-100',
@@ -211,7 +224,7 @@ def create_upload_card() -> dbc.Card:
                         children=[
                             html.Hr(),
                             dbc.Button(
-                                '⬇️ Download Metadata Template',
+                                'Download Metadata Template',
                                 id='download-template-button',
                                 color='info',
                                 outline=True,
@@ -289,7 +302,7 @@ def create_algorithm_card() -> dbc.Card:
                     html.Br(),
                     html.Div(id='metadata-draft-badge-sidebar', className='mb-2'),
                     dbc.Button(
-                        '⚡ Compute Network',
+                        'Compute Network',
                         id='compute-button',
                         color='success',
                         className='w-100',
@@ -487,7 +500,7 @@ def create_layout_card() -> dbc.Card:
                     ),
                     html.Br(),
                     dbc.Button(
-                        '🎨 Apply Layout',
+                        'Apply Layout',
                         id='apply-layout-button',
                         color='info',
                         className='w-100',
@@ -529,15 +542,15 @@ def create_export_card() -> dbc.Card:
                             },
                             {'label': 'GML (Graph Format)', 'value': 'gml'},
                             {'label': 'JSON', 'value': 'json'},
-                            {'label': 'PNG Image', 'value': 'png'},
-                            {'label': 'SVG Image', 'value': 'svg'},
+                            {'label': 'PNG Image (current view)', 'value': 'png'},
+                            {'label': 'SVG Figure (publication)', 'value': 'svg'},
                         ],
-                        value='svg',
+                        value='png',
                         style={'whiteSpace': 'nowrap'},
                     ),
                     html.Br(),
                     dbc.Button(
-                        '💾 Download',
+                        'Download',
                         id='export-button',
                         color='secondary',
                         className='w-100',
@@ -574,10 +587,6 @@ def create_network_tab() -> html.Div:
                         style={'width': '300px', 'display': 'inline-block'},
                         clearable=True,
                         multi=True,
-                    ),
-                    html.Div(
-                        id='search-feedback',
-                        className='pp-error ms-2',
                     ),
                 ],
                 className='pp-overlay pp-search',
@@ -673,38 +682,38 @@ def create_haplotype_summary_tab() -> html.Div:
             html.Div(
                 [
                     dbc.Button(
-                        '⬇️ Download Summary CSV',
+                        'Download Summary CSV',
                         id='download-haplotype-csv-button',
                         color='primary',
                         size='sm',
-                        style={'marginRight': '10px'},
                     ),
                     dcc.Download(id='download-haplotype-csv'),
                     dbc.Button(
-                        '⬇️ Download Label Template',
+                        'Download Label Template',
                         id='download-h-number-template-button',
                         color='info',
                         outline=True,
                         size='sm',
-                        style={'marginRight': '10px'},
                     ),
                     dcc.Download(id='download-h-number-template'),
                     dcc.Upload(
                         id='upload-h-number-mapping',
                         children=dbc.Button(
-                            '⬆️ Upload Label Mapping',
+                            'Upload Label Mapping',
                             color='warning',
                             outline=True,
                             size='sm',
                         ),
-                        style={'display': 'inline-block', 'marginRight': '10px'},
-                    ),
-                    html.Div(
-                        id='h-number-feedback',
-                        style={'display': 'inline-block', 'marginLeft': '10px'},
                     ),
                 ],
+                # Flex row rather than inline-block plus margins, so the
+                # buttons wrap cleanly when the panel is narrow.
+                className='d-flex flex-wrap align-items-center gap-2',
                 style={'padding': '20px 20px 10px 20px'},
+            ),
+            html.Div(
+                id='h-number-feedback',
+                style={'padding': '0 20px 10px 20px'},
             ),
             html.Div(
                 id='haplotype-summary-display',

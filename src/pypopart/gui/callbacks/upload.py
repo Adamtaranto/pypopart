@@ -3,7 +3,7 @@
 import base64
 import logging
 import traceback
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import dash
 from dash import Input, Output, State, html
@@ -11,6 +11,8 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from pypopart.core.graph import HaplotypeNetwork
+from pypopart.gui.callbacks.feedback import no_toast, toast
+from pypopart.gui.serialization import merge_node_positions
 from pypopart.io import FastaReader, NexusReader, PhylipReader
 from pypopart.io.metadata import MetadataReader, extract_coordinates
 from pypopart.visualization.cytoscape_plot import (
@@ -73,13 +75,15 @@ def register(app, logger) -> None:
             Output('alignment-store', 'data'),
             Output('compute-button', 'disabled'),
             Output('download-template-button', 'disabled'),
+            Output('app-toast', 'children', allow_duplicate=True),
+            Output('app-toast', 'header', allow_duplicate=True),
+            Output('app-toast', 'is_open', allow_duplicate=True),
         ],
         Input('upload-data', 'contents'),
         State('upload-data', 'filename'),
+        prevent_initial_call='initial_duplicate',
     )
-    def handle_file_upload(
-        contents: Optional[str], filename: Optional[str]
-    ) -> Tuple[html.Div, Optional[Dict], bool, bool]:
+    def handle_file_upload(contents: Optional[str], filename: Optional[str]) -> Tuple:
         """
         Handle file upload and parse alignment.
 
@@ -92,12 +96,13 @@ def register(app, logger) -> None:
 
         Returns
         -------
-        Tuple[html.Div, Optional[Dict], bool, bool]
-            Upload feedback, the parsed alignment for its store, and the
-            disabled state of the compute and template buttons.
+        tuple
+            Inline feedback, the parsed alignment for its store, the
+            disabled state of the compute and template buttons, and the
+            success toast.
         """
         if contents is None:
-            return html.Div(), None, True, True
+            return html.Div(), None, True, True, *no_toast()
 
         try:
             content_type, content_string = contents.split(',')
@@ -113,7 +118,7 @@ def register(app, logger) -> None:
                 return (
                     dbc.Alert(
                         [
-                            html.Strong('❌ Unsupported file format'),
+                            html.Strong('Unsupported file format'),
                             html.Br(),
                             f'File: {filename}',
                             html.Br(),
@@ -124,6 +129,7 @@ def register(app, logger) -> None:
                     None,
                     True,
                     True,
+                    *no_toast(),
                 )
 
             # Validate alignment
@@ -131,7 +137,7 @@ def register(app, logger) -> None:
                 return (
                     dbc.Alert(
                         [
-                            html.Strong('⚠️ Empty alignment'),
+                            html.Strong('Empty alignment'),
                             html.Br(),
                             'The file contains no sequences. Please check your input file.',
                         ],
@@ -140,6 +146,7 @@ def register(app, logger) -> None:
                     None,
                     True,
                     True,
+                    *no_toast(),
                 )
 
             # Store alignment data
@@ -157,24 +164,25 @@ def register(app, logger) -> None:
                 'num_sequences': len(alignment),
             }
 
-            status = dbc.Alert(
-                [
-                    html.Strong('✅ Success! '),
-                    f'Loaded {len(alignment)} sequences '
-                    f'of length {alignment.length} bp',
-                ],
-                color='success',
-            )
-
             # Enable both compute button and template download button
-            return status, alignment_data, False, False
+            return (
+                html.Div(),
+                alignment_data,
+                False,
+                False,
+                *toast(
+                    f'Loaded {len(alignment)} sequences '
+                    f'of length {alignment.length} bp.',
+                    header='Alignment loaded',
+                ),
+            )
 
         except Exception as e:
             logger.error(f'Error parsing file: {e}')
             return (
                 dbc.Alert(
                     [
-                        html.Strong('❌ Error parsing file'),
+                        html.Strong('Error parsing file'),
                         html.Br(),
                         f'Error: {str(e)}',
                         html.Br(),
@@ -185,16 +193,24 @@ def register(app, logger) -> None:
                 None,
                 True,
                 True,
+                *no_toast(),
             )
 
     @app.callback(
-        [Output('metadata-status', 'children'), Output('metadata-store', 'data')],
+        [
+            Output('metadata-status', 'children'),
+            Output('metadata-store', 'data'),
+            Output('app-toast', 'children', allow_duplicate=True),
+            Output('app-toast', 'header', allow_duplicate=True),
+            Output('app-toast', 'is_open', allow_duplicate=True),
+        ],
         Input('upload-metadata', 'contents'),
         State('upload-metadata', 'filename'),
+        prevent_initial_call='initial_duplicate',
     )
     def handle_metadata_upload(
         contents: Optional[str], filename: Optional[str]
-    ) -> Tuple[html.Div, Optional[Dict]]:
+    ) -> Tuple:
         """
         Handle metadata file upload and parse coordinates.
 
@@ -207,11 +223,12 @@ def register(app, logger) -> None:
 
         Returns
         -------
-        Tuple[html.Div, Optional[Dict]]
-            Upload feedback and the parsed metadata for its store.
+        tuple
+            Inline feedback, the parsed metadata for its store, and the
+            success toast.
         """
         if contents is None:
-            return html.Div(), None
+            return html.Div(), None, *no_toast()
 
         try:
             content_type, content_string = contents.split(',')
@@ -222,7 +239,7 @@ def register(app, logger) -> None:
                 return (
                     dbc.Alert(
                         [
-                            html.Strong('❌ Invalid file type'),
+                            html.Strong('Invalid file type'),
                             html.Br(),
                             'Metadata must be a CSV (.csv) or text (.txt) file.',
                         ],
@@ -281,30 +298,31 @@ def register(app, logger) -> None:
             }
 
             # Build status message
-            status_parts = [html.Strong('✅ Success! ')]
-            status_parts.append(f'Loaded metadata for {len(metadata_dict)} sequences.')
+            status_parts = [f'Loaded metadata for {len(metadata_dict)} sequences.']
 
             if coordinates:
                 status_parts.append(html.Br())
                 status_parts.append(
-                    f'📍 Found geographic coordinates for {len(coordinates)} sequences.'
+                    f'Found geographic coordinates for {len(coordinates)} sequences.'
                 )
             else:
                 status_parts.append(html.Br())
                 status_parts.append(
-                    '💡 Tip: Add latitude/longitude columns for geographic visualization.'
+                    'Tip: add latitude and longitude columns for geographic layouts.'
                 )
 
-            status = dbc.Alert(status_parts, color='success')
-
-            return status, metadata_data
+            return (
+                html.Div(),
+                metadata_data,
+                *toast(status_parts, header='Metadata loaded'),
+            )
 
         except Exception as e:
             logger.error(f'Error parsing metadata: {e}')
             return (
                 dbc.Alert(
                     [
-                        html.Strong('❌ Error parsing metadata'),
+                        html.Strong('Error parsing metadata'),
                         html.Br(),
                         f'Error: {str(e)}',
                         html.Br(),
@@ -313,6 +331,7 @@ def register(app, logger) -> None:
                     color='danger',
                 ),
                 None,
+                *no_toast(),
             )
 
     @app.callback(
@@ -434,6 +453,9 @@ def register(app, logger) -> None:
             Output('h-number-mapping-store', 'data'),
             Output('h-number-feedback', 'children'),
             Output('network-graph', 'elements', allow_duplicate=True),
+            Output('app-toast', 'children', allow_duplicate=True),
+            Output('app-toast', 'header', allow_duplicate=True),
+            Output('app-toast', 'is_open', allow_duplicate=True),
         ],
         Input('upload-h-number-mapping', 'contents'),
         [
@@ -441,6 +463,7 @@ def register(app, logger) -> None:
             State('network-store', 'data'),
             State('layout-store', 'data'),
             State('metadata-store', 'data'),
+            State('node-positions-store', 'data'),
         ],
         prevent_initial_call=True,
     )
@@ -450,7 +473,8 @@ def register(app, logger) -> None:
         network_data: Optional[Dict],
         layout_data: Optional[Dict],
         metadata_data: Optional[Dict],
-    ) -> Tuple[Optional[Dict], html.Div, List[Dict]]:
+        dragged_positions: Optional[Dict],
+    ) -> Tuple:
         """
         Process uploaded H number mapping CSV and update graph.
 
@@ -466,12 +490,14 @@ def register(app, logger) -> None:
             Node positions from the layout store.
         metadata_data : Dict, optional
             Serialized metadata from the metadata store.
+        dragged_positions : Dict, optional
+            Manually dragged node positions, which win over the layout.
 
         Returns
         -------
-        Tuple[Optional[Dict], html.Div, List[Dict]]
-            The parsed label mapping, upload feedback, and the refreshed
-            Cytoscape elements.
+        tuple
+            The parsed label mapping, inline feedback, the refreshed
+            Cytoscape elements, and the success toast.
         """
         if not contents or not network_data:
             raise PreventUpdate
@@ -496,7 +522,7 @@ def register(app, logger) -> None:
                     None,
                     dbc.Alert(
                         [
-                            html.Strong('❌ Invalid CSV Format'),
+                            html.Strong('Invalid CSV format'),
                             html.Br(),
                             'CSV must have exactly two columns: "current_h_number" and "new_label"',
                         ],
@@ -504,6 +530,7 @@ def register(app, logger) -> None:
                         dismissable=True,
                     ),
                     dash.no_update,
+                    *no_toast(),
                 )
 
             # Reconstruct network to get node IDs
@@ -553,7 +580,7 @@ def register(app, logger) -> None:
             if errors:
                 error_msg = html.Div(
                     [
-                        html.Strong('❌ Validation Errors:'),
+                        html.Strong('Validation errors'),
                         html.Ul([html.Li(err) for err in errors[:10]]),
                         html.P(f'({len(errors)} total errors)')
                         if len(errors) > 10
@@ -564,10 +591,11 @@ def register(app, logger) -> None:
                     None,
                     dbc.Alert(error_msg, color='danger', dismissable=True),
                     dash.no_update,
+                    *no_toast(),
                 )
 
             # If validation passed, update the graph with new labels
-            positions = {node: tuple(pos) for node, pos in layout_data.items()}
+            positions = merge_node_positions(layout_data, dragged_positions)
 
             # Extract population colors and mapping from metadata if available
             population_colors = None
@@ -587,18 +615,15 @@ def register(app, logger) -> None:
                 node_labels=new_mapping,
             )
 
-            success_msg = dbc.Alert(
-                [
-                    html.Strong('✅ Success!'),
-                    html.Br(),
-                    f'Updated {len(new_mapping)} H number labels from "{filename}"',
-                ],
-                color='success',
-                dismissable=True,
-                duration=4000,
+            return (
+                new_mapping,
+                html.Div(),
+                elements,
+                *toast(
+                    f'Updated {len(new_mapping)} labels from "{filename}".',
+                    header='Labels updated',
+                ),
             )
-
-            return new_mapping, success_msg, elements
 
         except Exception as e:
             logger.error(f'Error processing H number mapping: {e}')
@@ -607,7 +632,7 @@ def register(app, logger) -> None:
                 None,
                 dbc.Alert(
                     [
-                        html.Strong('❌ Error processing mapping'),
+                        html.Strong('Error processing mapping'),
                         html.Br(),
                         str(e),
                     ],
@@ -615,14 +640,19 @@ def register(app, logger) -> None:
                     dismissable=True,
                 ),
                 dash.no_update,
+                *no_toast(),
             )
 
-    # Clientside callback to auto-fit network when elements are updated
-    # Only fit when not in manual edit mode
+    # Re-fit the view when the layout changes, not when elements change.
+    # 'elements' is a two-way prop: dragging a node pushes it back to Dash,
+    # so triggering on it re-fitted the view on every drag -- and did so
+    # before manual-edit-flag had flipped, sailing past the guard below.
+    # layout-store only changes when the user asks for a new layout or a
+    # new network, which is exactly when a re-fit is wanted.
     app.clientside_callback(
         """
-        function(elements, manualEditFlag) {
-            if (!elements || elements.length === 0) {
+        function(layoutData, manualEditFlag) {
+            if (!layoutData) {
                 return window.dash_clientside.no_update;
             }
             // Only auto-fit if not manually editing
@@ -632,19 +662,29 @@ def register(app, logger) -> None:
                     try {
                         const cy = document.getElementById('network-graph')._cyreg.cy;
                         if (cy) {
+                            // dcc.Loading swaps the canvas out for a
+                            // spinner on every callback, which leaves
+                            // Cytoscape's cached dimensions at 0x0 -- and
+                            // fit() on a zero-sized viewport does nothing.
+                            cy.resize();
                             cy.fit(null, 50);  // Fit with 50px padding
                             cy.center();
                         }
                     } catch (e) {
                         console.log('Could not auto-fit network:', e);
                     }
-                }, 100);
+                // Long enough for the elements rebuilt from this same
+                // layout change to have rendered.
+                }, 250);
             }
-            return elements.length;
+            // Never write a real value here: this Output only exists to
+            // give the callback somewhere to go. Returning elements.length
+            // set the zoom to the node-and-edge count on every update.
+            return window.dash_clientside.no_update;
         }
         """,
         Output('network-graph', 'zoom'),
-        [Input('network-graph', 'elements'), Input('manual-edit-flag', 'data')],
+        [Input('layout-store', 'data'), Input('manual-edit-flag', 'data')],
     )
 
     # Clientside callback to handle window resize and adjust network layout

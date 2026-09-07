@@ -5,9 +5,11 @@ from pathlib import Path
 import pytest
 
 from pypopart.visualization.style import (
+    MIN_NODE_LUMA,
     PALETTE,
     POP_ART_PALETTE,
     generate_population_colors,
+    luma,
 )
 
 THEME_CSS = (
@@ -74,3 +76,34 @@ class TestGeneratePopulationColors:
     def test_empty_input(self):
         """No populations, no colours."""
         assert generate_population_colors([]) == {}
+
+
+class TestNodeColoursAreLightEnough:
+    """Node labels are ink on the fill, so dark fills are unreadable."""
+
+    @pytest.mark.parametrize('color', POP_ART_PALETTE)
+    def test_palette_clears_the_floor(self, color):
+        """Every hand-picked population colour is light enough."""
+        assert luma(color) >= MIN_NODE_LUMA
+
+    @pytest.mark.parametrize('n', [1, 8, 16, 17, 25, 50, 120])
+    def test_generated_colours_clear_the_floor(self, n):
+        """Including the HSV fallback, whose blues used to come out dark."""
+        colors = generate_population_colors([f'Pop{i:03d}' for i in range(n)])
+
+        assert colors
+        for color in colors.values():
+            assert luma(color) >= MIN_NODE_LUMA, f'{color} is too dark'
+
+    @pytest.mark.parametrize(
+        'color,expected',
+        [('#ffffff', 255.0), ('#000000', 0.0)],
+    )
+    def test_luma_endpoints(self, color, expected):
+        """Sanity-check the measure itself."""
+        assert luma(color) == pytest.approx(expected)
+
+    @pytest.mark.parametrize('bad', ['', 'nonsense', '#fff', '#gggggg'])
+    def test_unparseable_reads_as_dark(self, bad):
+        """Failing closed means a bad value can never pass a light check."""
+        assert luma(bad) == 0.0

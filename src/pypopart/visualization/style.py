@@ -21,29 +21,70 @@ POP_AMBER = '#fcbf49'
 POP_BONE = '#eae2b7'
 POP_INK = '#1d1d1b'
 POP_PAPER = '#ffffff'
+POP_TEAL = '#2a9d8f'
 
 #: Every palette colour, in the order the CSS declares them.
-PALETTE = (POP_RED, POP_NAVY, POP_AMBER, POP_BONE, POP_INK, POP_PAPER)
+PALETTE = (POP_RED, POP_NAVY, POP_AMBER, POP_BONE, POP_INK, POP_PAPER, POP_TEAL)
 
-#: Colours assigned to populations, in order. Chosen to stay legible as
-#: solid node fills and as pie slices, so the near-white bone and the
-#: near-black ink of the base palette are not in here.
+#: Lowest Rec. 601 luma a node fill may have. Node labels are ink with a
+#: thin paper outline, so a dark fill makes them hard to read.
+MIN_NODE_LUMA = 120.0
+
+#: Colours assigned to populations, in order. All are light enough to
+#: carry an ink label, which is why the navy and ink of the base palette
+#: are not among them.
 POP_ART_PALETTE = (
-    POP_RED,
-    POP_NAVY,
+    '#f4534d',  # vermilion
     POP_AMBER,
-    '#2a9d8f',  # teal
-    '#8338ec',  # violet
+    POP_TEAL,
+    '#4cc9f0',  # sky
     '#f77f00',  # orange
-    '#06a77d',  # green
+    '#90be6d',  # leaf
+    '#c77dff',  # lilac
     '#e5989b',  # rose
+    '#8ecae6',  # pale blue
+    '#f2cc8f',  # sand
+    '#52b788',  # emerald
+    '#ef476f',  # raspberry
+    '#b5e48c',  # lime
+    '#d4a5c9',  # orchid
+    '#9db4c0',  # slate
+    '#ffb703',  # gold
 )
 
 #: Default node colour used by every plotter.
-DEFAULT_NODE_COLOR = '#4d8fac'
+DEFAULT_NODE_COLOR = '#8ecae6'
 
 #: Default colour for inferred median/intermediate vertices.
 DEFAULT_MEDIAN_COLOR = '#c9c9c4'
+
+
+def luma(hex_color: str) -> float:
+    """
+    Measure a colour's perceived brightness.
+
+    Rec. 601 weighting, the usual quick approximation for deciding
+    whether a fill is light or dark.
+
+    Parameters
+    ----------
+    hex_color : str
+        Colour as ``#rrggbb``.
+
+    Returns
+    -------
+    float
+        Luma from 0 (black) to 255 (white). Unparseable input returns 0.0,
+        which reads as 'dark' and so fails any brightness check.
+    """
+    value = hex_color.lstrip('#')
+    if len(value) != 6:
+        return 0.0
+    try:
+        r, g, b = (int(value[i : i + 2], 16) for i in (0, 2, 4))
+    except ValueError:
+        return 0.0
+    return 0.299 * r + 0.587 * g + 0.114 * b
 
 
 def node_color(
@@ -99,7 +140,8 @@ def generate_population_colors(populations: List[str]) -> Dict[str, str]:
     Uses the hand-picked pop art palette while it lasts and falls back to
     evenly spaced HSV hues beyond it. The palette is not cycled: repeating
     it would hand two populations the same colour, and distinguishable
-    colours matter more than staying on-palette.
+    colours matter more than staying on-palette. Every colour it can
+    return clears :data:`MIN_NODE_LUMA`.
 
     Parameters
     ----------
@@ -118,10 +160,13 @@ def generate_population_colors(populations: List[str]) -> Dict[str, str]:
     if n <= len(POP_ART_PALETTE):
         return {pop: POP_ART_PALETTE[i] for i, pop in enumerate(names)}
 
+    # Low saturation at full value, so even the blue end of the wheel
+    # stays above MIN_NODE_LUMA. The old 0.7/0.9 produced fills around
+    # luma 86 -- darker than anything in the palette.
     colors = {}
     for i, pop in enumerate(names):
         hue = i / n if n else 0.0
-        r, g, b = colorsys.hsv_to_rgb(hue, 0.7, 0.9)
+        r, g, b = colorsys.hsv_to_rgb(hue, 0.45, 1.0)
         colors[pop] = '#{:02x}{:02x}{:02x}'.format(
             int(r * 255), int(g * 255), int(b * 255)
         )

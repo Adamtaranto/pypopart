@@ -15,6 +15,7 @@ from ..visualization.style import (
     POP_INK,
     POP_PAPER,
     generate_population_colors,
+    luma,
 )
 
 #: Columns the user may type into. Everything else is derived.
@@ -182,15 +183,8 @@ def _readable_text_color(hex_color: str) -> str:
     str
         ``'#000000'`` or ``'#ffffff'``.
     """
-    value = hex_color.lstrip('#')
-    if len(value) != 6:
-        return '#000000'
-    try:
-        r, g, b = (int(value[i : i + 2], 16) for i in (0, 2, 4))
-    except ValueError:
-        return '#000000'
-    # Rec. 601 luma; the usual mid-point threshold.
-    return '#000000' if (0.299 * r + 0.587 * g + 0.114 * b) > 140 else '#ffffff'
+    # Shared with the node-brightness check in style.py.
+    return '#000000' if luma(hex_color) > 140 else '#ffffff'
 
 
 def diff_metadata_rows(

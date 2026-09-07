@@ -308,6 +308,15 @@ class TestSidebarCollapse:
         assert 'sidebar-toggle' in ids
         assert 'sidebar-collapsed' in ids
 
+    def test_layout_has_drag_and_toast_components(self):
+        """Drags live in their own store; successes go to one toast."""
+        from pypopart.gui.app import PyPopARTApp
+
+        ids = _collect_ids(PyPopARTApp(debug=False).app.layout)
+
+        assert 'node-positions-store' in ids
+        assert 'app-toast' in ids
+
     def test_sidebar_has_a_reachable_resize_grip(self):
         """The native corner handle sat off-screen on a 90vh panel."""
         from pypopart.gui.app import PyPopARTApp

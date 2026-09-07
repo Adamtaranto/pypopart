@@ -7,7 +7,7 @@ the compute and rendering callbacks and by HaplotypeNetwork's
 from_serialized reader.
 """
 
-from typing import Dict
+from typing import Dict, Optional, Tuple
 
 import networkx as nx
 
@@ -86,3 +86,38 @@ def store_to_networkx(network_data: Dict) -> nx.Graph:
             weight=edge.get('weight', 1.0),
         )
     return graph
+
+
+def merge_node_positions(
+    layout_data: Optional[Dict], dragged: Optional[Dict]
+) -> Dict[str, Tuple[float, float]]:
+    """
+    Overlay manually dragged node positions onto a computed layout.
+
+    Dragged positions live in their own store rather than in
+    ``layout-store``. Writing them back into the layout store would make
+    every drag re-trigger the graph rebuild that reads it, which
+    regenerates all elements, re-fits the view and pushes the position
+    through a lossy float round trip.
+
+    Parameters
+    ----------
+    layout_data : dict, optional
+        Positions from ``layout-store``, as ``{node: [x, y]}``.
+    dragged : dict, optional
+        Positions from ``node-positions-store``, same shape. These win.
+
+    Returns
+    -------
+    dict
+        Node positions as ``{node: (x, y)}``, ready for the plotters.
+    """
+    positions = {
+        node: (float(pos[0]), float(pos[1]))
+        for node, pos in (layout_data or {}).items()
+    }
+    for node, pos in (dragged or {}).items():
+        # A drag for a node the current layout no longer has is stale.
+        if node in positions:
+            positions[node] = (float(pos[0]), float(pos[1]))
+    return positions

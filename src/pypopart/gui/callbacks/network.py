@@ -9,6 +9,7 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from pypopart.core.alignment import Alignment
+from pypopart.gui.callbacks.feedback import no_toast, toast
 from pypopart.gui.serialization import network_to_store
 
 
@@ -155,6 +156,11 @@ def register(app, logger) -> None:
             Output('computation-feedback', 'children'),
             Output('apply-layout-button', 'disabled'),
             Output('export-button', 'disabled'),
+            # A new network should re-fit, so clear any manual-drag flag.
+            Output('manual-edit-flag', 'data', allow_duplicate=True),
+            Output('app-toast', 'children', allow_duplicate=True),
+            Output('app-toast', 'header', allow_duplicate=True),
+            Output('app-toast', 'is_open', allow_duplicate=True),
         ],
         # Not the button directly: the metadata commit callback owns the
         # button and bumps this token once metadata-store is written, so
@@ -172,7 +178,7 @@ def register(app, logger) -> None:
         alignment_data: Dict,
         algorithm: str,
         param_values: List,
-    ) -> Tuple[Optional[Dict], html.Div, bool, bool]:
+    ) -> Tuple:
         """
         Compute haplotype network using selected algorithm.
 
@@ -190,9 +196,10 @@ def register(app, logger) -> None:
 
         Returns
         -------
-        Tuple[Optional[Dict], html.Div, bool, bool]
-            The computed network for its store, status feedback, and the
-            disabled state of the layout and export controls.
+        tuple
+            The computed network for its store, inline feedback, the
+            disabled state of the layout and export controls, a cleared
+            manual-edit flag, and the success toast.
         """
         if not alignment_data:
             raise PreventUpdate
@@ -246,19 +253,22 @@ def register(app, logger) -> None:
                 if network.graph.nodes[node].get('median_vector', False)
             )
 
-            feedback_parts = [html.Strong('✅ Network computed! ')]
-            feedback_parts.append(
+            message = [
                 f'{len(network.graph.nodes)} haplotypes, '
-                f'{len(network.graph.edges)} connections'
-            )
-
+                f'{len(network.graph.edges)} connections.'
+            ]
             if n_medians > 0:
-                feedback_parts.append(html.Br())
-                feedback_parts.append(f'🔵 {n_medians} inferred median nodes')
+                message.append(html.Br())
+                message.append(f'{n_medians} inferred median nodes.')
 
-            feedback = dbc.Alert(feedback_parts, color='success')
-
-            return network_data, feedback, False, False
+            return (
+                network_data,
+                html.Div(),
+                False,
+                False,
+                False,
+                *toast(message, header='Network computed'),
+            )
 
         except Exception as e:
             logger.error(f'Error computing network: {e}')
@@ -267,7 +277,7 @@ def register(app, logger) -> None:
                 None,
                 dbc.Alert(
                     [
-                        html.Strong('❌ Error computing network'),
+                        html.Strong('Error computing network'),
                         html.Br(),
                         f'Error: {str(e)}',
                         html.Br(),
@@ -277,4 +287,6 @@ def register(app, logger) -> None:
                 ),
                 True,
                 True,
+                False,
+                *no_toast(),
             )
