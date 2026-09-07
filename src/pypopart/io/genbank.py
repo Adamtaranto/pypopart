@@ -11,7 +11,16 @@ from pypopart.core.sequence import Sequence
 
 
 class GenBankReader:
-    """Reader for GenBank format sequence files."""
+    """
+    Reader for GenBank format sequence files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Path to GenBank file.
+    validate : bool, default=True
+        Whether to validate sequences.
+    """
 
     def __init__(self, filepath: Union[str, Path], validate: bool = True):
         """
@@ -31,7 +40,14 @@ class GenBankReader:
             raise FileNotFoundError(f'File not found: {filepath}')
 
     def _open_file(self) -> TextIO:
-        """Open file handling gzip compression."""
+        """
+        Open file handling gzip compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle, transparently decompressed.
+        """
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
         else:

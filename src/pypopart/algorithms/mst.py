@@ -321,7 +321,14 @@ class MinimumSpanningTree(NetworkAlgorithm):
         return network
 
     def get_parameters(self) -> dict:
-        """Get algorithm parameters including MST algorithm type."""
+        """
+        Get algorithm parameters including MST algorithm type.
+
+        Returns
+        -------
+        dict
+            Algorithm parameters, including the MST algorithm type.
+        """
         params = super().get_parameters()
         params['algorithm'] = self.algorithm
         return params

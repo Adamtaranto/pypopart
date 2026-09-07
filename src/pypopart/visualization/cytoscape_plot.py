@@ -21,6 +21,11 @@ class InteractiveCytoscapePlotter:
     Creates interactive visualizations of haplotype networks with
     manual node repositioning, pie chart nodes for population data,
     and customizable legends.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object to visualize.
     """
 
     def __init__(self, network: HaplotypeNetwork):

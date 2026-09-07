@@ -141,7 +141,14 @@ def _sanitize_graph_for_export(
 
 
 class GraphMLExporter:
-    """Export haplotype networks to GraphML format."""
+    """
+    Export haplotype networks to GraphML format.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    """
 
     def __init__(self, filepath: Union[str, Path]):
         """
@@ -174,7 +181,14 @@ class GraphMLExporter:
 
 
 class GMLExporter:
-    """Export haplotype networks to GML format."""
+    """
+    Export haplotype networks to GML format.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    """
 
     def __init__(self, filepath: Union[str, Path]):
         """
@@ -206,7 +220,14 @@ class GMLExporter:
 
 
 class CytoscapeExporter:
-    """Export haplotype networks to Cytoscape JSON format."""
+    """
+    Export haplotype networks to Cytoscape JSON format.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    """
 
     def __init__(self, filepath: Union[str, Path]):
         """
@@ -241,7 +262,14 @@ class CytoscapeExporter:
 
 
 class JSONExporter:
-    """Export haplotype networks to JSON format."""
+    """
+    Export haplotype networks to JSON format.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    """
 
     def __init__(self, filepath: Union[str, Path]):
         """

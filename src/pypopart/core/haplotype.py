@@ -30,6 +30,15 @@ class Haplotype:
     A haplotype is a unique DNA sequence that may be shared by multiple
     individuals or samples. This class tracks the sequence, frequency,
     and population assignments.
+
+    Parameters
+    ----------
+    sequence : Sequence
+        The unique sequence for this haplotype.
+    sample_ids : List[str], optional
+        List of sample IDs sharing this haplotype.
+    populations : Dict[str, str], optional
+        Dictionary mapping sample_id -> population/group.
     """
 
     def __init__(
@@ -56,22 +65,50 @@ class Haplotype:
 
     @property
     def id(self) -> str:
-        """Get haplotype ID (same as sequence ID)."""
+        """
+        Get haplotype ID (same as sequence ID).
+
+        Returns
+        -------
+        str
+            The haplotype identifier (its sequence ID).
+        """
         return self.sequence.id
 
     @property
     def data(self) -> str:
-        """Get sequence data."""
+        """
+        Get sequence data.
+
+        Returns
+        -------
+        str
+            The sequence data.
+        """
         return self.sequence.data
 
     @property
     def frequency(self) -> int:
-        """Get total frequency (number of samples with this haplotype)."""
+        """
+        Get total frequency (number of samples with this haplotype).
+
+        Returns
+        -------
+        int
+            Number of samples carrying this haplotype.
+        """
         return len(self._sample_ids)
 
     @property
     def sample_ids(self) -> List[str]:
-        """Get list of sample IDs with this haplotype."""
+        """
+        Get list of sample IDs with this haplotype.
+
+        Returns
+        -------
+        List[str]
+            List of sample IDs with this haplotype.
+        """
         return sorted(self._sample_ids)
 
     def add_sample(self, sample_id: str, population: Optional[str] = None) -> None:

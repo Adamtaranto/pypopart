@@ -19,6 +19,13 @@ class NexusReader:
     Reader for NEXUS format files.
 
     Supports PopART-style NEXUS with traits blocks.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Path to NEXUS file.
+    validate : bool, default=True
+        Whether to validate sequences and alignment.
     """
 
     def __init__(self, filepath: Union[str, Path], validate: bool = True):
@@ -68,7 +75,14 @@ class NexusReader:
         return reader
 
     def _open_file(self) -> TextIO:
-        """Open file handling gzip compression."""
+        """
+        Open file handling gzip compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle, transparently decompressed.
+        """
         if getattr(self, '_text', None) is not None:
             return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
@@ -281,6 +295,15 @@ class NexusWriter:
     Writer for NEXUS format files.
 
     Supports PopART-style NEXUS with traits blocks.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    interleaved : bool, default=False
+        Whether to write in interleaved format.
+    compress : str, optional
+        Compression format ('gzip' or None).
     """
 
     def __init__(
@@ -309,7 +332,14 @@ class NexusWriter:
             self.filepath = Path(str(self.filepath) + '.gz')
 
     def _open_file(self) -> TextIO:
-        """Open file for writing with optional compression."""
+        """
+        Open file for writing with optional compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle for writing, optionally compressed.
+        """
         if self.compress == 'gzip':
             return gzip.open(self.filepath, 'wt')
         else:

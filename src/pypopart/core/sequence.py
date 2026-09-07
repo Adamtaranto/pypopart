@@ -8,6 +8,17 @@ class Sequence:
     Represents a DNA sequence with metadata.
 
     Supports IUPAC nucleotide codes including ambiguous characters.
+
+    Parameters
+    ----------
+    id : str
+        Sequence identifier.
+    data : str
+        DNA sequence string.
+    metadata : Dict[str, Any], optional
+        Optional metadata dictionary.
+    description : str, optional
+        Optional sequence description.
     """
 
     # IUPAC nucleotide codes (uppercase)

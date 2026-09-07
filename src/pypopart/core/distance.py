@@ -122,6 +122,11 @@ def p_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True) -> floa
 
     N and ? characters are treated as ambiguous and do not count as
     mutations when compared to any base (A, T, G, C) or to each other.
+
+    Returns
+    -------
+    float
+        The p-distance (proportion of differing sites).
     """
     if len(seq1) != len(seq2):
         raise ValueError(f'Sequences must have same length: {len(seq1)} vs {len(seq2)}')
@@ -148,7 +153,14 @@ def p_distance(seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True) -> floa
 def jukes_cantor_distance(
     seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True
 ) -> float:
-    """Calculate Jukes-Cantor corrected distance."""
+    """
+    Calculate Jukes-Cantor corrected distance.
+
+    Returns
+    -------
+    float
+        The Jukes-Cantor corrected distance.
+    """
     p = p_distance(seq1, seq2, ignore_gaps)
 
     if p >= 0.75:
@@ -163,7 +175,14 @@ def jukes_cantor_distance(
 def kimura_2p_distance(
     seq1: Sequence, seq2: Sequence, ignore_gaps: bool = True
 ) -> float:
-    """Calculate Kimura 2-parameter distance."""
+    """
+    Calculate Kimura 2-parameter distance.
+
+    Returns
+    -------
+    float
+        The Kimura 2-parameter distance.
+    """
     if len(seq1) != len(seq2):
         raise ValueError(f'Sequences must have same length: {len(seq1)} vs {len(seq2)}')
 
@@ -387,7 +406,14 @@ class DistanceMatrix:
             self.matrix = np.zeros((self.n, self.n))
 
     def get_distance(self, label1: str, label2: str) -> float:
-        """Get distance between two sequences by label."""
+        """
+        Get distance between two sequences by label.
+
+        Returns
+        -------
+        float
+            The distance between the two labelled sequences.
+        """
         i = self._label_index[label1]
         j = self._label_index[label2]
         return self.matrix[i, j]
@@ -400,12 +426,26 @@ class DistanceMatrix:
         self.matrix[j, i] = distance
 
     def get_row(self, label: str) -> np.ndarray:
-        """Get all distances for a sequence."""
+        """
+        Get all distances for a sequence.
+
+        Returns
+        -------
+        np.ndarray
+            All distances for a sequence.
+        """
         i = self._label_index[label]
         return self.matrix[i, :]
 
     def get_min_distance(self, exclude_zero: bool = True) -> float:
-        """Get minimum distance in matrix."""
+        """
+        Get minimum distance in matrix.
+
+        Returns
+        -------
+        float
+            The smallest pairwise distance in the matrix.
+        """
         if exclude_zero:
             mask = np.triu(np.ones_like(self.matrix, dtype=bool), k=1)
             return self.matrix[mask].min()
@@ -413,16 +453,37 @@ class DistanceMatrix:
             return self.matrix.min()
 
     def get_max_distance(self) -> float:
-        """Get maximum distance in matrix."""
+        """
+        Get maximum distance in matrix.
+
+        Returns
+        -------
+        float
+            The largest pairwise distance in the matrix.
+        """
         return self.matrix.max()
 
     def to_dict(self) -> dict:
-        """Convert matrix to dictionary representation."""
+        """
+        Convert matrix to dictionary representation.
+
+        Returns
+        -------
+        dict
+            Dictionary representation of the matrix.
+        """
         return {'labels': self.labels, 'matrix': self.matrix.tolist()}
 
     @classmethod
     def from_dict(cls, data: dict) -> 'DistanceMatrix':
-        """Create distance matrix from dictionary."""
+        """
+        Create distance matrix from dictionary.
+
+        Returns
+        -------
+        DistanceMatrix
+            The reconstructed distance matrix.
+        """
         return cls(labels=data['labels'], matrix=np.array(data['matrix']))
 
     def visualize(
@@ -582,7 +643,14 @@ def calculate_distance_matrix(
     distance_func: Optional[Callable[[Sequence, Sequence], float]] = None,
     **kwargs,
 ) -> DistanceMatrix:
-    """Calculate pairwise distance matrix for alignment."""
+    """
+    Calculate pairwise distance matrix for alignment.
+
+    Returns
+    -------
+    DistanceMatrix
+        The pairwise distance matrix for the alignment.
+    """
     if distance_func is None:
         distance_func = hamming_distance
 
@@ -805,7 +873,14 @@ def pairwise_distance_matrix(
 def calculate_pairwise_distances(
     alignment: Alignment, method: str = 'hamming', ignore_gaps: bool = True
 ) -> DistanceMatrix:
-    """Calculate pairwise distances using specified method."""
+    """
+    Calculate pairwise distances using specified method.
+
+    Returns
+    -------
+    DistanceMatrix
+        The pairwise distance matrix.
+    """
     return pairwise_distance_matrix(alignment, method=method, ignore_gaps=ignore_gaps)
 
 
@@ -815,6 +890,13 @@ class DistanceCalculator:
 
     Provides a simple interface for distance calculation with
     different evolutionary models.
+
+    Parameters
+    ----------
+    method : str, default='hamming'
+        Distance method: 'hamming', 'jc', 'k2p', 'tamura_nei'.
+    ignore_gaps : bool, default=True
+        Whether to ignore gaps in calculations.
     """
 
     def __init__(self, method: str = 'hamming', ignore_gaps: bool = True):

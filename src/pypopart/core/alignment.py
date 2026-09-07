@@ -28,6 +28,11 @@ class Alignment:
     Represents a multiple sequence alignment.
 
     Provides methods for alignment analysis, validation, and manipulation.
+
+    Parameters
+    ----------
+    sequences : List[Sequence], optional
+        List of Sequence objects.
     """
 
     def __init__(self, sequences: Optional[List[Sequence]] = None):
@@ -151,14 +156,28 @@ class Alignment:
 
     @property
     def length(self) -> int:
-        """Get alignment length (sequence length)."""
+        """
+        Get alignment length (sequence length).
+
+        Returns
+        -------
+        int
+            Alignment length in sites.
+        """
         if not self._sequences:
             return 0
         return len(self._sequences[0])
 
     @property
     def sequence_ids(self) -> List[str]:
-        """Get list of sequence IDs."""
+        """
+        Get list of sequence IDs.
+
+        Returns
+        -------
+        List[str]
+            List of sequence IDs.
+        """
         return [seq.id for seq in self._sequences]
 
     def is_valid(self) -> bool:

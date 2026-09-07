@@ -125,9 +125,17 @@ checks = [
     "SS06", # and don't require the summary to fit on one line
 ]
 exclude = [ # don't report on checks for these
+    # Dunders: their contract is the data model's, not ours - a Returns
+    # section on __len__ or __hash__ is noise, not documentation.
     '\.__init__$',
     '\.__repr__$',
     '\.__str__$',
+    '\.__len__$',
+    '\.__eq__$',
+    '\.__hash__$',
+    '\.__iter__$',
+    '\.__getitem__$',
+    '\.__contains__$',
 ]
 override_SS05 = [ # allow docstrings to start with these words
     '^Process ',

@@ -403,7 +403,14 @@ def calculate_amova(
 
     # Calculate pairwise distances between all haplotypes
     def get_distance(hap_id1: str, hap_id2: str) -> int:
-        """Get number of differences between two haplotypes."""
+        """
+        Get number of differences between two haplotypes.
+
+        Returns
+        -------
+        int
+            Number of differing sites between the two haplotypes.
+        """
         if hap_id1 == hap_id2:
             return 0
 

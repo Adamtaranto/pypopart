@@ -121,7 +121,20 @@ def extract_coordinates(
 
 
 class MetadataReader:
-    """Reader for CSV-based metadata files."""
+    """
+    Reader for CSV-based metadata files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Path to metadata CSV file.
+    id_column : str, default='id'
+        Name of column containing sequence IDs.
+    delimiter : str, default=','
+        CSV delimiter character.
+    validate : bool, default=True
+        Whether to validate metadata.
+    """
 
     def __init__(
         self,
@@ -188,7 +201,14 @@ class MetadataReader:
         return reader
 
     def _open_file(self) -> TextIO:
-        """Open file handling gzip compression."""
+        """
+        Open file handling gzip compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle, transparently decompressed.
+        """
         if getattr(self, '_text', None) is not None:
             return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
@@ -256,7 +276,20 @@ class MetadataReader:
 
 
 class MetadataWriter:
-    """Writer for CSV-based metadata files."""
+    """
+    Writer for CSV-based metadata files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    id_column : str, default='id'
+        Name of column for sequence IDs.
+    delimiter : str, default=','
+        CSV delimiter character.
+    compress : str, optional
+        Compression format ('gzip' or None).
+    """
 
     def __init__(
         self,
@@ -288,7 +321,14 @@ class MetadataWriter:
             self.filepath = Path(str(self.filepath) + '.gz')
 
     def _open_file(self) -> TextIO:
-        """Open file for writing with optional compression."""
+        """
+        Open file for writing with optional compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle for writing, optionally compressed.
+        """
         if self.compress == 'gzip':
             return gzip.open(self.filepath, 'wt', encoding='utf-8')
         else:

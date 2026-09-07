@@ -22,6 +22,11 @@ class StaticNetworkPlotter:
 
     Generates publication-quality static plots of haplotype networks
     with customizable styling for nodes, edges, labels, and legends.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object to visualize.
     """
 
     def __init__(self, network: HaplotypeNetwork):

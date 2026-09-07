@@ -21,6 +21,11 @@ class InteractiveNetworkPlotter:
 
     Creates interactive visualizations of haplotype networks with
     hover information, zoom/pan controls, and clickable nodes.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object to visualize.
     """
 
     def __init__(self, network: HaplotypeNetwork):

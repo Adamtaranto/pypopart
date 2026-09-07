@@ -36,6 +36,11 @@ class HaplotypeNetwork:
     (or inferred median vectors) and edges represent mutational relationships.
     Node sizes typically reflect haplotype frequencies, and edge weights
     represent genetic distances.
+
+    Parameters
+    ----------
+    name : str, optional
+        Optional name for the network.
     """
 
     def __init__(self, name: Optional[str] = None):
@@ -163,7 +168,14 @@ class HaplotypeNetwork:
 
     @property
     def graph(self) -> nx.Graph:
-        """Get the underlying NetworkX graph."""
+        """
+        Get the underlying NetworkX graph.
+
+        Returns
+        -------
+        nx.Graph
+            The underlying NetworkX graph.
+        """
         return self._graph
 
     def add_haplotype(self, haplotype: Haplotype, median_vector: bool = False) -> None:
@@ -401,27 +413,62 @@ class HaplotypeNetwork:
 
     @property
     def num_nodes(self) -> int:
-        """Get number of nodes in network."""
+        """
+        Get number of nodes in network.
+
+        Returns
+        -------
+        int
+            Number of nodes in the network.
+        """
         return self._graph.number_of_nodes()
 
     @property
     def num_edges(self) -> int:
-        """Get number of edges in network."""
+        """
+        Get number of edges in network.
+
+        Returns
+        -------
+        int
+            Number of edges in the network.
+        """
         return self._graph.number_of_edges()
 
     @property
     def nodes(self) -> List[str]:
-        """Get list of node IDs."""
+        """
+        Get list of node IDs.
+
+        Returns
+        -------
+        List[str]
+            List of node IDs.
+        """
         return list(self._graph.nodes())
 
     @property
     def edges(self) -> List[Tuple[str, str]]:
-        """Get list of edges as (source, target) tuples."""
+        """
+        Get list of edges as (source, target) tuples.
+
+        Returns
+        -------
+        List[Tuple[str, str]]
+            List of edges as (source, target) tuples.
+        """
         return list(self._graph.edges())
 
     @property
     def haplotypes(self) -> List[Haplotype]:
-        """Get list of all haplotypes (excluding median vectors)."""
+        """
+        Get list of all haplotypes (excluding median vectors).
+
+        Returns
+        -------
+        List[Haplotype]
+            List of all haplotypes (excluding median vectors).
+        """
         return [
             hap
             for hap_id, hap in self._haplotype_map.items()
@@ -430,7 +477,14 @@ class HaplotypeNetwork:
 
     @property
     def median_vector_ids(self) -> List[str]:
-        """Get list of median vector node IDs."""
+        """
+        Get list of median vector node IDs.
+
+        Returns
+        -------
+        List[str]
+            List of median vector node IDs.
+        """
         return sorted(self._median_vectors)
 
     def is_median_vector(self, node_id: str) -> bool:

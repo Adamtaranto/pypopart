@@ -39,6 +39,11 @@ class LayoutAlgorithm:
     Base class for layout algorithms.
 
     Provides interface for computing node positions in network visualizations.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
     """
 
     def __init__(self, network: HaplotypeNetwork):
@@ -485,6 +490,13 @@ class ManualLayout(LayoutAlgorithm):
     Manual layout with user-specified positions.
 
     Allows manual positioning of nodes or adjustment of existing layouts.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    initial_positions : Dict[str, Tuple[float, float]], optional
+        Starting positions for nodes.
     """
 
     def __init__(

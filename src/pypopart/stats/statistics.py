@@ -174,6 +174,11 @@ def _calculate_nucleotide_diversity(
 
     where p_i is the frequency of haplotype i and d_ij is the
     number of differences between haplotypes i and j.
+
+    Returns
+    -------
+    float
+        The nucleotide diversity (π).
     """
     haplotype_ids = list(frequencies.keys())
     pi = 0.0

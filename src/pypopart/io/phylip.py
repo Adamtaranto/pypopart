@@ -14,6 +14,15 @@ class PhylipReader:
     Reader for PHYLIP format sequence files.
 
     Supports both sequential and interleaved formats.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Path to PHYLIP file.
+    strict : bool, default=False
+        Whether to use strict format (10-char IDs).
+    validate : bool, default=True
+        Whether to validate sequences and alignment.
     """
 
     def __init__(
@@ -70,7 +79,14 @@ class PhylipReader:
         return reader
 
     def _open_file(self) -> TextIO:
-        """Open file handling gzip compression."""
+        """
+        Open file handling gzip compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle, transparently decompressed.
+        """
         if getattr(self, '_text', None) is not None:
             return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
@@ -180,7 +196,22 @@ class PhylipReader:
 
 
 class PhylipWriter:
-    """Writer for PHYLIP format sequence files."""
+    """
+    Writer for PHYLIP format sequence files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    strict : bool, default=False
+        Whether to use strict format (10-char IDs).
+    interleaved : bool, default=False
+        Whether to write in interleaved format.
+    line_length : int, default=60
+        Line length for interleaved format.
+    compress : str, optional
+        Compression format ('gzip' or None).
+    """
 
     def __init__(
         self,
@@ -216,7 +247,14 @@ class PhylipWriter:
             self.filepath = Path(str(self.filepath) + '.gz')
 
     def _open_file(self) -> TextIO:
-        """Open file for writing with optional compression."""
+        """
+        Open file for writing with optional compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle for writing, optionally compressed.
+        """
         if self.compress == 'gzip':
             return gzip.open(self.filepath, 'wt')
         else:

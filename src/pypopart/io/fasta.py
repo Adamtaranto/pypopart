@@ -17,6 +17,13 @@ class FastaReader:
     Reader for FASTA format sequence files.
 
     Supports plain text, gzip, and zip compressed files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Path to FASTA file.
+    validate : bool, default=True
+        Whether to validate sequences.
     """
 
     def __init__(self, filepath: Union[str, Path], validate: bool = True):
@@ -152,7 +159,18 @@ class FastaReader:
 
 
 class FastaWriter:
-    """Writer for FASTA format sequence files."""
+    """
+    Writer for FASTA format sequence files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    line_length : int, default=80
+        Maximum line length for sequences (0 for no wrapping).
+    compress : str, optional
+        Compression format ('gzip' or None).
+    """
 
     def __init__(
         self,
