@@ -143,39 +143,35 @@ class TestParsimonyNetwork:
         assert len(network1) >= 4
         assert len(network2) >= 4
 
-    def test_pn_calculate_pairwise_distance(self):
-        """Test pairwise distance calculation."""
-        pn = ParsimonyNetwork()
+    def test_pn_edge_distance(self):
+        """Edge distances come from the shared sequence_distance path."""
+        from pypopart.core.distance import sequence_distance
 
         seq1 = Sequence('seq1', 'ATCG')
         seq2 = Sequence('seq2', 'ATCT')
 
-        distance = pn._calculate_pairwise_distance(seq1, seq2)
+        assert sequence_distance(seq1, seq2) == 1.0
 
-        # Should differ at 1 position
-        assert distance == 1.0
-
-    def test_pn_calculate_pairwise_distance_identical(self):
-        """Test pairwise distance for identical sequences."""
-        pn = ParsimonyNetwork()
+    def test_pn_edge_distance_identical(self):
+        """Identical sequences have zero distance."""
+        from pypopart.core.distance import sequence_distance
 
         seq1 = Sequence('seq1', 'ATCG')
         seq2 = Sequence('seq2', 'ATCG')
 
-        distance = pn._calculate_pairwise_distance(seq1, seq2)
-        assert distance == 0.0
+        assert sequence_distance(seq1, seq2) == 0.0
 
-    def test_pn_calculate_pairwise_distance_unequal_length(self):
-        """Test pairwise distance with unequal length sequences."""
-        pn = ParsimonyNetwork()
+    def test_pn_edge_distance_unequal_length_raises(self):
+        """Unequal-length sequences raise, matching PopART's behaviour."""
+        import pytest
+
+        from pypopart.core.distance import sequence_distance
 
         seq1 = Sequence('seq1', 'ATCG')
         seq2 = Sequence('seq2', 'ATC')
 
-        # Should now handle unequal lengths by counting length difference as mutations
-        distance = pn._calculate_pairwise_distance(seq1, seq2)
-        # Length diff is 1, and all 3 matching positions are the same, so distance = 1
-        assert distance == 1.0
+        with pytest.raises(ValueError, match='same length'):
+            sequence_distance(seq1, seq2)
 
     def test_pn_median_vertex_creation(self):
         """Test that median vertices are created for multi-mutation edges."""

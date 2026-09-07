@@ -25,14 +25,6 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 
-from pypopart.algorithms import (
-    TCS,
-    MedianJoiningNetwork,
-    MinimumSpanningNetwork,
-    MinimumSpanningTree,
-    ParsimonyNetwork,
-    TightSpanWalker,
-)
 from pypopart.core.alignment import Alignment
 from pypopart.core.graph import HaplotypeNetwork
 from pypopart.io import FastaReader, NexusReader, PhylipReader
@@ -1126,25 +1118,22 @@ class PyPopARTApp:
                 # The pattern-matching callback returns values in order
                 param_value = param_values[0] if param_values else None
 
-                # Select and configure algorithm
-                if algorithm == 'mst':
-                    algo = MinimumSpanningTree(distance_method=param_value or 'hamming')
-                elif algorithm == 'msn':
-                    algo = MinimumSpanningNetwork(
-                        distance_method=param_value or 'hamming'
-                    )
+                # Select and configure algorithm via the shared registry.
+                # The single pattern-matched parameter means different
+                # things per algorithm (distance for mst/msn/tsw, etc.).
+                from pypopart.algorithms import build
+
+                algo_kwargs = {}
+                if algorithm in ('mst', 'msn', 'tsw'):
+                    algo_kwargs['distance_method'] = param_value or 'hamming'
                 elif algorithm == 'tcs':
-                    algo = TCS(connection_limit=param_value or 10)
+                    algo_kwargs['connection_limit'] = param_value or 10
                 elif algorithm == 'mjn':
-                    algo = MedianJoiningNetwork(epsilon=param_value or 0)
+                    algo_kwargs['epsilon'] = param_value or 0
                 elif algorithm == 'pn':
-                    algo = ParsimonyNetwork(
-                        n_trees=param_value or 100, min_edge_frequency=0.05
-                    )
-                elif algorithm == 'tsw':
-                    algo = TightSpanWalker(distance_method=param_value or 'hamming')
-                else:
-                    raise ValueError(f'Unknown algorithm: {algorithm}')
+                    algo_kwargs['n_trees'] = param_value or 100
+                    algo_kwargs['min_edge_frequency'] = 0.05
+                algo = build(algorithm, **algo_kwargs)
 
                 # Build network
                 network = algo.build_network(alignment)

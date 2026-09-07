@@ -226,8 +226,10 @@ def identify_haplotypes_from_alignment(
     """
     Identify unique haplotypes from an alignment.
 
-    Groups sequences by unique sequence data (ignoring gaps) and creates
-    Haplotype objects with frequency information.
+    Groups sequences by exact aligned sequence data (gaps included, as in
+    PopART's condenseSeqs) and creates Haplotype objects with frequency
+    information. Keeping the aligned sequence means all haplotypes share
+    the alignment length; gap handling is left to the distance functions.
 
     Args:
         alignment: Multiple sequence alignment
@@ -242,13 +244,11 @@ def identify_haplotypes_from_alignment(
     sequence_map: Dict[str, Sequence] = {}
 
     for seq in alignment:
-        # Use ungapped sequence as haplotype key
-        ungapped = seq.remove_gaps()
-        key = ungapped.data
+        key = seq.data
 
         if key not in haplotype_map:
             haplotype_map[key] = []
-            sequence_map[key] = ungapped
+            sequence_map[key] = seq
 
         haplotype_map[key].append(seq.id)
 

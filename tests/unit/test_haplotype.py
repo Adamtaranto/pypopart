@@ -221,21 +221,23 @@ class TestIdentifyHaplotypes:
         assert set(hap_atcg.sample_ids) == {'seq1', 'seq2', 'seq4'}
 
     def test_identify_haplotypes_with_gaps(self):
-        """Test haplotype identification ignores gaps."""
+        """Gapped sequences dedup by exact aligned string (PopART semantics)."""
         sequences = [
             Sequence('seq1', 'AT-CG'),
-            Sequence('seq2', 'ATC-G'),  # Same ungapped sequence
-            Sequence('seq3', 'GCTA-'),
+            Sequence('seq2', 'ATC-G'),  # Same ungapped, different aligned string
+            Sequence('seq3', 'AT-CG'),  # Identical aligned string to seq1
         ]
         alignment = Alignment(sequences)
 
         haplotypes = identify_haplotypes_from_alignment(alignment)
 
+        # seq1/seq3 group; seq2 stays distinct despite equal ungapped data
         assert len(haplotypes) == 2
-        # Both seq1 and seq2 should be grouped (ungapped: ATCG)
-        hap_atcg = next(h for h in haplotypes if 'seq1' in h.sample_ids)
-        assert hap_atcg.frequency == 2
-        assert set(hap_atcg.sample_ids) == {'seq1', 'seq2'}
+        hap = next(h for h in haplotypes if 'seq1' in h.sample_ids)
+        assert hap.frequency == 2
+        assert set(hap.sample_ids) == {'seq1', 'seq3'}
+        # Haplotype sequences keep the alignment length (gaps included)
+        assert all(len(h.data) == 5 for h in haplotypes)
 
     def test_identify_haplotypes_with_populations(self):
         """Test haplotype identification with population map."""

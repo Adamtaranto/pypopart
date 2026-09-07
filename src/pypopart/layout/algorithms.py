@@ -600,6 +600,7 @@ class LayoutManager:
             'hierarchical': HierarchicalLayout,
             'kamada_kawai': KamadaKawaiLayout,
             'spectral': SpectralLayout,
+            'shell': CircularLayout,  # single-shell layout is circular
             'manual': ManualLayout,
         }
 
@@ -635,7 +636,9 @@ class LayoutManager:
         """
         if algorithm not in self._algorithms:
             available = ', '.join(self._algorithms.keys())
-            raise ValueError(f"Unknown algorithm '{algorithm}'. Available: {available}")
+            raise ValueError(
+                f"Unknown layout algorithm '{algorithm}'. Available: {available}"
+            )
 
         # Check cache if enabled
         if self._enable_cache and use_cache:

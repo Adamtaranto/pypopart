@@ -272,14 +272,7 @@ def network(
     output_format : str
         Output format (graphml, gml, json, nexus).
     """
-    from pypopart.algorithms import (
-        TCS,
-        MedianJoiningNetwork,
-        MinimumSpanningNetwork,
-        MinimumSpanningTree,
-        ParsimonyNetwork,
-        TightSpanWalker,
-    )
+    from pypopart.algorithms import build
     from pypopart.core.distance import normalize_distance_method
     from pypopart.core.haplotype import identify_haplotypes_from_alignment
     from pypopart.io import load_alignment, save_network
@@ -301,18 +294,15 @@ def network(
         # Construct network
         _echo(ctx, f'Building {algorithm.upper()} network...')
 
-        if algorithm == 'mst':
-            algo = MinimumSpanningTree(distance_method=distance)
-        elif algorithm == 'msn':
-            algo = MinimumSpanningNetwork(distance_method=distance, epsilon=epsilon)
+        algorithm = algorithm.lower()
+        algo_params = {}
+        if algorithm in ('msn', 'mjn'):
+            algo_params['epsilon'] = epsilon
         elif algorithm == 'tcs':
-            algo = TCS(distance_method=distance, confidence=parsimony_limit)
-        elif algorithm == 'mjn':
-            algo = MedianJoiningNetwork(distance_method=distance, epsilon=epsilon)
+            algo_params['confidence'] = parsimony_limit
         elif algorithm == 'pn':
-            algo = ParsimonyNetwork(distance_method=distance, random_seed=seed)
-        else:  # 'tsw'
-            algo = TightSpanWalker(distance_method=distance)
+            algo_params['random_seed'] = seed
+        algo = build(algorithm, distance_method=distance, **algo_params)
 
         network = algo.build_network(alignment)
         _echo(ctx, '✓ Network constructed')
@@ -652,13 +642,11 @@ def info(
         List supported file formats.
     """
     if list_algorithms:
+        from pypopart.algorithms import list_algorithms as registry_list
+
         click.echo('Available Network Construction Algorithms:')
-        click.echo('  mst - Minimum Spanning Tree')
-        click.echo('  msn - Minimum Spanning Network')
-        click.echo('  tcs - Statistical Parsimony (TCS)')
-        click.echo('  mjn - Median-Joining Network')
-        click.echo('  pn  - Parsimony Network (consensus from sampled trees)')
-        click.echo('  tsw - Tight Span Walker')
+        for entry in registry_list():
+            click.echo(f'  {entry["name"]:<4}- {entry["description"]}')
         click.echo()
 
     if list_distances:

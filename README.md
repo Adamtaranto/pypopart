@@ -1,7 +1,7 @@
 # PyPopART
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
 **PyPopART** is a pure Python implementation of PopART (Population Analysis with Reticulate Trees) for constructing and visualizing haplotype networks from DNA sequence data.
 
@@ -28,8 +28,9 @@ pip install -e ".[dev]"
 
 ### Requirements
 
-- Python 3.9 or higher
-- Dependencies: biopython, click, matplotlib, networkx, numpy, pandas, plotly, scipy, scikit-learn, numba
+- Python 3.11 or higher
+- Core dependencies: biopython, click, networkx, numpy
+- Optional extras: `pypopart[viz]` (matplotlib, plotly), `pypopart[gui]` (Dash), `pypopart[speed]` (numba), `pypopart[all]` (everything)
 
 ## Quick Start
 
@@ -175,28 +176,25 @@ Once started, open your browser to `http://localhost:8050` and follow the workfl
 
 ```python
 from pypopart.io import load_alignment
-from pypopart.core.distance import DistanceCalculator
-from pypopart.core.condensation import condense_alignment
-from pypopart.algorithms import MJNAlgorithm
-from pypopart.visualization import StaticVisualizer
+from pypopart.core.haplotype import identify_haplotypes_from_alignment
+from pypopart.algorithms import build
+from pypopart.visualization import StaticNetworkPlotter
 
 # Load sequences
 alignment = load_alignment('sequences.fasta')
 
-# Calculate distances
-calculator = DistanceCalculator(method='k2p')
-dist_matrix = calculator.calculate_matrix(alignment)
+# Identify unique haplotypes (informational; algorithms do this internally)
+haplotypes = identify_haplotypes_from_alignment(alignment)
+print(f'Found {len(haplotypes)} unique haplotypes')
 
-# Identify unique haplotypes
-haplotypes, freq_map = condense_alignment(alignment)
-
-# Construct Median-Joining Network
-mjn = MJNAlgorithm(epsilon=0)
-network = mjn.construct_network(haplotypes, dist_matrix)
+# Construct a Median-Joining Network with K2P distances
+mjn = build('mjn', distance_method='k2p', epsilon=0)
+network = mjn.build_network(alignment)
 
 # Visualize
-viz = StaticVisualizer(network)
-viz.plot(layout_algorithm='spring', output_file='network.png')
+plotter = StaticNetworkPlotter(network)
+fig, ax = plotter.plot(layout_algorithm='spring')
+fig.savefig('network.png', dpi=150, bbox_inches='tight')
 ```
 
 ## Network Construction Algorithms

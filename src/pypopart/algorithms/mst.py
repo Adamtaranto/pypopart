@@ -144,7 +144,7 @@ class MinimumSpanningTree(NetworkAlgorithm):
             return network
 
         # Calculate distances between haplotypes
-        haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
+        haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
         self._distance_matrix = haplotype_dist_matrix
 
         # Build MST using selected algorithm
@@ -315,38 +315,6 @@ class MinimumSpanningTree(NetworkAlgorithm):
             network.add_edge(id1, id2, distance=int(round(dist)))
 
         return network
-
-    def _calculate_haplotype_distances(self, haplotypes: List) -> DistanceMatrix:
-        """
-            Calculate pairwise distances between haplotypes.
-
-        Parameters
-        ----------
-            haplotypes :
-                List of Haplotype objects.
-
-        Returns
-        -------
-            DistanceMatrix with distances between haplotypes.
-        """
-        import numpy as np
-
-        from ..core.distance import hamming_distance
-
-        n = len(haplotypes)
-        labels = [h.id for h in haplotypes]
-        matrix = np.zeros((n, n))
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                dist = hamming_distance(
-                    haplotypes[i].sequence,
-                    haplotypes[j].sequence,
-                    ignore_gaps=self.params.get('ignore_gaps', True),
-                )
-                matrix[i, j] = matrix[j, i] = dist
-
-        return DistanceMatrix(labels, matrix)
 
     def get_parameters(self) -> dict:
         """Get algorithm parameters including MST algorithm type."""

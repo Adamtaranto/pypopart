@@ -145,3 +145,19 @@ class TestNexusWriter:
 
         content = output_file.read_text()
         assert 'TRAITS' not in content
+
+
+class TestNexusFromString:
+    """Reading NEXUS content from in-memory text."""
+
+    def test_from_string_roundtrip(self):
+        """from_string parses the same content a file would."""
+        from pypopart.io.nexus import NexusReader
+
+        content = (
+            '#NEXUS\nBEGIN DATA;\nDIMENSIONS NTAX=2 NCHAR=4;\n'
+            'FORMAT DATATYPE=DNA MISSING=? GAP=-;\nMATRIX\ns1 ACGT\ns2 ACGA\n;\nEND;\n'
+        )
+        alignment = NexusReader.from_string(content).read_alignment()
+        assert len(alignment) == 2
+        assert alignment[0].id == 's1'

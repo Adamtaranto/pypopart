@@ -432,31 +432,23 @@ class StaticNetworkPlotter:
         self, graph: nx.Graph, algorithm: str
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute node layout using specified algorithm.
+        Compute node layout via the shared LayoutManager.
 
         Parameters
         ----------
-            graph :
-                NetworkX graph.
-            algorithm :
-                Layout algorithm name.
+        graph : nx.Graph
+            NetworkX graph (unused; the manager works on self.network).
+        algorithm : str
+            Layout algorithm name.
 
         Returns
         -------
+        dict
             Dictionary mapping node IDs to (x, y) positions.
         """
-        if algorithm == 'spring':
-            return nx.spring_layout(graph, k=1, iterations=50)
-        elif algorithm == 'circular':
-            return nx.circular_layout(graph)
-        elif algorithm == 'kamada_kawai':
-            return nx.kamada_kawai_layout(graph)
-        elif algorithm == 'spectral':
-            return nx.spectral_layout(graph)
-        elif algorithm == 'shell':
-            return nx.shell_layout(graph)
-        else:
-            raise ValueError(f'Unknown layout algorithm: {algorithm}')
+        from ..layout.algorithms import LayoutManager
+
+        return LayoutManager(self.network).compute_layout(algorithm)
 
     def _compute_node_sizes(self, scale: float) -> Dict[str, float]:
         """

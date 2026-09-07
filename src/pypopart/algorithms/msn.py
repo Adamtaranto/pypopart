@@ -71,7 +71,7 @@ class MinimumSpanningNetwork(MinimumSpanningTree):
             return super().construct_network(alignment, distance_matrix)
 
         # Calculate distances between haplotypes
-        haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
+        haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
         self._distance_matrix = haplotype_dist_matrix
 
         # Build initial MST

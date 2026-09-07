@@ -80,7 +80,7 @@ class TightSpanWalker(NetworkAlgorithm):
     """
 
     def __init__(
-        self, distance_method: str = 'hamming', epsilon: float = 1e-6, **kwargs
+        self, distance_method: str = 'hamming', tolerance: float = 1e-6, **kwargs
     ):
         """
         Initialize TightSpanWalker algorithm.
@@ -89,13 +89,13 @@ class TightSpanWalker(NetworkAlgorithm):
         ----------
         distance_method : str, default='hamming'
             Method for calculating distances.
-        epsilon : float, default=1e-6
+        tolerance : float, default=1e-6
             Tolerance for floating point comparisons.
         **kwargs : dict
             Additional parameters.
         """
         super().__init__(distance_method, **kwargs)
-        self.epsilon = epsilon
+        self.tolerance = tolerance
         self._dt_matrix: Optional[np.ndarray] = None
         self._internal_vertices: Dict[str, Haplotype] = {}
         self._internal_counter = 0
@@ -130,7 +130,7 @@ class TightSpanWalker(NetworkAlgorithm):
 
         # Calculate distances between haplotypes
         if distance_matrix is None:
-            haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
+            haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
         else:
             haplotype_dist_matrix = distance_matrix
         self._distance_matrix = haplotype_dist_matrix
@@ -142,37 +142,6 @@ class TightSpanWalker(NetworkAlgorithm):
         network = self._build_tight_span_network(haplotypes, haplotype_dist_matrix)
 
         return network
-
-    def _calculate_haplotype_distances(
-        self, haplotypes: List[Haplotype]
-    ) -> DistanceMatrix:
-        """
-        Calculate pairwise distances between haplotypes.
-
-        Parameters
-        ----------
-        haplotypes : List[Haplotype]
-            List of unique haplotypes.
-
-        Returns
-        -------
-        DistanceMatrix
-            Pairwise distance matrix.
-        """
-        n = len(haplotypes)
-        labels = [hap.id for hap in haplotypes]
-        matrix = np.zeros((n, n))
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                # Calculate Hamming distance between sequences
-                seq1 = haplotypes[i].data  # Use .data to get string
-                seq2 = haplotypes[j].data
-                dist = sum(c1 != c2 for c1, c2 in zip(seq1, seq2))
-                matrix[i, j] = dist
-                matrix[j, i] = dist
-
-        return DistanceMatrix(labels, matrix)
 
     def _compute_dt_distances(self, distance_matrix: DistanceMatrix) -> None:
         """
@@ -299,10 +268,10 @@ class TightSpanWalker(NetworkAlgorithm):
 
             # Check if vertex i is on the path from f to g
             # Vertices are green if they're closer to f
-            if abs(fi + dt_fg + gi - distance_matrix.matrix[i, idx2]) < self.epsilon:
+            if abs(fi + dt_fg + gi - distance_matrix.matrix[i, idx2]) < self.tolerance:
                 green_vertices.add(i)
             # Vertices are red if they're closer to g
-            elif abs(fi + dt_fg - gi) < self.epsilon:
+            elif abs(fi + dt_fg - gi) < self.tolerance:
                 red_vertices.add(i)
 
         # Compute delta - the splitting parameter
@@ -321,13 +290,13 @@ class TightSpanWalker(NetworkAlgorithm):
             delta = dt_fg
 
         # If delta equals dT(f,g), create direct edge
-        if abs(dt_fg - delta) < self.epsilon:
+        if abs(dt_fg - delta) < self.tolerance:
             if not network.has_edge(hap1.id, hap2.id):
                 network.add_edge(hap1.id, hap2.id, distance=dt_fg)
             return
 
         # Need to create intermediate vertex h and recurse
-        if dt_fg > delta + self.epsilon:
+        if dt_fg > delta + self.tolerance:
             # Compute dT vector for new vertex h
             h_dt_vector = []
             for i in range(n):
@@ -494,14 +463,12 @@ class TightSpanWalker(NetworkAlgorithm):
             Dictionary of parameters.
         """
         params = super().get_parameters()
-        params['epsilon'] = self.epsilon
+        params['tolerance'] = self.tolerance
         return params
 
     def __str__(self) -> str:
         """Return string representation."""
-        return (
-            f'TightSpanWalker(distance={self.distance_method}, epsilon={self.epsilon})'
-        )
+        return f'TightSpanWalker(distance={self.distance_method}, tolerance={self.tolerance})'
 
 
 # Convenient alias

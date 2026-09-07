@@ -15,10 +15,10 @@ class TestTightSpanWalker:
         """Test TSW algorithm initialization."""
         tsw = TightSpanWalker()
         assert tsw.distance_method == 'hamming'
-        assert tsw.epsilon == 1e-6
+        assert tsw.tolerance == 1e-6
 
-        tsw_custom = TightSpanWalker(epsilon=1e-5)
-        assert tsw_custom.epsilon == 1e-5
+        tsw_custom = TightSpanWalker(tolerance=1e-5)
+        assert tsw_custom.tolerance == 1e-5
 
     def test_tsw_empty_alignment(self):
         """Test TSW with empty alignment."""
@@ -216,15 +216,15 @@ class TestTightSpanWalker:
 
     def test_tsw_parameters(self):
         """Test getting TSW parameters."""
-        tsw = TightSpanWalker(distance_method='k2p', epsilon=1e-5)
+        tsw = TightSpanWalker(distance_method='k2p', tolerance=1e-5)
         params = tsw.get_parameters()
 
         assert params['distance_method'] == 'k2p'
-        assert params['epsilon'] == 1e-5
+        assert params['tolerance'] == 1e-5
 
     def test_tsw_string_representation(self):
         """Test string representation of TSW."""
-        tsw = TightSpanWalker(distance_method='hamming', epsilon=1e-6)
+        tsw = TightSpanWalker(distance_method='hamming', tolerance=1e-6)
         str_repr = str(tsw)
 
         assert 'TightSpanWalker' in str_repr
@@ -262,8 +262,8 @@ class TestTightSpanWalker:
         assert len(network) >= 3
         assert network.is_connected()
 
-    def test_tsw_different_epsilon_values(self):
-        """Test TSW with different epsilon values."""
+    def test_tsw_different_tolerance_values(self):
+        """Test TSW with different tolerance values."""
         alignment = Alignment(
             [
                 Sequence('seq1', 'AAAA'),
@@ -272,12 +272,12 @@ class TestTightSpanWalker:
             ]
         )
 
-        # Test with strict epsilon
-        tsw1 = TightSpanWalker(epsilon=1e-10)
+        # Test with strict tolerance
+        tsw1 = TightSpanWalker(tolerance=1e-10)
         network1 = tsw1.construct_network(alignment)
 
-        # Test with relaxed epsilon
-        tsw2 = TightSpanWalker(epsilon=1.0)
+        # Test with relaxed tolerance
+        tsw2 = TightSpanWalker(tolerance=1.0)
         network2 = tsw2.construct_network(alignment)
 
         # Both should create valid networks

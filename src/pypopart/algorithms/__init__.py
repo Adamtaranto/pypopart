@@ -10,6 +10,7 @@ from .mjn import MedianJoiningNetwork
 from .msn import MinimumSpanningNetwork
 from .mst import MinimumSpanningTree
 from .parsimony_net import ParsimonyNetwork
+from .registry import ALGORITHMS, build, list_algorithms
 from .tcs import TCS
 from .tsw import TightSpanWalker
 
@@ -22,6 +23,9 @@ PNAlgorithm = ParsimonyNetwork
 TSWAlgorithm = TightSpanWalker
 
 __all__ = [
+    'ALGORITHMS',
+    'build',
+    'list_algorithms',
     'NetworkAlgorithm',
     'MinimumSpanningTree',
     'MinimumSpanningNetwork',

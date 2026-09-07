@@ -30,7 +30,6 @@ from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix
 from ..core.graph import HaplotypeNetwork
 from ..core.haplotype import Haplotype, identify_haplotypes_from_alignment
-from ..core.sequence import Sequence
 from .base import NetworkAlgorithm
 
 
@@ -352,47 +351,18 @@ class ParsimonyNetwork(NetworkAlgorithm):
                 id1, id2 = edge
 
                 # Calculate distance between sequences
+                from ..core.distance import sequence_distance
+
                 seq1 = hap_seqs[id1]
                 seq2 = hap_seqs[id2]
-                distance = self._calculate_pairwise_distance(seq1, seq2)
+                distance = sequence_distance(
+                    seq1,
+                    seq2,
+                    method=self.distance_method,
+                    ignore_gaps=self.params.get('ignore_gaps', True),
+                )
 
                 # Add edge if not already present
                 # Do not add median vertices - the consensus sampling handles structure
                 if not network.has_edge(id1, id2):
                     network.add_edge(id1, id2, distance=distance)
-
-    def _calculate_pairwise_distance(self, seq1: Sequence, seq2: Sequence) -> float:
-        """
-        Calculate distance between two sequences.
-
-        Handles sequences of different lengths (e.g., due to gap removal)
-        by padding the shorter sequence.
-
-        Parameters
-        ----------
-        seq1 : Sequence
-            First sequence.
-        seq2 : Sequence
-            Second sequence.
-
-        Returns
-        -------
-        float
-            Distance between sequences.
-        """
-        # If lengths differ (due to gap removal), pad the shorter one
-        len1, len2 = len(seq1.data), len(seq2.data)
-        if len1 != len2:
-            # Count length difference as mutations
-            length_diff = abs(len1 - len2)
-            # Compare only the overlapping part
-            min_len = min(len1, len2)
-            distance = sum(
-                c1 != c2 for c1, c2 in zip(seq1.data[:min_len], seq2.data[:min_len])
-            )
-            distance += length_diff
-            return float(distance)
-
-        # Simple Hamming distance for equal length sequences
-        distance = sum(c1 != c2 for c1, c2 in zip(seq1.data, seq2.data))
-        return float(distance)

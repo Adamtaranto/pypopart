@@ -248,7 +248,7 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
             return network
 
         # Calculate distances between current haplotypes (including new medians)
-        haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
+        haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
 
         # Build initial MST
         mst_edges = self._prim_mst(haplotypes, haplotype_dist_matrix)

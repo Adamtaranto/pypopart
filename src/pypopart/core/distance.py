@@ -609,26 +609,136 @@ def normalize_distance_method(method: str) -> str:
     return canonical
 
 
+def _distance_function(method: str) -> Callable:
+    """
+    Return the scalar distance function for a canonical method name.
+
+    Parameters
+    ----------
+    method : str
+        Canonical method name from normalize_distance_method.
+
+    Returns
+    -------
+    Callable
+        Function taking (seq1, seq2, ignore_gaps=...) and returning a float.
+    """
+    return {
+        'hamming': hamming_distance,
+        'p': p_distance,
+        'jc': jukes_cantor_distance,
+        'k2p': kimura_2p_distance,
+        'tn': tamura_nei_distance,
+    }[method]
+
+
+def sequence_distance(
+    seq1, seq2, method: str = 'hamming', ignore_gaps: bool = True
+) -> float:
+    """
+    Calculate the distance between two sequences with a named method.
+
+    Parameters
+    ----------
+    seq1 : Sequence or Haplotype
+        First sequence.
+    seq2 : Sequence or Haplotype
+        Second sequence.
+    method : str, default='hamming'
+        Distance method name or alias.
+    ignore_gaps : bool, default=True
+        Whether to ignore gap positions.
+
+    Returns
+    -------
+    float
+        Distance between the two sequences.
+    """
+    func = _distance_function(normalize_distance_method(method))
+    return float(func(seq1, seq2, ignore_gaps=ignore_gaps))
+
+
+def pairwise_distance_matrix(
+    sequences, method: str = 'hamming', ignore_gaps: bool = True
+) -> DistanceMatrix:
+    """
+    Calculate a pairwise distance matrix for sequences or haplotypes.
+
+    This is the single shared distance path for all network algorithms.
+    For Hamming distances it uses a whole-matrix numba kernel when numba
+    is installed, or a vectorised numpy fallback otherwise; both match the
+    scalar function's gap and N/? ambiguity handling. Other methods fall
+    back to a per-pair loop over the scalar distance functions.
+
+    Parameters
+    ----------
+    sequences : Alignment or list of Sequence or list of Haplotype
+        Sequences to compare. Items need `id` and `data` attributes.
+    method : str, default='hamming'
+        Distance method name or alias (see normalize_distance_method).
+    ignore_gaps : bool, default=True
+        Whether to ignore gap positions.
+
+    Returns
+    -------
+    DistanceMatrix
+        Symmetric matrix of pairwise distances, labelled by sequence id.
+    """
+    method = normalize_distance_method(method)
+    items = list(sequences)
+    labels = [item.id for item in items]
+    n = len(items)
+
+    if method == 'hamming' and n > 1:
+        strings = [item.data for item in items]
+        length = len(strings[0])
+        if all(len(s) == length for s in strings):
+            if _NUMBA_AVAILABLE:
+                from .distance_optimized import (
+                    pairwise_hamming_matrix_numba,
+                    prepare_sequences_for_numba,
+                )
+
+                encoded = prepare_sequences_for_numba(strings)
+                matrix = pairwise_hamming_matrix_numba(encoded, ignore_gaps)
+                return DistanceMatrix(labels, matrix.astype(float))
+
+            # Vectorised numpy fallback with identical semantics
+            encoded = np.zeros((n, length), dtype=np.uint8)
+            for i, s in enumerate(strings):
+                encoded[i] = np.frombuffer(s.encode('ascii'), dtype=np.uint8)
+
+            invalid = (encoded == ord('N')) | (encoded == ord('?'))
+            if ignore_gaps:
+                invalid |= encoded == ord('-')
+            valid = ~invalid
+
+            matrix = np.zeros((n, n))
+            for i in range(n):
+                comparable = valid[i] & valid
+                diffs = (encoded[i] != encoded) & comparable
+                matrix[i] = diffs.sum(axis=1)
+            return DistanceMatrix(labels, matrix)
+
+    # Per-pair scalar loop for corrected distances (and tiny inputs)
+    func = _distance_function(method)
+    matrix = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            try:
+                dist = func(items[i], items[j], ignore_gaps=ignore_gaps)
+            except ValueError:
+                dist = np.inf
+            matrix[i, j] = matrix[j, i] = dist
+
+    return DistanceMatrix(labels, matrix)
+
+
 def calculate_pairwise_distances(
     alignment: Alignment, method: str = 'hamming', ignore_gaps: bool = True
 ) -> DistanceMatrix:
     """Calculate pairwise distances using specified method."""
-    method = normalize_distance_method(method)
-
-    if method == 'hamming':
-        distance_func = hamming_distance
-    elif method == 'p':
-        distance_func = p_distance
-    elif method == 'jc':
-        distance_func = jukes_cantor_distance
-    elif method == 'k2p':
-        distance_func = kimura_2p_distance
-    else:  # 'tn'
-        distance_func = tamura_nei_distance
-
-    return calculate_distance_matrix(
-        alignment, distance_func=distance_func, ignore_gaps=ignore_gaps
-    )
+    return pairwise_distance_matrix(alignment, method=method, ignore_gaps=ignore_gaps)
 
 
 class DistanceCalculator:

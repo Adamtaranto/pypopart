@@ -149,3 +149,16 @@ class TestFastaWriter:
         reader = FastaReader(output_file.with_suffix('.fasta.gz'))
         read_seqs = list(reader.read_sequences())
         assert len(read_seqs) == 1
+
+
+class TestFastaFromString:
+    """Reading FASTA content from in-memory text."""
+
+    def test_from_string_roundtrip(self):
+        """from_string parses the same content a file would."""
+        from pypopart.io.fasta import FastaReader
+
+        alignment = FastaReader.from_string('>s1\nACGT\n>s2\nACGA\n').read_alignment()
+        assert len(alignment) == 2
+        assert alignment[0].id == 's1'
+        assert alignment[0].data == 'ACGT'

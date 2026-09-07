@@ -1,5 +1,6 @@
 """FASTA file format reader and writer for PyPopART."""
 
+import io
 import gzip
 from pathlib import Path
 from typing import Iterator, Optional, TextIO, Union
@@ -35,6 +36,32 @@ class FastaReader:
         if not self.filepath.exists():
             raise FileNotFoundError(f'File not found: {filepath}')
 
+    @classmethod
+    def from_string(cls, text: str, validate: bool = True) -> 'FastaReader':
+        """
+        Create a reader over in-memory text instead of a file.
+
+        Lets callers (e.g. the GUI handling uploads) parse content without
+        writing a temporary file to disk.
+
+        Parameters
+        ----------
+        text : str
+            Complete file content in this reader's format.
+        validate : bool, default=True
+            Whether to validate sequences.
+
+        Returns
+        -------
+        FastaReader
+            Reader that parses the given text.
+        """
+        reader = cls.__new__(cls)
+        reader.filepath = None
+        reader.validate = validate
+        reader._text = text
+        return reader
+
     def _open_file(self) -> TextIO:
         """
         Open file handling compression automatically.
@@ -43,6 +70,8 @@ class FastaReader:
         -------
             File handle.
         """
+        if getattr(self, '_text', None) is not None:
+            return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
         elif self.filepath.suffix == '.zip':

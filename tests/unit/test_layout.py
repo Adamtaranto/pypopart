@@ -514,7 +514,7 @@ class TestLayoutManager:
         """Test computing layout with invalid algorithm."""
         manager = LayoutManager(simple_network)
 
-        with pytest.raises(ValueError, match='Unknown algorithm'):
+        with pytest.raises(ValueError, match='Unknown layout algorithm'):
             manager.compute_layout('invalid_algo')
 
     def test_save_load_layout(self, simple_network):

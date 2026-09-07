@@ -118,26 +118,25 @@ pypopart visualize network.graphml -o network.png
 
 ```python
 from pypopart.io import load_alignment
-from pypopart.algorithms import MJNAlgorithm
-from pypopart.core.distance import DistanceCalculator
-from pypopart.core.condensation import condense_alignment
-from pypopart.visualization import StaticVisualizer
+from pypopart.core.haplotype import identify_haplotypes_from_alignment
+from pypopart.algorithms import build
+from pypopart.visualization import StaticNetworkPlotter
 
-# Load data
+# Load sequences
 alignment = load_alignment('sequences.fasta')
 
-# Calculate distances
-calc = DistanceCalculator(method='k2p')
-distances = calc.calculate_matrix(alignment)
+# Identify unique haplotypes (informational; algorithms do this internally)
+haplotypes = identify_haplotypes_from_alignment(alignment)
+print(f'Found {len(haplotypes)} unique haplotypes')
 
-# Build network
-haplotypes, _ = condense_alignment(alignment)
-mjn = MJNAlgorithm(epsilon=0)
-network = mjn.construct_network(haplotypes, distances)
+# Construct a Median-Joining Network with K2P distances
+mjn = build('mjn', distance_method='k2p', epsilon=0)
+network = mjn.build_network(alignment)
 
 # Visualize
-viz = StaticVisualizer(network)
-viz.plot(output_file='network.png')
+plotter = StaticNetworkPlotter(network)
+fig, ax = plotter.plot(layout_algorithm='spring')
+fig.savefig('network.png', dpi=150, bbox_inches='tight')
 ```
 
 ## Getting Started

@@ -1,5 +1,6 @@
 """PHYLIP file format reader and writer for PyPopART."""
 
+import io
 import gzip
 from pathlib import Path
 from typing import Optional, TextIO, Union
@@ -37,8 +38,41 @@ class PhylipReader:
         if not self.filepath.exists():
             raise FileNotFoundError(f'File not found: {filepath}')
 
+    @classmethod
+    def from_string(
+        cls, text: str, strict: bool = False, validate: bool = True
+    ) -> 'PhylipReader':
+        """
+        Create a reader over in-memory text instead of a file.
+
+        Lets callers (e.g. the GUI handling uploads) parse content without
+        writing a temporary file to disk.
+
+        Parameters
+        ----------
+        text : str
+            Complete file content in this reader's format.
+        strict : bool, default=False
+            Whether to use strict format (10-char IDs).
+        validate : bool, default=True
+            Whether to validate sequences.
+
+        Returns
+        -------
+        PhylipReader
+            Reader that parses the given text.
+        """
+        reader = cls.__new__(cls)
+        reader.filepath = None
+        reader.strict = strict
+        reader.validate = validate
+        reader._text = text
+        return reader
+
     def _open_file(self) -> TextIO:
         """Open file handling gzip compression."""
+        if getattr(self, '_text', None) is not None:
+            return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
         else:
@@ -193,9 +227,9 @@ class PhylipWriter:
 
         Parameters
         ----------
-        alignment :
+        alignment : Alignment
             Alignment object.
-        progress_callback :
+        progress_callback : callable, optional
             Optional callback function(current, total).
         """
         with self._open_file() as handle:

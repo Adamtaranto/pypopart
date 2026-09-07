@@ -16,7 +16,7 @@ import math
 from typing import Dict, List, Optional, Tuple
 
 from ..core.alignment import Alignment
-from ..core.distance import DistanceMatrix, hamming_distance
+from ..core.distance import DistanceMatrix
 from ..core.graph import HaplotypeNetwork
 from ..core.haplotype import Haplotype
 from ..core.haplotype import identify_haplotypes_from_alignment as identify_haplotypes
@@ -118,7 +118,7 @@ class TCS(NetworkAlgorithm):
             return network
 
         # Calculate distances between haplotypes
-        haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
+        haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
         self._distance_matrix = haplotype_dist_matrix
 
         # Calculate connection limit if not provided
@@ -197,36 +197,6 @@ class TCS(NetworkAlgorithm):
             prob = 0.0
 
         return prob
-
-    def _calculate_haplotype_distances(self, haplotypes: List) -> DistanceMatrix:
-        """
-        Calculate pairwise distances between haplotypes.
-
-        Parameters
-        ----------
-        haplotypes :
-            List of Haplotype objects.
-
-        Returns
-        -------
-            DistanceMatrix with distances between haplotypes.
-        """
-        import numpy as np
-
-        n = len(haplotypes)
-        labels = [h.id for h in haplotypes]
-        matrix = np.zeros((n, n))
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                dist = hamming_distance(
-                    haplotypes[i].sequence,
-                    haplotypes[j].sequence,
-                    ignore_gaps=self.params.get('ignore_gaps', True),
-                )
-                matrix[i, j] = matrix[j, i] = dist
-
-        return DistanceMatrix(labels, matrix)
 
     def _build_network_with_components(
         self, haplotypes: List, distance_matrix: DistanceMatrix, sequence_length: int

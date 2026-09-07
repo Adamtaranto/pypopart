@@ -4,6 +4,7 @@ NEXUS file format reader and writer for PyPopART.
 Supports PopART-style NEXUS files with traits blocks.
 """
 
+import io
 import gzip
 from pathlib import Path
 import re
@@ -39,8 +40,37 @@ class NexusReader:
 
         self.traits = {}
 
+    @classmethod
+    def from_string(cls, text: str, validate: bool = True) -> 'NexusReader':
+        """
+        Create a reader over in-memory text instead of a file.
+
+        Lets callers (e.g. the GUI handling uploads) parse content without
+        writing a temporary file to disk.
+
+        Parameters
+        ----------
+        text : str
+            Complete file content in this reader's format.
+        validate : bool, default=True
+            Whether to validate sequences.
+
+        Returns
+        -------
+        NexusReader
+            Reader that parses the given text.
+        """
+        reader = cls.__new__(cls)
+        reader.filepath = None
+        reader.validate = validate
+        reader.traits = {}
+        reader._text = text
+        return reader
+
     def _open_file(self) -> TextIO:
         """Open file handling gzip compression."""
+        if getattr(self, '_text', None) is not None:
+            return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
         else:

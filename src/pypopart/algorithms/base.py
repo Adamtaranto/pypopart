@@ -4,7 +4,11 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from ..core.alignment import Alignment
-from ..core.distance import DistanceMatrix, calculate_pairwise_distances
+from ..core.distance import (
+    DistanceMatrix,
+    calculate_pairwise_distances,
+    pairwise_distance_matrix,
+)
 from ..core.graph import HaplotypeNetwork
 
 
@@ -92,6 +96,30 @@ class NetworkAlgorithm(ABC):
         """
         return calculate_pairwise_distances(
             alignment,
+            method=self.distance_method,
+            ignore_gaps=self.params.get('ignore_gaps', True),
+        )
+
+    def calculate_haplotype_distances(self, haplotypes) -> DistanceMatrix:
+        """
+        Calculate pairwise distances between unique haplotypes.
+
+        The single shared distance path for all algorithms: honours the
+        configured distance_method and ignore_gaps, and uses the fast
+        whole-matrix kernel for Hamming distances.
+
+        Parameters
+        ----------
+        haplotypes : list of Haplotype
+            Unique haplotypes to compare.
+
+        Returns
+        -------
+        DistanceMatrix
+            Pairwise distance matrix labelled by haplotype id.
+        """
+        return pairwise_distance_matrix(
+            haplotypes,
             method=self.distance_method,
             ignore_gaps=self.params.get('ignore_gaps', True),
         )
