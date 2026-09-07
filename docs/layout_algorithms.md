@@ -6,22 +6,22 @@ This guide helps you choose the best layout algorithm for your haplotype network
 
 ### By Network Size
 
-| Network Size | Recommended Algorithm | Alternative |
-|--------------|----------------------|-------------|
-| Small (<50 nodes) | Kamada-Kawai | Force-Directed |
-| Medium (50-500 nodes) | Force-Directed | Spectral |
-| Large (>500 nodes) | Spectral | Hierarchical |
+| Network Size          | Recommended Algorithm | Alternative    |
+| --------------------- | --------------------- | -------------- |
+| Small (<50 nodes)     | Kamada-Kawai          | Force-Directed |
+| Medium (50-500 nodes) | Force-Directed        | Spectral       |
+| Large (>500 nodes)    | Spectral              | Hierarchical   |
 
 ### By Purpose
 
-| Purpose | Algorithm | Notes |
-|---------|-----------|-------|
-| General visualization | Force-Directed | Good balance of speed and quality |
-| Fast preview | Hierarchical | Instant layout, tree structure |
-| Large datasets | Spectral | Maintains structure, very fast |
-| Highest quality | Kamada-Kawai | Slow but optimal for small networks |
-| Highlight central node | Radial | Places important node at center |
-| Simple connectivity | Circular | Shows connection patterns clearly |
+| Purpose                | Algorithm              | Notes                               |
+| ---------------------- | ---------------------- | ----------------------------------- |
+| General visualization  | Force-Directed         | Good balance of speed and quality   |
+| Fast preview           | Hierarchical           | Instant layout, tree structure      |
+| Large datasets         | Spectral               | Maintains structure, very fast      |
+| Highest quality        | Kamada-Kawai           | Slow but optimal for small networks |
+| Highlight central node | Radial                 | Places important node at center     |
+| Simple connectivity    | Circular               | Shows connection patterns clearly   |
 | Proportional distances | Spring/KK Proportional | Edge length reflects mutation count |
 
 ## Algorithm Details
@@ -37,15 +37,18 @@ This guide helps you choose the best layout algorithm for your haplotype network
 **Description**: Arranges nodes in levels based on distance from a root node. Creates a tree-like structure that's easy to interpret.
 
 **Advantages**:
+
 - Extremely fast, works well for very large networks
 - Clear hierarchical relationships
 - Handles disconnected components
 
 **Disadvantages**:
+
 - May not show cyclical relationships well
 - Layout depends on choice of root node
 
 **Parameters**:
+
 ```python
 layout = manager.compute_layout(
     'hierarchical',
@@ -67,15 +70,18 @@ layout = manager.compute_layout(
 **Description**: Uses eigenvectors of the graph Laplacian to position nodes. Excellent balance of speed and quality for large networks.
 
 **Advantages**:
+
 - Much faster than force-directed or Kamada-Kawai
 - Reveals clustering and community structure
 - Good for networks with clear groups
 
 **Disadvantages**:
+
 - May produce less aesthetic layouts than force-directed
 - Requires connected graph (handles disconnected with fallback)
 
 **Parameters**:
+
 ```python
 layout = manager.compute_layout(
     'spectral',
@@ -95,16 +101,19 @@ layout = manager.compute_layout(
 **Description**: Simulates physical springs between connected nodes. The default choice for most visualizations.
 
 **Advantages**:
+
 - Aesthetically pleasing layouts
 - Works well for most network types
 - Tunable with iterations parameter
 
 **Disadvantages**:
+
 - Slower than spectral or hierarchical
 - Can be slow for large networks (>500 nodes)
 - Non-deterministic without seed
 
 **Parameters**:
+
 ```python
 layout = manager.compute_layout(
     'spring',
@@ -115,6 +124,7 @@ layout = manager.compute_layout(
 ```
 
 **Tuning Tips**:
+
 - Increase `iterations` for better quality (try 100-200)
 - Decrease `k` to bring nodes closer together
 - Use `seed` for consistent layouts across runs
@@ -130,16 +140,19 @@ layout = manager.compute_layout(
 **Description**: Minimizes stress based on graph-theoretic distances. Produces optimal layouts but is computationally expensive.
 
 **Advantages**:
+
 - Highest quality layouts
 - Respects graph distances precisely
 - Deterministic results
 
 **Disadvantages**:
+
 - Very slow for networks >100 nodes
 - O(N³) time complexity
 - Not suitable for interactive use with large networks
 
 **Parameters**:
+
 ```python
 layout = manager.compute_layout(
     'kamada_kawai',
@@ -161,15 +174,18 @@ layout = manager.compute_layout(
 **Description**: Arranges nodes evenly spaced around a circle.
 
 **Advantages**:
+
 - Extremely fast
 - Good for comparing edge densities
 - Works well with node coloring
 
 **Disadvantages**:
+
 - Doesn't reflect graph structure
 - Can be cluttered for dense networks
 
 **Parameters**:
+
 ```python
 layout = manager.compute_layout(
     'circular',
@@ -189,15 +205,18 @@ layout = manager.compute_layout(
 **Description**: Places a central node at origin, others in concentric rings based on distance.
 
 **Advantages**:
+
 - Fast and intuitive
 - Highlights central hub
 - Shows distance from center clearly
 
 **Disadvantages**:
+
 - Works best for star-like topologies
 - May be cluttered if many nodes at same distance
 
 **Parameters**:
+
 ```python
 layout = manager.compute_layout(
     'radial',
@@ -217,17 +236,20 @@ layout = manager.compute_layout(
 **Description**: Variations of spring and Kamada-Kawai layouts where edge lengths are proportional to the number of mutations between haplotypes.
 
 **Advantages**:
+
 - Visually represents genetic distance
 - Helps identify distant vs. close relationships
 - Useful for understanding evolutionary distances
 
 **Disadvantages**:
+
 - Can produce larger, more spread-out layouts
 - May reduce aesthetic appeal for highly variable data
 
 **Available Variations**:
 
 #### Spring Proportional
+
 ```python
 layout = manager.compute_layout(
     'spring_proportional',
@@ -237,6 +259,7 @@ layout = manager.compute_layout(
 ```
 
 #### Kamada-Kawai Proportional
+
 ```python
 layout = manager.compute_layout(
     'kamada_kawai_proportional',
@@ -273,6 +296,7 @@ Kamada-Kawai:   1202.00 ms  ⚠️ Not recommended
 ### 1. Start Fast, Refine Later
 
 For exploratory analysis:
+
 1. Use **Hierarchical** for quick preview
 2. Switch to **Force-Directed** for publication
 3. Try **Spectral** if force-directed is too slow
@@ -287,11 +311,13 @@ For exploratory analysis:
 ### 3. Optimization Tips
 
 **For large networks**:
+
 - Reduce force-directed iterations: `iterations=30`
 - Use spectral instead of force-directed
 - Consider hierarchical for fastest results
 
 **For highest quality**:
+
 - Increase iterations: `iterations=100-200`
 - Use Kamada-Kawai for small networks
 - Set consistent seed for reproducibility
@@ -318,6 +344,7 @@ if len(network.nodes) > 500:
 **Problem**: Nodes overlap or edges cross excessively
 
 **Solutions**:
+
 - Increase iterations for force-directed: `iterations=100`
 - Try spectral layout for better spacing
 - Use radial or circular for clearer structure
@@ -327,6 +354,7 @@ if len(network.nodes) > 500:
 **Problem**: Layout computation takes too long
 
 **Solutions**:
+
 - Switch to spectral or hierarchical
 - Reduce iterations: `iterations=30`
 - Use hierarchical for instant preview
@@ -336,6 +364,7 @@ if len(network.nodes) > 500:
 **Problem**: Separate network components are positioned on top of each other
 
 **Solutions**:
+
 - Use force-directed or spectral (handle components automatically)
 - Manually adjust with ManualLayout after initial computation
 
@@ -344,6 +373,7 @@ if len(network.nodes) > 500:
 **Problem**: Non-deterministic layouts make comparison difficult
 
 **Solutions**:
+
 - Set seed for force-directed: `seed=42`
 - Use deterministic algorithms: Hierarchical, Kamada-Kawai, Circular, Radial
 

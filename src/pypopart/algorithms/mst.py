@@ -36,33 +36,40 @@ class MinimumSpanningTree(NetworkAlgorithm):
     Supports both Prim's and Kruskal's algorithms for MST construction:
 
     - **Prim's algorithm**: Grows the tree from a single starting node,
-      always adding the minimum-weight edge that connects a new node.
-      Time complexity: O(E log V) with binary heap.
+    always adding the minimum-weight edge that connects a new node.
+    Time complexity: O(E log V) with binary heap.
 
     - **Kruskal's algorithm**: Sorts all edges and adds them in order of
-      increasing weight, skipping edges that would create cycles.
-      Time complexity: O(E log E) with union-find.
+    increasing weight, skipping edges that would create cycles.
+    Time complexity: O(E log E) with union-find.
 
     Parameters
     ----------
-    distance_method :
-        str, default='hamming'.
-        Method for calculating pairwise distances between sequences.
-    Options :
-        'hamming', 'jukes_cantor', 'kimura_2p', 'tamura_nei'.
-    algorithm :
-        str, default='prim'.
+    distance_method : str, default='hamming'
+        Method for calculating pairwise distances between sequences:
+        'hamming', 'jukes_cantor', 'kimura_2p' or 'tamura_nei'.
+    algorithm : str, default='prim'
         MST construction algorithm to use: 'prim' or 'kruskal'.
-    **kwargs :
-        dict.
+    **kwargs : dict
         Additional parameters passed to base NetworkAlgorithm.
 
     Attributes
     ----------
     algorithm : str
-        The selected MST algorithm
+        The selected MST algorithm.
     _distance_matrix : DistanceMatrix
-        Cached distance matrix from last construction
+        Cached distance matrix from the last construction.
+
+    See Also
+    --------
+    MinimumSpanningNetwork : Extension of MST allowing alternative connections.
+    TCS : Statistical parsimony network construction.
+
+    Notes
+    -----
+    For most applications, Prim's algorithm is preferred as it's typically
+    faster and uses less memory. Kruskal's algorithm can be advantageous
+    when the graph is sparse or when edges are already sorted.
 
     Examples
     --------
@@ -79,17 +86,6 @@ class MinimumSpanningTree(NetworkAlgorithm):
     >>> # Construct using Kruskal's algorithm
     >>> mst = MinimumSpanningTree(algorithm='kruskal')
     >>> network = mst.build_network(alignment)
-
-    Notes
-    -----
-    For most applications, Prim's algorithm is preferred as it's typically
-    faster and uses less memory. Kruskal's algorithm can be advantageous
-    when the graph is sparse or when edges are already sorted.
-
-    See Also
-    --------
-    MinimumSpanningNetwork : Extension of MST allowing alternative connections
-    TCS : Statistical parsimony network construction
     """
 
     def __init__(
@@ -100,11 +96,11 @@ class MinimumSpanningTree(NetworkAlgorithm):
 
         Parameters
         ----------
-        distance_method :
+        distance_method : str, default='hamming'
             Method for calculating distances.
-        algorithm :
+        algorithm : str, default='prim'
             MST algorithm to use ('prim' or 'kruskal').
-        **kwargs :
+        **kwargs : dict
             Additional parameters.
         """
         super().__init__(distance_method, **kwargs)
@@ -118,17 +114,18 @@ class MinimumSpanningTree(NetworkAlgorithm):
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-            Construct MST from sequence alignment.
+        Construct MST from sequence alignment.
 
         Parameters
         ----------
-            alignment :
-                Multiple sequence alignment.
-            distance_matrix :
-                Optional pre-computed distance matrix.
+        alignment : Alignment
+            Multiple sequence alignment.
+        distance_matrix : DistanceMatrix, optional
+            Optional pre-computed distance matrix.
 
         Returns
         -------
+        HaplotypeNetwork
             Haplotype network representing the MST.
         """
         # Identify unique haplotypes
@@ -144,7 +141,7 @@ class MinimumSpanningTree(NetworkAlgorithm):
             return network
 
         # Calculate distances between haplotypes
-        haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
+        haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
         self._distance_matrix = haplotype_dist_matrix
 
         # Build MST using selected algorithm
@@ -162,17 +159,18 @@ class MinimumSpanningTree(NetworkAlgorithm):
         self, haplotypes: List, distance_matrix: DistanceMatrix
     ) -> List[Tuple[str, str, float]]:
         """
-            Construct MST using Prim's algorithm.
+        Construct MST using Prim's algorithm.
 
         Parameters
         ----------
-            haplotypes :
-                List of Haplotype objects.
-            distance_matrix :
-                Distance matrix between haplotypes.
+        haplotypes : List
+            List of Haplotype objects.
+        distance_matrix : DistanceMatrix
+            Distance matrix between haplotypes.
 
         Returns
         -------
+        List[Tuple[str, str, float]]
             List of edges (id1, id2, distance).
         """
         if len(haplotypes) == 0:
@@ -220,17 +218,18 @@ class MinimumSpanningTree(NetworkAlgorithm):
         self, haplotypes: List, distance_matrix: DistanceMatrix
     ) -> List[Tuple[str, str, float]]:
         """
-            Construct MST using Kruskal's algorithm with Union-Find.
+        Construct MST using Kruskal's algorithm with Union-Find.
 
         Parameters
         ----------
-            haplotypes :
-                List of Haplotype objects.
-            distance_matrix :
-                Distance matrix between haplotypes.
+        haplotypes : List
+            List of Haplotype objects.
+        distance_matrix : DistanceMatrix
+            Distance matrix between haplotypes.
 
         Returns
         -------
+        List[Tuple[str, str, float]]
             List of edges (id1, id2, distance).
         """
         if len(haplotypes) == 0:
@@ -252,13 +251,39 @@ class MinimumSpanningTree(NetworkAlgorithm):
         rank = dict.fromkeys(hap_ids, 0)
 
         def find(x):
-            """Find root of x with path compression."""
+            """
+            Find root of x with path compression.
+
+            Parameters
+            ----------
+            x : str
+                Element to look up.
+
+            Returns
+            -------
+            str
+                The representative element of x's set.
+            """
             if parent[x] != x:
                 parent[x] = find(parent[x])
             return parent[x]
 
         def union(x, y):
-            """Union sets containing x and y."""
+            """
+            Union sets containing x and y.
+
+            Parameters
+            ----------
+            x : str
+                Element to look up.
+            y : str
+                Second element to union with x.
+
+            Returns
+            -------
+            bool
+                True if the two sets were distinct and got merged.
+            """
             root_x = find(x)
             root_y = find(y)
 
@@ -291,17 +316,18 @@ class MinimumSpanningTree(NetworkAlgorithm):
         self, haplotypes: List, edges: List[Tuple[str, str, float]]
     ) -> HaplotypeNetwork:
         """
-            Build HaplotypeNetwork from haplotypes and MST edges.
+        Build HaplotypeNetwork from haplotypes and MST edges.
 
         Parameters
         ----------
-            haplotypes :
-                List of Haplotype objects.
-            edges :
-                List of edges (id1, id2, distance).
+        haplotypes : List
+            List of Haplotype objects.
+        edges : List[Tuple[str, str, float]]
+            List of edges (id1, id2, distance).
 
         Returns
         -------
+        HaplotypeNetwork
             Constructed haplotype network.
         """
         network = HaplotypeNetwork()
@@ -316,40 +342,15 @@ class MinimumSpanningTree(NetworkAlgorithm):
 
         return network
 
-    def _calculate_haplotype_distances(self, haplotypes: List) -> DistanceMatrix:
+    def get_parameters(self) -> dict:
         """
-            Calculate pairwise distances between haplotypes.
-
-        Parameters
-        ----------
-            haplotypes :
-                List of Haplotype objects.
+        Get algorithm parameters including MST algorithm type.
 
         Returns
         -------
-            DistanceMatrix with distances between haplotypes.
+        dict
+            Algorithm parameters, including the MST algorithm type.
         """
-        import numpy as np
-
-        from ..core.distance import hamming_distance
-
-        n = len(haplotypes)
-        labels = [h.id for h in haplotypes]
-        matrix = np.zeros((n, n))
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                dist = hamming_distance(
-                    haplotypes[i].sequence,
-                    haplotypes[j].sequence,
-                    ignore_gaps=self.params.get('ignore_gaps', True),
-                )
-                matrix[i, j] = matrix[j, i] = dist
-
-        return DistanceMatrix(labels, matrix)
-
-    def get_parameters(self) -> dict:
-        """Get algorithm parameters including MST algorithm type."""
         params = super().get_parameters()
         params['algorithm'] = self.algorithm
         return params

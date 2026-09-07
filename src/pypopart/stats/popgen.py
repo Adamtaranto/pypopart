@@ -76,12 +76,16 @@ def calculate_tajimas_d(
     D > 0: balancing selection or population contraction
     D < 0: directional selection or population expansion
 
-    Args:
-        alignment: Alignment object
-        populations: Optional dict mapping sequence_id -> population
+    Parameters
+    ----------
+    alignment : Alignment
+        Alignment object.
+    populations : Dict[str, str], optional
+        Optional dict mapping sequence_id -> population.
 
     Returns
     -------
+    TajimaDResult
         TajimaDResult with D statistic and related values.
     """
     n = len(alignment)  # Number of sequences
@@ -162,12 +166,16 @@ def calculate_fu_fs(network: HaplotypeNetwork, alignment: Alignment) -> FuFsResu
     Negative Fs: excess of recent mutations (population expansion)
     Positive Fs: deficiency of alleles (balancing selection or bottleneck)
 
-    Args:
-        network: HaplotypeNetwork object
-        alignment: Alignment object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    alignment : Alignment
+        Alignment object.
 
     Returns
     -------
+    FuFsResult
         FuFsResult with Fs statistic and related values.
     """
     # Get number of haplotypes and samples
@@ -239,13 +247,18 @@ def calculate_pairwise_fst(
     FST = 0: no differentiation
     FST = 1: complete differentiation
 
-    Args:
-        network: HaplotypeNetwork object
-        pop1: Name of first population
-        pop2: Name of second population
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    pop1 : str
+        Name of first population.
+    pop2 : str
+        Name of second population.
 
     Returns
     -------
+    FstResult
         FstResult with FST and related values.
     """
     # Get haplotypes for each population
@@ -299,11 +312,14 @@ def calculate_fst_matrix(network: HaplotypeNetwork) -> Dict[Tuple[str, str], flo
     """
     Calculate pairwise FST for all population pairs.
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    Dict[Tuple[str, str], float]
         Dictionary mapping (pop1, pop2) tuples to FST values.
     """
     # Get all populations
@@ -344,13 +360,18 @@ def calculate_amova(
     - Within populations
     - (Optionally) Among groups of populations
 
-    Args:
-        network: HaplotypeNetwork object
-        alignment: Alignment object
-        groups: Optional dict mapping population -> group
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    alignment : Alignment
+        Alignment object.
+    groups : Dict[str, str], optional
+        Optional dict mapping population -> group.
 
     Returns
     -------
+    AMOVAResult
         AMOVAResult with variance components and phi statistics.
     """
     # Get populations and their samples
@@ -382,7 +403,21 @@ def calculate_amova(
 
     # Calculate pairwise distances between all haplotypes
     def get_distance(hap_id1: str, hap_id2: str) -> int:
-        """Get number of differences between two haplotypes."""
+        """
+        Get number of differences between two haplotypes.
+
+        Parameters
+        ----------
+        hap_id1 : str
+            First haplotype id.
+        hap_id2 : str
+            Second haplotype id.
+
+        Returns
+        -------
+        int
+            Number of differing sites between the two haplotypes.
+        """
         if hap_id1 == hap_id2:
             return 0
 
@@ -480,11 +515,14 @@ def calculate_mismatch_distribution(network: HaplotypeNetwork) -> Dict[int, int]
     - Unimodal: recent population expansion
     - Multimodal: population at equilibrium
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    Dict[int, int]
         Dictionary mapping number of differences -> frequency.
     """
     mismatch_counts: Dict[int, int] = defaultdict(int)

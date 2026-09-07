@@ -17,18 +17,21 @@ Thank you for your interest in contributing to PyPopART! This document provides 
 
 1. Fork the repository on GitHub
 2. Clone your fork locally:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/pypopart.git
    cd pypopart
    ```
 
 3. Create a virtual environment:
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 4. Install in development mode with all dependencies:
+
    ```bash
    pip install -e ".[dev,test,docs]"
    ```
@@ -41,6 +44,7 @@ Thank you for your interest in contributing to PyPopART! This document provides 
 ### Making Changes
 
 1. Create a new branch for your changes:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -48,11 +52,13 @@ Thank you for your interest in contributing to PyPopART! This document provides 
 2. Make your changes and write tests
 
 3. Run tests to ensure everything works:
+
    ```bash
    pytest
    ```
 
 4. Run linters and formatters:
+
    ```bash
    black src tests
    ruff check src tests
@@ -60,6 +66,7 @@ Thank you for your interest in contributing to PyPopART! This document provides 
    ```
 
 5. Commit your changes with clear messages:
+
    ```bash
    git commit -m "Add feature: your feature description"
    ```
@@ -83,8 +90,18 @@ Thank you for your interest in contributing to PyPopART! This document provides 
 
 ## Documentation
 
+The docs are built with [Zensical](https://zensical.org), configured in
+`zensical.toml`:
+
+```bash
+pip install -e ".[docs]"
+zensical serve          # live preview on http://localhost:8000
+zensical build --strict # what CI runs; fails on any warning
+```
+
 - Update documentation for new features
 - Add docstrings to all public functions and classes
+  (numpy style; `pre-commit` validates them with numpydoc)
 - Include examples in docstrings
 - Update the changelog
 

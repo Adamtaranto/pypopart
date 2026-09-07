@@ -1,78 +1,63 @@
-"""Unit tests for Median-Joining Network (MJN) algorithm."""
+"""Unit tests for the Median-Joining Network (MJN) algorithm.
+
+Consolidates the former test_mjn_epsilon_fix.py and
+test_mjn_edge_not_found_fix.py regression files.
+"""
 
 from pypopart.algorithms.mjn import MedianJoiningNetwork
 from pypopart.core.alignment import Alignment
 from pypopart.core.sequence import Sequence
 
 
+def median_nodes(network):
+    """Return the ids of median-vector nodes in a network."""
+    return [
+        node
+        for node, attrs in network.graph.nodes(data=True)
+        if attrs.get('is_median') or attrs.get('median_vector')
+    ]
+
+
 class TestMedianJoiningNetwork:
     """Test cases for MJN algorithm."""
 
     def test_mjn_initialization(self):
-        """Test MJN algorithm initialization."""
+        """Test MJN algorithm initialization and PopART-parity defaults."""
         mjn = MedianJoiningNetwork()
         assert mjn.distance_method == 'hamming'
         assert mjn.epsilon == 0.0
-        assert mjn.simplify is True
-
-    def test_mjn_no_simplify(self):
-        """Test MJN without simplification."""
-        mjn = MedianJoiningNetwork(simplify=False)
+        # simplify (degree-2 smoothing) is a PyPopART extra, off by default
         assert mjn.simplify is False
+        assert mjn.max_median_vectors is None
+
+    def test_mjn_simplify_opt_in(self):
+        """Test MJN with opt-in simplification."""
+        mjn = MedianJoiningNetwork(simplify=True)
+        assert mjn.simplify is True
 
     def test_mjn_empty_alignment(self):
         """Test MJN with empty alignment."""
-        mjn = MedianJoiningNetwork()
-        alignment = Alignment()
-        network = mjn.construct_network(alignment)
-
+        network = MedianJoiningNetwork().construct_network(Alignment())
         assert len(network) == 0
 
     def test_mjn_single_sequence(self):
         """Test MJN with single sequence."""
-        mjn = MedianJoiningNetwork()
-        alignment = Alignment([Sequence('seq1', 'ATCG')])
-        network = mjn.construct_network(alignment)
-
+        network = MedianJoiningNetwork().construct_network(
+            Alignment([Sequence('seq1', 'ATCG')])
+        )
         assert len(network) == 1
         assert len(network.edges) == 0
 
     def test_mjn_two_sequences(self):
         """Test MJN with two sequences (no median vectors)."""
-        mjn = MedianJoiningNetwork()
-        alignment = Alignment([Sequence('seq1', 'ATCG'), Sequence('seq2', 'ATCC')])
-        network = mjn.construct_network(alignment)
-
-        # Should be same as MSN for 2 sequences
+        network = MedianJoiningNetwork().construct_network(
+            Alignment([Sequence('seq1', 'ATCG'), Sequence('seq2', 'ATCC')])
+        )
         assert len(network) == 2
         assert network.is_connected()
 
-    def test_mjn_median_vector_inference(self):
-        """Test MJN infers median vectors for triangles."""
-        mjn = MedianJoiningNetwork(simplify=False)
-        alignment = Alignment(
-            [
-                Sequence('seq1', 'AAAA'),
-                Sequence('seq2', 'AATT'),
-                Sequence('seq3', 'TTAA'),
-            ]
-        )
-        network = mjn.construct_network(alignment)
-
-        # Check if network is connected
-        assert network.is_connected()
-        # May have added median vectors (check for nodes starting with "Median_")
-        median_count = sum(
-            1
-            for hap_id in [h.id for h in network.haplotypes]
-            if hap_id.startswith('Median_')
-        )
-        # Median vectors may or may not be added depending on whether they simplify
-        assert median_count >= 0
-
-    def test_mjn_with_max_median_vectors(self):
-        """Test MJN with maximum median vectors limit."""
-        mjn = MedianJoiningNetwork(max_median_vectors=1)
+    def test_mjn_connected(self):
+        """MJN always yields a connected network."""
         alignment = Alignment(
             [
                 Sequence('seq1', 'AAAA'),
@@ -81,338 +66,163 @@ class TestMedianJoiningNetwork:
                 Sequence('seq4', 'TTTT'),
             ]
         )
-        network = mjn.construct_network(alignment)
+        network = MedianJoiningNetwork().construct_network(alignment)
+        assert network.is_connected()
+        # All four sampled haplotypes present
+        for hap_id in ('H1', 'H2', 'H3', 'H4'):
+            assert network.has_node(hap_id)
 
-        # Count median vectors
-        median_count = sum(
-            1
-            for hap_id in [h.id for h in network.haplotypes]
-            if hap_id.startswith('Median_')
-        )
-        assert median_count <= mjn.max_median_vectors
-
-    def test_mjn_simplification(self):
-        """Test that MJN simplifies network when requested."""
-        # Create network with potential for simplification
-        mjn_no_simplify = MedianJoiningNetwork(simplify=False)
-        mjn_simplify = MedianJoiningNetwork(simplify=True)
-
+    def test_mjn_median_nodes_flagged(self):
+        """Inferred medians carry the median markers."""
         alignment = Alignment(
             [
-                Sequence('seq1', 'AAAA'),
-                Sequence('seq2', 'AATT'),
-                Sequence('seq3', 'TTTT'),
+                Sequence('seq1', 'AAAAAA'),
+                Sequence('seq2', 'AATTTT'),
+                Sequence('seq3', 'TTAATT'),
+                Sequence('seq4', 'TTTTAA'),
+            ]
+        )
+        network = MedianJoiningNetwork(epsilon=2).construct_network(alignment)
+        for node in median_nodes(network):
+            assert node.startswith('Median_')
+            assert network.graph.nodes[node]['median_vector'] is True
+
+    def test_mjn_max_median_vectors_cap(self):
+        """The opt-in cap limits the number of inferred medians."""
+        alignment = Alignment(
+            [
+                Sequence('seq1', 'AAAAAA'),
+                Sequence('seq2', 'AATTTT'),
+                Sequence('seq3', 'TTAATT'),
+                Sequence('seq4', 'TTTTAA'),
+            ]
+        )
+        network = MedianJoiningNetwork(
+            epsilon=2, max_median_vectors=1
+        ).construct_network(alignment)
+        assert len(median_nodes(network)) <= 1
+
+
+class TestMJNQuasiMedians:
+    """The quasi-median machinery ported from computeQuasiMedianSeqs."""
+
+    def test_majority_positions(self):
+        """Majority positions resolve without stars."""
+        medians = MedianJoiningNetwork._quasi_medians('AAT', 'AAA', 'ATA')
+        assert medians == {'AAA'}
+
+    def test_star_positions_branch_three_ways(self):
+        """All-different positions yield three resolutions."""
+        medians = MedianJoiningNetwork._quasi_medians('A', 'C', 'G')
+        assert medians == {'A', 'C', 'G'}
+
+    def test_multiple_stars_expand_recursively(self):
+        """Two star positions give up to nine resolutions."""
+        medians = MedianJoiningNetwork._quasi_medians('AA', 'CC', 'GG')
+        assert medians == {a + b for a in 'ACG' for b in 'ACG'}
+
+    def test_weighted_cost(self):
+        """Median cost is the weighted distance sum to the triplet."""
+        mjn = MedianJoiningNetwork()
+        cost = mjn._median_cost('AA', 'AT', 'TA', 'AA', [1, 2])
+        # d(AA,AA)=0, d(AT,AA)=2 (weight of col 1), d(TA,AA)=1
+        assert cost == 3.0
+
+
+class TestMJNEpsilon:
+    """Epsilon drives both the threshold graph and cost acceptance."""
+
+    def make_alignment(self):
+        """Four-haplotype alignment that can host medians."""
+        return Alignment(
+            [
+                Sequence('seq1', 'AAAAAA'),
+                Sequence('seq2', 'AATTTT'),
+                Sequence('seq3', 'TTAATT'),
+                Sequence('seq4', 'TTTTAA'),
             ]
         )
 
-        network_no_simplify = mjn_no_simplify.construct_network(alignment)
-        network_simplify = mjn_simplify.construct_network(alignment)
+    def test_epsilon_zero_baseline(self):
+        """Epsilon 0 builds a connected network."""
+        network = MedianJoiningNetwork(epsilon=0.0).construct_network(
+            self.make_alignment()
+        )
+        assert network.is_connected()
 
-        # Simplified network should have <= nodes
-        assert len(network_simplify) <= len(network_no_simplify)
+    def test_larger_epsilon_never_smaller_network(self):
+        """Growing epsilon admits at least as many medians."""
+        small = MedianJoiningNetwork(epsilon=0.0).construct_network(
+            self.make_alignment()
+        )
+        large = MedianJoiningNetwork(epsilon=2.0).construct_network(
+            self.make_alignment()
+        )
+        assert len(large) >= len(small)
 
-    def test_mjn_vs_msn(self):
-        """Test that MJN produces valid network compared to MSN."""
-        from pypopart.algorithms.msn import MinimumSpanningNetwork
+    def test_median_ids_distinct_from_haplotype_ids(self):
+        """Median ids never collide with H-number haplotype ids."""
+        network = MedianJoiningNetwork(epsilon=2.0).construct_network(
+            self.make_alignment()
+        )
+        sampled = {n for n in network.nodes if str(n).startswith('H')}
+        medians = set(median_nodes(network))
+        assert sampled.isdisjoint(medians)
 
-        alignment = Alignment(
+
+class TestMJNSimplify:
+    """The opt-in degree-2 smoothing extra."""
+
+    def make_alignment(self):
+        """Alignment prone to producing chained medians."""
+        return Alignment(
             [
-                Sequence('seq1', 'ATCG'),
-                Sequence('seq2', 'ATCC'),
-                Sequence('seq3', 'GTCG'),
-                Sequence('seq4', 'GTCC'),
+                Sequence('seq1', 'AAAAAAAA'),
+                Sequence('seq2', 'AAAATTTT'),
+                Sequence('seq3', 'TTTTAAAA'),
+                Sequence('seq4', 'TTTTTTTT'),
             ]
         )
 
-        msn = MinimumSpanningNetwork()
-        msn_network = msn.construct_network(alignment)
-
-        mjn = MedianJoiningNetwork()
-        mjn_network = mjn.construct_network(alignment)
-
-        # Both should be connected
-        assert msn_network.is_connected()
-        assert mjn_network.is_connected()
-
-        # MJN might have different number of nodes (due to median vectors)
-        # but should still represent the same haplotypes
-        assert len(mjn_network) >= len(msn_network) or len(mjn_network) == len(
-            msn_network
+    def test_simplify_never_larger(self):
+        """Smoothing cannot increase the node count."""
+        plain = MedianJoiningNetwork(epsilon=2.0).construct_network(
+            self.make_alignment()
         )
-
-    def test_mjn_median_calculation(self):
-        """Test median sequence calculation."""
-        mjn = MedianJoiningNetwork()
-
-        seq1 = Sequence('s1', 'AAAA')
-        seq2 = Sequence('s2', 'AATT')
-        seq3 = Sequence('s3', 'AATT')
-
-        median = mjn._calculate_median(seq1, seq2, seq3)
-
-        # Median should exist and be "AATT" (majority at each position)
-        assert median is not None
-        assert median.data == 'AATT'
-
-    def test_mjn_no_median_all_different(self):
-        """Test that no median is calculated when all bases differ."""
-        mjn = MedianJoiningNetwork()
-
-        seq1 = Sequence('s1', 'A')
-        seq2 = Sequence('s2', 'C')
-        seq3 = Sequence('s3', 'G')
-
-        median = mjn._calculate_median(seq1, seq2, seq3)
-
-        # No clear median exists
-        assert median is None
-
-    def test_mjn_parameters(self):
-        """Test getting MJN parameters."""
-        mjn = MedianJoiningNetwork(
-            distance_method='k2p', epsilon=0.5, max_median_vectors=10, simplify=False
+        smoothed = MedianJoiningNetwork(epsilon=2.0, simplify=True).construct_network(
+            self.make_alignment()
         )
+        assert len(smoothed) <= len(plain)
+        assert smoothed.is_connected()
+
+    def test_simplify_preserves_observed_haplotypes(self):
+        """Smoothing never removes sampled haplotypes."""
+        network = MedianJoiningNetwork(epsilon=3.0, simplify=True).construct_network(
+            self.make_alignment()
+        )
+        for hap_id in ('H1', 'H2', 'H3', 'H4'):
+            assert network.has_node(hap_id)
+
+    def test_no_low_degree_medians_remain(self):
+        """PopART invariant: every median has degree >= 2."""
+        network = MedianJoiningNetwork(epsilon=2.0).construct_network(
+            self.make_alignment()
+        )
+        for node in median_nodes(network):
+            assert network.get_degree(node) >= 2
+
+
+class TestMJNParameters:
+    """Parameter reporting."""
+
+    def test_get_parameters(self):
+        """All MJN parameters are reported."""
+        mjn = MedianJoiningNetwork(epsilon=1.5, max_median_vectors=7, simplify=True)
         params = mjn.get_parameters()
+        assert params['epsilon'] == 1.5
+        assert params['max_median_vectors'] == 7
+        assert params['simplify'] is True
 
-        assert params['distance_method'] == 'k2p'
-        assert params['epsilon'] == 0.5
-        assert params['max_median_vectors'] == 10
-        assert params['simplify'] is False
-
-    def test_mjn_string_representation(self):
-        """Test string representation of MJN."""
-        mjn = MedianJoiningNetwork(distance_method='hamming')
-        assert 'MedianJoiningNetwork' in str(mjn)
-        assert 'hamming' in str(mjn)
-
-    def test_mjn_iterative_refinement(self):
-        """Test iterative refinement produces better networks."""
-        mjn = MedianJoiningNetwork(epsilon=1.0)
-        alignment = Alignment(
-            [
-                Sequence('seq1', 'AAAA'),
-                Sequence('seq2', 'ATAT'),
-                Sequence('seq3', 'TATA'),
-                Sequence('seq4', 'TTTT'),
-            ]
-        )
-        network = mjn.construct_network(alignment)
-
-        # Network should be connected
-        assert network.is_connected()
-        # Should have inferred some median vectors
-        median_count = sum(1 for h in network.haplotypes if 'Median_' in h.id)
-        assert median_count >= 0  # May or may not add medians depending on topology
-
-    def test_mjn_quasi_median_simple(self):
-        """Test quasi-median calculation with simple case."""
-        mjn = MedianJoiningNetwork()
-        seq1 = Sequence('s1', 'AAAA')
-        seq2 = Sequence('s2', 'AATT')
-        seq3 = Sequence('s3', 'AATT')
-
-        quasi_medians = mjn._compute_quasi_medians(seq1, seq2, seq3)
-
-        # Should have one clear median: AATT
-        assert len(quasi_medians) >= 1
-        assert 'AATT' in quasi_medians
-
-    def test_mjn_quasi_median_all_different(self):
-        """Test quasi-median with all positions different."""
-        mjn = MedianJoiningNetwork()
-        seq1 = Sequence('s1', 'AA')
-        seq2 = Sequence('s2', 'CC')
-        seq3 = Sequence('s3', 'GG')
-
-        quasi_medians = mjn._compute_quasi_medians(seq1, seq2, seq3)
-
-        # Should generate multiple quasi-medians (all combinations)
-        # For 2 positions with 3 choices each = 3^2 = 9 possibilities
-        # But we only include unique ones
-        assert len(quasi_medians) > 1
-        # Should include sequences with bases from the three inputs
-        for qm in quasi_medians:
-            assert len(qm) == 2
-            assert all(c in 'ACG' for c in qm)
-
-    def test_mjn_median_cost(self):
-        """Test median cost calculation."""
-        mjn = MedianJoiningNetwork()
-        seq1 = Sequence('s1', 'AAAA')
-        seq2 = Sequence('s2', 'AATT')
-        seq3 = Sequence('s3', 'TTAA')
-
-        # Test cost of perfect median
-        cost = mjn._compute_median_cost(seq1, seq2, seq3, 'AATA')
-        assert cost >= 0
-        assert isinstance(cost, int)
-
-    def test_mjn_remove_obsolete_medians(self):
-        """Test removal of obsolete median vectors."""
-        from pypopart.core.graph import HaplotypeNetwork
-        from pypopart.core.haplotype import Haplotype
-
-        mjn = MedianJoiningNetwork()
-
-        # Create network with a degree-1 median
-        network = HaplotypeNetwork()
-        h1 = Haplotype(
-            Sequence('h1', 'AAAA'), sample_ids=['s1', 's2', 's3', 's4', 's5']
-        )
-        h2 = Haplotype(Sequence('h2', 'TTTT'), sample_ids=['s6', 's7', 's8'])
-        median = Haplotype(Sequence('Median_0', 'AATT'), sample_ids=[])
-
-        network.add_haplotype(h1)
-        network.add_haplotype(h2)
-        network.add_haplotype(median)
-        network.add_edge('h1', 'Median_0', distance=2)
-        # Median has degree 1, should be removed
-
-        haplotypes = [h1, h2, median]
-        result = mjn._remove_obsolete_medians(network, haplotypes)
-
-        # Median should be removed (degree < 2)
-        assert len(result) <= len(haplotypes)
-
-    def test_mjn_find_triplets_in_msn(self):
-        """Test finding triplets in MSN."""
-        from pypopart.core.graph import HaplotypeNetwork
-        from pypopart.core.haplotype import Haplotype
-
-        mjn = MedianJoiningNetwork()
-
-        # Create a star network
-        network = HaplotypeNetwork()
-        center = Haplotype(
-            Sequence('center', 'AAAA'), sample_ids=[f's{i}' for i in range(10)]
-        )
-        h1 = Haplotype(Sequence('h1', 'AAAT'), sample_ids=['s10', 's11'])
-        h2 = Haplotype(Sequence('h2', 'AATT'), sample_ids=['s12', 's13', 's14'])
-        h3 = Haplotype(Sequence('h3', 'ATTT'), sample_ids=['s15'])
-
-        network.add_haplotype(center)
-        network.add_haplotype(h1)
-        network.add_haplotype(h2)
-        network.add_haplotype(h3)
-        network.add_edge('center', 'h1', distance=1)
-        network.add_edge('center', 'h2', distance=2)
-        network.add_edge('center', 'h3', distance=3)
-        network.add_edge('h1', 'h2', distance=2)  # Make a triplet
-
-        triplets = mjn._find_all_triplets_in_msn(network)
-
-        # Should find at least one triplet
-        assert len(triplets) >= 1
-
-    def test_mjn_build_msn_for_iteration(self):
-        """Test building MSN for iteration."""
-        import numpy as np
-
-        from pypopart.core.distance import DistanceMatrix
-        from pypopart.core.haplotype import Haplotype
-
-        mjn = MedianJoiningNetwork()
-
-        h1 = Haplotype(
-            Sequence('h1', 'AAAA'), sample_ids=['s1', 's2', 's3', 's4', 's5']
-        )
-        h2 = Haplotype(Sequence('h2', 'AATT'), sample_ids=['s6', 's7', 's8'])
-        h3 = Haplotype(Sequence('h3', 'TTAA'), sample_ids=['s9', 's10'])
-
-        haplotypes = [h1, h2, h3]
-
-        # Create distance matrix
-        labels = ['h1', 'h2', 'h3']
-        matrix = np.array([[0, 2, 3], [2, 0, 3], [3, 3, 0]])
-        dist_matrix = DistanceMatrix(labels, matrix)
-
-        network = mjn._build_msn_for_iteration(haplotypes, dist_matrix)
-
-        # Should create a connected MSN
-        assert len(network.haplotypes) >= 3
-        assert network.is_connected()
-
-    def test_mjn_epsilon_parameter(self):
-        """Test epsilon parameter affects median selection."""
-        # Small epsilon - strict median selection
-        mjn_strict = MedianJoiningNetwork(epsilon=0.0)
-        # Large epsilon - relaxed median selection
-        mjn_relaxed = MedianJoiningNetwork(epsilon=5.0)
-
-        alignment = Alignment(
-            [
-                Sequence('seq1', 'AAAA'),
-                Sequence('seq2', 'ATAT'),
-                Sequence('seq3', 'TATA'),
-                Sequence('seq4', 'TTTT'),
-            ]
-        )
-
-        network_strict = mjn_strict.construct_network(alignment)
-        network_relaxed = mjn_relaxed.construct_network(alignment)
-
-        # Both should be connected
-        assert network_strict.is_connected()
-        assert network_relaxed.is_connected()
-
-        # Relaxed epsilon may add more medians
-        medians_strict = sum(1 for h in network_strict.haplotypes if 'Median_' in h.id)
-        medians_relaxed = sum(
-            1 for h in network_relaxed.haplotypes if 'Median_' in h.id
-        )
-        assert medians_relaxed >= medians_strict
-
-    def test_mjn_sequence_length_preserved(self):
-        """Test that median vectors maintain sequence length."""
-        mjn = MedianJoiningNetwork()
-        alignment = Alignment(
-            [
-                Sequence('seq1', 'ATCGATCG'),
-                Sequence('seq2', 'ATCGTTCG'),
-                Sequence('seq3', 'ATCGATTT'),
-                Sequence('seq4', 'TTCGATTT'),
-            ]
-        )
-        network = mjn.construct_network(alignment)
-
-        # All sequences (including medians) should have same length
-        expected_length = 8
-        for haplotype in network.haplotypes:
-            assert len(haplotype.sequence.data) == expected_length
-
-    def test_mjn_convergence(self):
-        """Test that iterative refinement converges."""
-        mjn = MedianJoiningNetwork(epsilon=1.0)
-        alignment = Alignment(
-            [
-                Sequence('seq1', 'AAAA'),
-                Sequence('seq2', 'AATT'),
-                Sequence('seq3', 'TTAA'),
-                Sequence('seq4', 'TTTT'),
-            ]
-        )
-
-        # Should not run forever (max_iterations prevents infinite loop)
-        network = mjn.construct_network(alignment)
-
-        # Should produce a valid connected network
-        assert network.is_connected()
-        assert len(network.haplotypes) >= 4  # At least the original 4
-
-    def test_mjn_different_distance_methods(self):
-        """Test MJN with different distance methods."""
-        alignment = Alignment(
-            [
-                Sequence('seq1', 'ATCG'),
-                Sequence('seq2', 'ATCC'),
-                Sequence('seq3', 'GTCG'),
-            ]
-        )
-
-        # Test with hamming
-        mjn_hamming = MedianJoiningNetwork(distance_method='hamming')
-        network_hamming = mjn_hamming.construct_network(alignment)
-        assert network_hamming.is_connected()
-
-        # Note: Other distance methods may not work well with median inference
-        # as they expect continuous values, not discrete sequences
+    def test_string_representation(self):
+        """String representation includes the class name."""
+        assert 'MedianJoiningNetwork' in str(MedianJoiningNetwork())

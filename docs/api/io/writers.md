@@ -14,7 +14,7 @@ Export networks in multiple formats:
 ## Modules
 
 ::: pypopart.io.network_export
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

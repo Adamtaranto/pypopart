@@ -4,29 +4,30 @@ Layout algorithms for network visualization in PyPopART.
 Provides various layout algorithms for positioning nodes in haplotype networks,
 including force-directed, hierarchical, spectral, and custom layouts.
 
-Algorithm Selection Guide
--------------------------
+Algorithm selection guide:
+
 For small networks (<50 nodes):
-    - KamadaKawaiLayout: Best quality, slow
-    - ForceDirectedLayout: Good quality, moderate speed
+- KamadaKawaiLayout: Best quality, slow
+- ForceDirectedLayout: Good quality, moderate speed
 
 For medium networks (50-500 nodes):
-    - ForceDirectedLayout: Default choice, good balance
-    - SpectralLayout: Faster alternative, good quality
-    - HierarchicalLayout: Very fast, tree-like structure
+- ForceDirectedLayout: Default choice, good balance
+- SpectralLayout: Faster alternative, good quality
+- HierarchicalLayout: Very fast, tree-like structure
 
 For large networks (>500 nodes):
-    - SpectralLayout: Fast, maintains structure
-    - HierarchicalLayout: Fastest option
-    - CircularLayout: Simple, very fast
+- SpectralLayout: Fast, maintains structure
+- HierarchicalLayout: Fastest option
+- CircularLayout: Simple, very fast
 
 Special purposes:
-    - RadialLayout: Emphasize central node
-    - CircularLayout: Show connectivity patterns
+- RadialLayout: Emphasize central node
+- CircularLayout: Show connectivity patterns
 """
 
 import json
-from typing import Dict, List, Optional, Tuple
+import math
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -39,6 +40,11 @@ class LayoutAlgorithm:
     Base class for layout algorithms.
 
     Provides interface for computing node positions in network visualizations.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
     """
 
     def __init__(self, network: HaplotypeNetwork):
@@ -47,7 +53,7 @@ class LayoutAlgorithm:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
         """
         self.network = network
@@ -55,15 +61,16 @@ class LayoutAlgorithm:
 
     def compute(self, **kwargs) -> Dict[str, Tuple[float, float]]:
         """
-            Compute node positions.
+        Compute node positions.
 
         Parameters
         ----------
-            **kwargs :
-                Algorithm-specific parameters.
+        **kwargs : dict
+            Algorithm-specific parameters.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Dictionary mapping node IDs to (x, y) positions.
         """
         raise NotImplementedError('Subclasses must implement compute()')
@@ -76,9 +83,9 @@ class LayoutAlgorithm:
 
         Parameters
         ----------
-        layout :
+        layout : Dict[str, Tuple[float, float]]
             Node positions dictionary.
-        filename :
+        filename : str
             Output filename.
         """
         # Convert tuples to lists for JSON serialization
@@ -90,15 +97,16 @@ class LayoutAlgorithm:
     @staticmethod
     def load_layout(filename: str) -> Dict[str, Tuple[float, float]]:
         """
-            Load layout from a JSON file.
+        Load layout from a JSON file.
 
         Parameters
         ----------
-            filename :
-                Input filename.
+        filename : str
+            Input filename.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Dictionary mapping node IDs to (x, y) positions.
         """
         with open(filename, 'r') as f:
@@ -116,15 +124,15 @@ class ForceDirectedLayout(LayoutAlgorithm):
     aesthetically pleasing layouts. Uses the Fruchterman-Reingold algorithm
     implemented in NetworkX's spring_layout.
 
-    Performance
-    -----------
+    Notes
+    -----
+    **Performance**
+
     - Time complexity: O(iterations * N^2) where N is number of nodes
     - Typical runtime: ~25ms for 100 nodes, 50 iterations
     - Best for: Networks with 10-500 nodes
     - Quality: Good balance between speed and aesthetic quality
 
-    Notes
-    -----
     For very large networks (>500 nodes), consider using:
     - HierarchicalLayout (fastest, ~0.1ms for 100 nodes)
     - CircularLayout (very fast, ~0.2ms for 100 nodes)
@@ -139,24 +147,25 @@ class ForceDirectedLayout(LayoutAlgorithm):
         **kwargs,
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute force-directed layout.
+        Compute force-directed layout.
 
         Parameters
         ----------
-            k :
-                Optimal distance between nodes (None for auto).
-                Smaller values bring nodes closer together.
-            iterations :
-                Number of iterations for optimization.
-                More iterations = better quality but slower.
-                Default 50 is good for most networks.
-            seed :
-                Random seed for reproducibility.
-            **kwargs :
-                Additional parameters passed to spring_layout.
+        k : float, optional
+            Optimal distance between nodes (None for auto).
+            Smaller values bring nodes closer together.
+        iterations : int, default=50
+            Number of iterations for optimization.
+            More iterations = better quality but slower.
+            Default 50 is good for most networks.
+        seed : int, optional
+            Random seed for reproducibility.
+        **kwargs : dict
+            Additional parameters passed to spring_layout.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         layout = nx.spring_layout(
@@ -178,19 +187,20 @@ class CircularLayout(LayoutAlgorithm):
         self, scale: float = 1.0, center: Optional[Tuple[float, float]] = None, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute circular layout.
+        Compute circular layout.
 
         Parameters
         ----------
-            scale :
-                Scale factor for the layout.
-            center :
-                Center position (x, y).
-            **kwargs :
-                Additional parameters passed to circular_layout.
+        scale : float, default=1.0
+            Scale factor for the layout.
+        center : Tuple[float, float], optional
+            Center position (x, y).
+        **kwargs : dict
+            Additional parameters passed to circular_layout.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         layout = nx.circular_layout(self.graph, scale=scale, center=center, **kwargs)
@@ -210,19 +220,20 @@ class RadialLayout(LayoutAlgorithm):
         self, center_node: Optional[str] = None, scale: float = 1.0, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute radial layout.
+        Compute radial layout.
 
         Parameters
         ----------
-            center_node :
-                Node to place at center (most connected if None).
-            scale :
-                Scale factor for the layout.
-            **kwargs :
-                Additional parameters.
+        center_node : str, optional
+            Node to place at center (most connected if None).
+        scale : float, default=1.0
+            Scale factor for the layout.
+        **kwargs : dict
+            Additional parameters.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         if not self.graph.nodes():
@@ -290,23 +301,24 @@ class HierarchicalLayout(LayoutAlgorithm):
         **kwargs,
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute hierarchical layout.
+        Compute hierarchical layout.
 
         Parameters
         ----------
-            root_node :
-                Root node for hierarchy (most connected if None).
-            vertical :
-                If True, levels are horizontal; if False, levels are vertical.
-            width :
-                Total width of the layout.
-            height :
-                Total height of the layout.
-            **kwargs :
-                Additional parameters.
+        root_node : str, optional
+            Root node for hierarchy (most connected if None).
+        vertical : bool, default=True
+            If True, levels are horizontal; if False, levels are vertical.
+        width : float, default=2.0
+            Total width of the layout.
+        height : float, default=2.0
+            Total height of the layout.
+        **kwargs : dict
+            Additional parameters.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         if not self.graph.nodes():
@@ -374,15 +386,15 @@ class KamadaKawaiLayout(LayoutAlgorithm):
     distances. Produces high-quality layouts but is computationally expensive
     for large networks.
 
-    Performance
-    -----------
+    Notes
+    -----
+    **Performance**
+
     - Time complexity: O(N^3) where N is number of nodes
     - Typical runtime: ~190ms for 100 nodes
     - Best for: Small networks (<50 nodes) where layout quality is critical
     - Quality: Excellent, minimizes stress based on graph distances
 
-    Notes
-    -----
     For large networks, use ForceDirectedLayout or SpectralLayout instead.
     Kamada-Kawai can be very slow for networks with >100 nodes.
     """
@@ -391,19 +403,20 @@ class KamadaKawaiLayout(LayoutAlgorithm):
         self, scale: float = 1.0, center: Optional[Tuple[float, float]] = None, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute Kamada-Kawai layout.
+        Compute Kamada-Kawai layout.
 
         Parameters
         ----------
-            scale :
-                Scale factor for the layout.
-            center :
-                Center position (x, y).
-            **kwargs :
-                Additional parameters passed to kamada_kawai_layout.
+        scale : float, default=1.0
+            Scale factor for the layout.
+        center : Tuple[float, float], optional
+            Center position (x, y).
+        **kwargs : dict
+            Additional parameters passed to kamada_kawai_layout.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
 
         Warnings
@@ -426,15 +439,15 @@ class SpectralLayout(LayoutAlgorithm):
     This is a fast alternative to force-directed layouts that works well
     for large networks.
 
-    Performance
-    -----------
+    Notes
+    -----
+    **Performance**
+
     - Time complexity: O(N^2) where N is number of nodes
     - Typical runtime: ~5-10ms for 100 nodes
     - Best for: Large networks (100-1000+ nodes)
     - Quality: Good, respects graph structure efficiently
 
-    Notes
-    -----
     Spectral layout is much faster than Kamada-Kawai and comparable
     to force-directed layouts while maintaining good quality.
     Particularly effective for networks with clear clustering structure.
@@ -452,18 +465,19 @@ class SpectralLayout(LayoutAlgorithm):
 
         Parameters
         ----------
-        scale :
+        scale : float, default=1.0
             Scale factor for the layout.
-        center :
+        center : Tuple[float, float], optional
             Center position (x, y).
-        dim :
+        dim : int, default=2
             Dimensionality of layout (default 2 for 2D visualization).
-        **kwargs :
+        **kwargs : dict
             Additional parameters passed to spectral_layout.
 
         Returns
         -------
-        Node positions dictionary.
+        Dict[str, Tuple[float, float]]
+            Node positions dictionary.
         """
         layout = nx.spectral_layout(
             self.graph, scale=scale, center=center, dim=dim, **kwargs
@@ -477,6 +491,13 @@ class ManualLayout(LayoutAlgorithm):
     Manual layout with user-specified positions.
 
     Allows manual positioning of nodes or adjustment of existing layouts.
+
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    initial_positions : Dict[str, Tuple[float, float]], optional
+        Starting positions for nodes.
     """
 
     def __init__(
@@ -489,9 +510,9 @@ class ManualLayout(LayoutAlgorithm):
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
-        initial_positions :
+        initial_positions : Dict[str, Tuple[float, float]], optional
             Starting positions for nodes.
         """
         super().__init__(network)
@@ -499,15 +520,16 @@ class ManualLayout(LayoutAlgorithm):
 
     def compute(self, **kwargs) -> Dict[str, Tuple[float, float]]:
         """
-            Return current manual positions.
+        Return current manual positions.
 
         Parameters
         ----------
-            **kwargs :
-                Ignored.
+        **kwargs : dict
+            Ignored.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         # Fill in missing nodes with default layout
@@ -525,9 +547,9 @@ class ManualLayout(LayoutAlgorithm):
 
         Parameters
         ----------
-        node :
+        node : str
             Node ID.
-        position :
+        position : Tuple[float, float]
             (x, y) coordinates.
         """
         if node not in self.graph.nodes():
@@ -541,11 +563,11 @@ class ManualLayout(LayoutAlgorithm):
 
         Parameters
         ----------
-        node :
+        node : str
             Node ID.
-        dx :
+        dx : float
             X offset.
-        dy :
+        dy : float
             Y offset.
         """
         if node not in self.positions:
@@ -584,9 +606,9 @@ class LayoutManager:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
-        enable_cache :
+        enable_cache : bool, default=True
             Enable caching of layout computations. Default True.
         """
         self.network = network
@@ -600,6 +622,7 @@ class LayoutManager:
             'hierarchical': HierarchicalLayout,
             'kamada_kawai': KamadaKawaiLayout,
             'spectral': SpectralLayout,
+            'shell': CircularLayout,  # single-shell layout is circular
             'manual': ManualLayout,
         }
 
@@ -611,17 +634,18 @@ class LayoutManager:
 
         Parameters
         ----------
-        algorithm :
+        algorithm : str, default='force_directed'
             Layout algorithm name.
-        use_cache :
+        use_cache : bool, default=True
             If True and caching is enabled, return cached result if available.
             Default True.
-        **kwargs :
+        **kwargs : dict
             Algorithm-specific parameters.
 
         Returns
         -------
-        Node positions dictionary.
+        Dict[str, Tuple[float, float]]
+            Node positions dictionary.
 
         Raises
         ------
@@ -635,7 +659,9 @@ class LayoutManager:
         """
         if algorithm not in self._algorithms:
             available = ', '.join(self._algorithms.keys())
-            raise ValueError(f"Unknown algorithm '{algorithm}'. Available: {available}")
+            raise ValueError(
+                f"Unknown layout algorithm '{algorithm}'. Available: {available}"
+            )
 
         # Check cache if enabled
         if self._enable_cache and use_cache:
@@ -694,9 +720,9 @@ class LayoutManager:
 
         Parameters
         ----------
-        layout :
+        layout : Dict[str, Tuple[float, float]]
             Node positions dictionary.
-        filename :
+        filename : str
             Output filename (JSON format).
         """
         algo = LayoutAlgorithm(self.network)
@@ -704,15 +730,16 @@ class LayoutManager:
 
     def load_layout(self, filename: str) -> Dict[str, Tuple[float, float]]:
         """
-            Load layout from file.
+        Load layout from file.
 
         Parameters
         ----------
-            filename :
-                Input filename (JSON format).
+        filename : str
+            Input filename (JSON format).
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         return LayoutAlgorithm.load_layout(filename)
@@ -723,6 +750,224 @@ class LayoutManager:
 
         Returns
         -------
+        List[str]
             List of algorithm names.
         """
         return list(self._algorithms.keys())
+
+
+def snap_to_grid(
+    positions: Dict[str, Tuple[float, float]], grid_size: float
+) -> Dict[str, Tuple[float, float]]:
+    """
+    Quantise node positions onto a regular grid.
+
+    Applied both to computed layouts and to positions persisted after a
+    manual drag, so a snapped network stays snapped either way.
+
+    Parameters
+    ----------
+    positions : Dict[str, Tuple[float, float]]
+        Node positions to quantise.
+    grid_size : float
+        Grid spacing in the same units as ``positions``. Values of zero or
+        less return the positions unchanged, which is how the feature is
+        switched off.
+
+    Returns
+    -------
+    Dict[str, Tuple[float, float]]
+        New mapping with every coordinate on the nearest grid intersection.
+    """
+    if grid_size <= 0:
+        return dict(positions)
+
+    return {
+        node: (
+            round(float(pos[0]) / grid_size) * grid_size,
+            round(float(pos[1]) / grid_size) * grid_size,
+        )
+        for node, pos in positions.items()
+    }
+
+
+#: Extra cost charged for routing a displaced node through a cell that is
+#: already taken, so a detour around a cluster wins over a path straight
+#: across it when both take the same number of moves.
+OCCUPIED_STEP_PENALTY = 3.0
+
+#: How far, in grid cells, to search for a free intersection before giving
+#: up and leaving a node where it landed. Bounds the search on a network
+#: dense enough to have no free cell nearby.
+MAX_COLLISION_SEARCH = 12
+
+#: The four grid directions a node may step in.
+_GRID_STEPS = ((1, 0), (-1, 0), (0, 1), (0, -1))
+
+
+def resolve_grid_collisions(
+    positions: Dict[str, Tuple[float, float]],
+    grid_size: float,
+    neighbours: Optional[Dict[str, List[str]]] = None,
+    movable: Optional[Iterable[str]] = None,
+) -> Dict[str, Tuple[float, float]]:
+    """
+    Spread nodes that snapped onto the same grid intersection.
+
+    Snapping quantises positions, so nodes that were merely close end up
+    exactly coincident and one hides the other. Each surplus node is
+    walked outwards to the nearest free intersection, preferring to move
+    away from its closest connected neighbour so an edge is not folded
+    back over itself.
+
+    Ties on distance are broken by that away-direction, and a route that
+    crosses occupied cells is charged :data:`OCCUPIED_STEP_PENALTY` per
+    crossing, so a node steps around a cluster rather than through it.
+
+    Parameters
+    ----------
+    positions : Dict[str, Tuple[float, float]]
+        Node positions, already snapped to the grid.
+    grid_size : float
+        Grid spacing, in the same units as ``positions``. Zero or less
+        returns the positions unchanged.
+    neighbours : Dict[str, List[str]], optional
+        Adjacency, used to decide which way is "away". Nodes with no
+        neighbours simply take the nearest free cell.
+    movable : iterable of str, optional
+        Nodes allowed to move. Everything else holds its cell, which is
+        how a single dragged node is displaced rather than the network
+        rearranging itself around it. Defaults to every node.
+
+    Returns
+    -------
+    Dict[str, Tuple[float, float]]
+        New positions with at most one node per intersection.
+    """
+    if grid_size <= 0 or not positions:
+        return dict(positions)
+
+    cells = {
+        node: (round(pos[0] / grid_size), round(pos[1] / grid_size))
+        for node, pos in positions.items()
+    }
+    movable_set = (
+        set(cells) if movable is None else {node for node in movable if node in cells}
+    )
+
+    # Pinned nodes claim their cell first; the rest are placed in a
+    # stable order so the same input always gives the same output.
+    taken = {}
+    for node in sorted(cells):
+        if node not in movable_set:
+            taken.setdefault(cells[node], node)
+
+    resolved = {node: cells[node] for node in cells if node not in movable_set}
+
+    for node in sorted(movable_set):
+        start = cells[node]
+        if start not in taken:
+            taken[start] = node
+            resolved[node] = start
+            continue
+
+        target = _nearest_free_cell(start, taken, _away_vector(node, cells, neighbours))
+        taken[target] = node
+        resolved[node] = target
+
+    return {
+        node: (grid_cell[0] * grid_size, grid_cell[1] * grid_size)
+        for node, grid_cell in resolved.items()
+    }
+
+
+def _away_vector(
+    node: str,
+    cells: Dict[str, Tuple[int, int]],
+    neighbours: Optional[Dict[str, List[str]]],
+) -> Tuple[float, float]:
+    """
+    Point away from a node's closest connected neighbour.
+
+    Parameters
+    ----------
+    node : str
+        Node being displaced.
+    cells : Dict[str, Tuple[int, int]]
+        Grid cell of every node.
+    neighbours : Dict[str, List[str]], optional
+        Adjacency.
+
+    Returns
+    -------
+    Tuple[float, float]
+        Unit-ish direction to prefer, or ``(0.0, 0.0)`` when the node has
+        no neighbours to move away from.
+    """
+    linked = [n for n in (neighbours or {}).get(node, []) if n in cells]
+    if not linked:
+        return (0.0, 0.0)
+
+    x, y = cells[node]
+    nearest = min(linked, key=lambda n: (cells[n][0] - x) ** 2 + (cells[n][1] - y) ** 2)
+    dx, dy = x - cells[nearest][0], y - cells[nearest][1]
+    length = math.hypot(dx, dy)
+    if length == 0:
+        return (0.0, 0.0)
+    return (dx / length, dy / length)
+
+
+def _nearest_free_cell(
+    start: Tuple[int, int],
+    taken: Dict[Tuple[int, int], str],
+    away: Tuple[float, float],
+) -> Tuple[int, int]:
+    """
+    Find the cheapest unoccupied cell reachable from a start cell.
+
+    A uniform-cost search over the grid: one unit per step, plus a
+    penalty for stepping through a cell that is already taken.
+
+    Parameters
+    ----------
+    start : Tuple[int, int]
+        Occupied cell the node landed on.
+    taken : Dict[Tuple[int, int], str]
+        Cells already claimed.
+    away : Tuple[float, float]
+        Preferred direction, used only to break ties.
+
+    Returns
+    -------
+    Tuple[int, int]
+        A free cell, or ``start`` if none was found within
+        :data:`MAX_COLLISION_SEARCH` cells.
+    """
+    import heapq
+
+    seen = {start}
+    queue = [(0.0, 0.0, start, start)]
+    while queue:
+        cost, _, _, current = heapq.heappop(queue)
+        if current not in taken and current != start:
+            return current
+        if cost >= MAX_COLLISION_SEARCH:
+            continue
+
+        for step_x, step_y in _GRID_STEPS:
+            nxt = (current[0] + step_x, current[1] + step_y)
+            if nxt in seen:
+                continue
+            seen.add(nxt)
+            # Charge for crossing an occupied cell, not for landing free.
+            step_cost = 1.0 + (OCCUPIED_STEP_PENALTY if nxt in taken else 0.0)
+
+            # Ties on cost go to the cell best aligned with the away
+            # direction, then to the cell itself so the result never
+            # depends on iteration order.
+            dx, dy = nxt[0] - start[0], nxt[1] - start[1]
+            length = math.hypot(dx, dy) or 1.0
+            alignment = (dx / length) * away[0] + (dy / length) * away[1]
+            heapq.heappush(queue, (cost + step_cost, -alignment, nxt, nxt))
+
+    return start

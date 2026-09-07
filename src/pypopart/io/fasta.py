@@ -1,6 +1,7 @@
 """FASTA file format reader and writer for PyPopART."""
 
 import gzip
+import io
 from pathlib import Path
 from typing import Iterator, Optional, TextIO, Union
 import zipfile
@@ -16,6 +17,13 @@ class FastaReader:
     Reader for FASTA format sequence files.
 
     Supports plain text, gzip, and zip compressed files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Path to FASTA file.
+    validate : bool, default=True
+        Whether to validate sequences.
     """
 
     def __init__(self, filepath: Union[str, Path], validate: bool = True):
@@ -24,9 +32,9 @@ class FastaReader:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Path to FASTA file.
-        validate :
+        validate : bool, default=True
             Whether to validate sequences.
         """
         self.filepath = Path(filepath)
@@ -35,14 +43,43 @@ class FastaReader:
         if not self.filepath.exists():
             raise FileNotFoundError(f'File not found: {filepath}')
 
+    @classmethod
+    def from_string(cls, text: str, validate: bool = True) -> 'FastaReader':
+        """
+        Create a reader over in-memory text instead of a file.
+
+        Lets callers (e.g. the GUI handling uploads) parse content without
+        writing a temporary file to disk.
+
+        Parameters
+        ----------
+        text : str
+            Complete file content in this reader's format.
+        validate : bool, default=True
+            Whether to validate sequences.
+
+        Returns
+        -------
+        FastaReader
+            Reader that parses the given text.
+        """
+        reader = cls.__new__(cls)
+        reader.filepath = None
+        reader.validate = validate
+        reader._text = text
+        return reader
+
     def _open_file(self) -> TextIO:
         """
         Open file handling compression automatically.
 
         Returns
         -------
+        TextIO
             File handle.
         """
+        if getattr(self, '_text', None) is not None:
+            return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
         elif self.filepath.suffix == '.zip':
@@ -61,10 +98,12 @@ class FastaReader:
 
         Parameters
         ----------
-        progress_callback :
+        progress_callback : callable, optional
             Optional callback function(current, total).
 
-        Yields :
+        Yields
+        ------
+        Sequence
             Sequence objects.
         """
         count = 0
@@ -98,15 +137,16 @@ class FastaReader:
 
     def read_alignment(self, progress_callback=None) -> Alignment:
         """
-            Read alignment from FASTA file.
+        Read alignment from FASTA file.
 
         Parameters
         ----------
-            progress_callback :
-                Optional callback function(current, total).
+        progress_callback : callable, optional
+            Optional callback function(current, total).
 
         Returns
         -------
+        Alignment
             Alignment object.
         """
         sequences = list(self.read_sequences(progress_callback))
@@ -119,7 +159,18 @@ class FastaReader:
 
 
 class FastaWriter:
-    """Writer for FASTA format sequence files."""
+    """
+    Writer for FASTA format sequence files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    line_length : int, default=80
+        Maximum line length for sequences (0 for no wrapping).
+    compress : str, optional
+        Compression format ('gzip' or None).
+    """
 
     def __init__(
         self,
@@ -132,11 +183,11 @@ class FastaWriter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
-        line_length :
+        line_length : int, default=80
             Maximum line length for sequences (0 for no wrapping).
-        compress :
+        compress : str, optional
             Compression format ('gzip' or None).
         """
         self.filepath = Path(filepath)
@@ -153,6 +204,7 @@ class FastaWriter:
 
         Returns
         -------
+        TextIO
             File handle.
         """
         if self.compress == 'gzip':
@@ -164,17 +216,18 @@ class FastaWriter:
         self, sequences: Iterator[Sequence], progress_callback=None
     ) -> int:
         """
-            Write sequences to FASTA file.
+        Write sequences to FASTA file.
 
         Parameters
         ----------
-            sequences :
-                Iterable of Sequence objects.
-            progress_callback :
-                Optional callback function(current, total).
+        sequences : Iterator[Sequence]
+            Iterable of Sequence objects.
+        progress_callback : callable, optional
+            Optional callback function(current, total).
 
         Returns
         -------
+        int
             Number of sequences written.
         """
         count = 0
@@ -208,17 +261,18 @@ class FastaWriter:
 
     def write_alignment(self, alignment: Alignment, progress_callback=None) -> int:
         """
-            Write alignment to FASTA file.
+        Write alignment to FASTA file.
 
         Parameters
         ----------
-            alignment :
-                Alignment object.
-            progress_callback :
-                Optional callback function(current, total).
+        alignment : Alignment
+            Alignment object.
+        progress_callback : callable, optional
+            Optional callback function(current, total).
 
         Returns
         -------
+        int
             Number of sequences written.
         """
         return self.write_sequences(iter(alignment), progress_callback)

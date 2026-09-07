@@ -30,6 +30,15 @@ class Haplotype:
     A haplotype is a unique DNA sequence that may be shared by multiple
     individuals or samples. This class tracks the sequence, frequency,
     and population assignments.
+
+    Parameters
+    ----------
+    sequence : Sequence
+        The unique sequence for this haplotype.
+    sample_ids : List[str], optional
+        List of sample IDs sharing this haplotype.
+    populations : Dict[str, str], optional
+        Dictionary mapping sample_id -> population/group.
     """
 
     def __init__(
@@ -43,11 +52,11 @@ class Haplotype:
 
         Parameters
         ----------
-        sequence :
+        sequence : Sequence
             The unique sequence for this haplotype.
-        sample_ids :
+        sample_ids : List[str], optional
             List of sample IDs sharing this haplotype.
-        populations :
+        populations : Dict[str, str], optional
             Dictionary mapping sample_id -> population/group.
         """
         self.sequence = sequence
@@ -56,22 +65,50 @@ class Haplotype:
 
     @property
     def id(self) -> str:
-        """Get haplotype ID (same as sequence ID)."""
+        """
+        Get haplotype ID (same as sequence ID).
+
+        Returns
+        -------
+        str
+            The haplotype identifier (its sequence ID).
+        """
         return self.sequence.id
 
     @property
     def data(self) -> str:
-        """Get sequence data."""
+        """
+        Get sequence data.
+
+        Returns
+        -------
+        str
+            The sequence data.
+        """
         return self.sequence.data
 
     @property
     def frequency(self) -> int:
-        """Get total frequency (number of samples with this haplotype)."""
+        """
+        Get total frequency (number of samples with this haplotype).
+
+        Returns
+        -------
+        int
+            Number of samples carrying this haplotype.
+        """
         return len(self._sample_ids)
 
     @property
     def sample_ids(self) -> List[str]:
-        """Get list of sample IDs with this haplotype."""
+        """
+        Get list of sample IDs with this haplotype.
+
+        Returns
+        -------
+        List[str]
+            List of sample IDs with this haplotype.
+        """
         return sorted(self._sample_ids)
 
     def add_sample(self, sample_id: str, population: Optional[str] = None) -> None:
@@ -80,9 +117,9 @@ class Haplotype:
 
         Parameters
         ----------
-        sample_id :
+        sample_id : str
             Sample identifier.
-        population :
+        population : str, optional
             Optional population/group assignment.
         """
         self._sample_ids.add(sample_id)
@@ -95,11 +132,12 @@ class Haplotype:
 
         Parameters
         ----------
-        sample_id :
+        sample_id : str
             Sample identifier.
 
-        Raises :
-        KeyError :
+        Raises
+        ------
+        KeyError
             If sample not found.
         """
         if sample_id not in self._sample_ids:
@@ -110,15 +148,16 @@ class Haplotype:
 
     def get_population(self, sample_id: str) -> Optional[str]:
         """
-            Get population assignment for a sample.
+        Get population assignment for a sample.
 
         Parameters
         ----------
-            sample_id :
-                Sample identifier.
+        sample_id : str
+            Sample identifier.
 
         Returns
         -------
+        str, optional
             Population name or None if not assigned.
         """
         return self._populations.get(sample_id)
@@ -129,6 +168,7 @@ class Haplotype:
 
         Returns
         -------
+        Set[str]
             Set of population names.
         """
         return set(self._populations.values())
@@ -139,6 +179,7 @@ class Haplotype:
 
         Returns
         -------
+        Dict[str, int]
             Dictionary mapping population -> count.
         """
         freq_by_pop: Dict[str, int] = defaultdict(int)
@@ -153,6 +194,7 @@ class Haplotype:
 
         Returns
         -------
+        HaplotypeFrequency
             HaplotypeFrequency object with total and per-population frequencies.
         """
         return HaplotypeFrequency(
@@ -187,6 +229,7 @@ class Haplotype:
 
         Returns
         -------
+        Dict[str, Any]
             Dictionary with haplotype data.
         """
         return {
@@ -201,15 +244,16 @@ class Haplotype:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Haplotype':
         """
-            Create haplotype from dictionary.
+        Create haplotype from dictionary.
 
         Parameters
         ----------
-            data :
-                Dictionary with haplotype information.
+        data : Dict[str, Any]
+            Dictionary with haplotype information.
 
         Returns
         -------
+        Haplotype
             New Haplotype object.
         """
         sequence = Sequence.from_dict(data['sequence'])
@@ -226,15 +270,21 @@ def identify_haplotypes_from_alignment(
     """
     Identify unique haplotypes from an alignment.
 
-    Groups sequences by unique sequence data (ignoring gaps) and creates
-    Haplotype objects with frequency information.
+    Groups sequences by exact aligned sequence data (gaps included, as in
+    PopART's condenseSeqs) and creates Haplotype objects with frequency
+    information. Keeping the aligned sequence means all haplotypes share
+    the alignment length; gap handling is left to the distance functions.
 
-    Args:
-        alignment: Multiple sequence alignment
-        population_map: Optional dictionary mapping sequence_id -> population
+    Parameters
+    ----------
+    alignment : Alignment
+        Multiple sequence alignment.
+    population_map : Dict[str, str], optional
+        Optional dictionary mapping sequence_id -> population.
 
     Returns
     -------
+    List[Haplotype]
         List of Haplotype objects.
     """
     # Group sequences by unique haplotype
@@ -242,13 +292,11 @@ def identify_haplotypes_from_alignment(
     sequence_map: Dict[str, Sequence] = {}
 
     for seq in alignment:
-        # Use ungapped sequence as haplotype key
-        ungapped = seq.remove_gaps()
-        key = ungapped.data
+        key = seq.data
 
         if key not in haplotype_map:
             haplotype_map[key] = []
-            sequence_map[key] = ungapped
+            sequence_map[key] = seq
 
         haplotype_map[key].append(seq.id)
 
@@ -283,11 +331,14 @@ def calculate_haplotype_diversity(haplotypes: List[Haplotype]) -> Dict[str, floa
     """
     Calculate haplotype diversity metrics.
 
-    Args:
-        haplotypes: List of Haplotype objects
+    Parameters
+    ----------
+    haplotypes : List[Haplotype]
+        List of Haplotype objects.
 
     Returns
     -------
+    Dict[str, float]
         Dictionary with diversity metrics:.
         - num_haplotypes: Number of unique haplotypes
         - total_samples: Total number of samples

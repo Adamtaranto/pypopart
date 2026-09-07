@@ -1,112 +1,71 @@
 """
-Parsimony Network algorithm for haplotype network construction.
+Parsimony Network algorithm, a port of PopART's AncestralSeqNet.
 
-This module implements the Parsimony Network algorithm, which constructs
-haplotype networks by sampling edges from multiple parsimony trees. The
-algorithm creates a consensus network that includes edges that appear
-frequently across random parsimony tree topologies.
+Builds a consensus network by repeatedly sampling ancestral-state
+reconstructions on parsimony trees: each iteration picks a random tree,
+samples one randomised Fitch reconstruction, and records every tree
+edge as a pair of sequences. Network vertices are keyed by sequence
+string, so identical ancestral states across trees collapse onto the
+same vertex. Edges whose sampling frequency falls below alpha are
+removed lowest-frequency-first - but only when their endpoints remain
+connected without them - and ancestral vertices left with degree <= 1
+are dropped.
 
-The approach provides a more robust network than a single tree by capturing
-uncertainty in phylogenetic reconstruction and potential reticulation events.
+PopART reads its trees from a Nexus TREES block; PyPopART generates
+them by random-order stepwise addition (see algorithms.ancestral).
 
 References
 ----------
-.. [1] Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies and
-       geographic subdivision to reconstruct gene trees within a species:
-       molecular variance parsimony. Genetics, 136(1), 343-359.
-.. [2] Templeton, A. R., Boerwinkle, E., & Sing, C. F. (1987). A cladistic
-       analysis of phenotypic associations with haplotypes inferred from
-       restriction endonuclease mapping. I. Basic theory and an analysis of
-       alcohol dehydrogenase activity in Drosophila. Genetics, 117(2), 343-351.
+.. [1] Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies
+       and geographic subdivision to reconstruct gene trees within a
+       species: molecular variance parsimony. Genetics 136(1), 343-359.
 """
 
-from collections import defaultdict
 import random
 from typing import Dict, List, Optional, Tuple
 
-import numpy as np
+import networkx as nx
 
 from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix
 from ..core.graph import HaplotypeNetwork
 from ..core.haplotype import Haplotype, identify_haplotypes_from_alignment
 from ..core.sequence import Sequence
+from ..core.site_patterns import condense_site_patterns, is_ambiguous
+from .ancestral import sample_parsimony_trees
 from .base import NetworkAlgorithm
 
 
 class ParsimonyNetwork(NetworkAlgorithm):
     """
-    Construct a haplotype network using the Parsimony Network algorithm.
-
-    The Parsimony Network algorithm constructs a consensus network by sampling
-    edges from multiple random parsimony tree topologies. This approach captures
-    phylogenetic uncertainty and can represent reticulation events.
-
-    The algorithm works by:
-    1. Generating multiple random parsimony trees
-    2. Sampling edges from these trees with frequency-based weighting
-    3. Building a network that includes frequently occurring edges
-    4. Inferring ancestral sequences at internal nodes
+    Construct a consensus haplotype network from sampled parsimony trees.
 
     Parameters
     ----------
     distance_method : str, default='hamming'
-        Method for calculating pairwise distances between sequences.
-        Options: 'hamming', 'jukes_cantor', 'kimura_2p', 'tamura_nei'.
-    n_trees : int, default=100
-        Number of random parsimony trees to sample.
-    min_edge_frequency : float, default=0.05
-        Minimum frequency (0-1) for an edge to be included in the network.
-        Lower values create more reticulate networks.
+        Kept for interface compatibility; edge weights use PopART's
+        site-weighted Hamming distances over condensed site patterns.
+    n_trees : int, default=20
+        Number of stepwise-addition parsimony trees to sample.
+    alpha : float, default=0.95
+        Edge-frequency threshold: edges sampled in fewer than alpha of
+        iterations are candidates for removal (lowest first), kept only
+        when removing them would disconnect their endpoints.
+    n_iterations : int, optional
+        Ancestral-sampling iterations. Defaults to 100 * n_trees, as in
+        PopART.
     random_seed : int, optional
         Random seed for reproducibility.
     **kwargs : dict
-        Additional parameters passed to base NetworkAlgorithm.
-
-    Attributes
-    ----------
-    n_trees : int
-        Number of trees to sample
-    min_edge_frequency : float
-        Minimum edge frequency threshold
-    _random_seed : int
-        Random seed for reproducibility
-    _median_counter : int
-        Counter for generating unique median vertex IDs
-
-    Examples
-    --------
-    >>> from pypopart.algorithms import ParsimonyNetwork
-    >>> from pypopart.io import load_alignment
-    >>>
-    >>> # Load alignment
-    >>> alignment = load_alignment('sequences.fasta')
-    >>>
-    >>> # Construct Parsimony Network
-    >>> pn = ParsimonyNetwork(n_trees=100, min_edge_frequency=0.1)
-    >>> network = pn.build_network(alignment)
-
-    Notes
-    -----
-    The Parsimony Network algorithm is computationally moderate, suitable for
-    small to medium datasets (< 200 sequences). The computational cost scales
-    with the number of trees sampled.
-
-    The algorithm can create reticulate networks when multiple edges have similar
-    frequencies, representing alternative evolutionary pathways.
-
-    See Also
-    --------
-    MinimumSpanningTree : Simpler tree-based method
-    TCS : Statistical parsimony network
-    TightSpanWalker : Exact tight span computation
+        Additional parameters passed to the base class.
     """
 
     def __init__(
         self,
         distance_method: str = 'hamming',
-        n_trees: int = 100,
-        min_edge_frequency: float = 0.05,
+        n_trees: int = 20,
+        alpha: float = 0.95,
+        n_iterations: Optional[int] = None,
         random_seed: Optional[int] = None,
         **kwargs,
     ):
@@ -117,282 +76,254 @@ class ParsimonyNetwork(NetworkAlgorithm):
         ----------
         distance_method : str, default='hamming'
             Method for calculating distances.
-        n_trees : int, default=100
-            Number of random parsimony trees to sample.
-        min_edge_frequency : float, default=0.05
-            Minimum frequency for edge inclusion.
+        n_trees : int, default=20
+            Number of parsimony trees to sample.
+        alpha : float, default=0.95
+            Edge-frequency threshold for pruning.
+        n_iterations : int, optional
+            Sampling iterations (default 100 * n_trees).
         random_seed : int, optional
             Random seed for reproducibility.
         **kwargs : dict
-            Additional algorithm parameters.
+            Additional parameters.
         """
-        super().__init__(distance_method=distance_method, **kwargs)
+        super().__init__(distance_method, **kwargs)
         self.n_trees = n_trees
-        self.min_edge_frequency = min_edge_frequency
-        self._random_seed = random_seed
-        self._median_counter = 0
-
-        if random_seed is not None:
-            random.seed(random_seed)
-            np.random.seed(random_seed)
+        self.alpha = alpha
+        self.n_iterations = n_iterations
+        self.random_seed = random_seed
 
     def construct_network(
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-        Construct haplotype network using Parsimony Network algorithm.
+        Construct the parsimony consensus network.
 
         Parameters
         ----------
         alignment : Alignment
             Multiple sequence alignment.
         distance_matrix : DistanceMatrix, optional
-            Pre-computed distance matrix. If None, will be calculated.
+            Ignored; distances are computed in condensed space.
 
         Returns
         -------
         HaplotypeNetwork
-            Constructed haplotype network.
+            Consensus network; inferred ancestral vertices are flagged
+            as median vectors and carry their condensed-space sequence.
         """
-        # Handle empty or single sequence alignments
-        if len(alignment) == 0:
-            return HaplotypeNetwork()
-
-        if len(alignment) == 1:
-            network = HaplotypeNetwork()
-            seq = alignment[0]
-            haplotype = Haplotype(sequence=seq, sample_ids=[seq.id])
-            network.add_haplotype(haplotype)
-            return network
-
-        # Calculate distances if not provided
-        if distance_matrix is None:
-            distance_matrix = self.calculate_distances(alignment)
-
-        # Identify unique haplotypes
         haplotypes = identify_haplotypes_from_alignment(alignment)
 
-        # Initialize network
-        network = HaplotypeNetwork()
+        if len(haplotypes) == 0:
+            return HaplotypeNetwork()
+        if len(haplotypes) == 1:
+            network = HaplotypeNetwork()
+            network.add_haplotype(haplotypes[0])
+            return network
 
-        # Add all observed haplotypes as nodes
-        for haplotype in haplotypes:
-            network.add_haplotype(haplotype)
+        rng = random.Random(self.random_seed)
+        condensed, weights = condense_site_patterns([h.data for h in haplotypes])
 
-        # Get distance matrix as numpy array
-        dist_array = distance_matrix.matrix
-
-        # Sample edges from random parsimony trees
-        edge_counts = self._sample_edges_from_trees(
-            haplotypes, dist_array, alignment.length
+        trees = sample_parsimony_trees(condensed, weights, self.n_trees, rng)
+        n_iterations = (
+            self.n_iterations if self.n_iterations is not None else 100 * self.n_trees
         )
 
-        # Add edges that meet frequency threshold
-        self._add_consensus_edges(network, edge_counts, haplotypes, alignment)
+        graph, seq_of_vertex, n_samples = self._sample_consensus(
+            condensed, weights, trees, n_iterations, rng
+        )
+        self._prune_by_frequency(graph, n_iterations)
+        self._drop_isolated_ancestors(graph, n_samples)
+
+        # Build the HaplotypeNetwork
+        network = HaplotypeNetwork()
+        for idx, haplotype in enumerate(haplotypes):
+            if idx in graph:
+                network.add_haplotype(haplotype)
+        label_of = {idx: haplotypes[idx].id for idx in range(n_samples)}
+        ancestor_counter = 0
+        for vertex in sorted(graph.nodes):
+            if vertex < n_samples:
+                continue
+            label = f'Median_{ancestor_counter}'
+            ancestor_counter += 1
+            label_of[vertex] = label
+            seq = Sequence(
+                id=label,
+                data=seq_of_vertex[vertex],
+                description='Sampled ancestral sequence (condensed sites)',
+            )
+            network.add_haplotype(
+                Haplotype(sequence=seq, sample_ids=[]), median_vector=True
+            )
+            network.graph.nodes[label]['is_median'] = True
+        for u, v, attrs in graph.edges(data=True):
+            network.add_edge(label_of[u], label_of[v], distance=attrs['distance'])
 
         return network
 
-    def _sample_edges_from_trees(
-        self, haplotypes: List[Haplotype], dist_array: np.ndarray, seq_length: int
-    ) -> Dict[Tuple[str, str], int]:
-        """
-        Sample edges from multiple random parsimony trees.
-
-        For each tree iteration, we build an approximate parsimony tree using
-        neighbor joining with random tie-breaking, then extract all edges.
-
-        Parameters
-        ----------
-        haplotypes : List[Haplotype]
-            List of haplotypes.
-        dist_array : np.ndarray
-            Distance matrix.
-        seq_length : int
-            Length of sequences.
-
-        Returns
-        -------
-        Dict[Tuple[str, str], int]
-            Dictionary mapping edge (as tuple of IDs) to count across trees.
-        """
-        edge_counts: Dict[Tuple[str, str], int] = defaultdict(int)
-        len(haplotypes)
-
-        for _tree_idx in range(self.n_trees):
-            # Build a random parsimony tree using modified neighbor joining
-            tree_edges = self._build_random_parsimony_tree(
-                haplotypes, dist_array.copy()
-            )
-
-            # Count edges
-            for edge in tree_edges:
-                # Sort to make undirected
-                sorted_edge = tuple(sorted(edge))
-                edge_counts[sorted_edge] += 1
-
-        return edge_counts
-
-    def _build_random_parsimony_tree(
-        self, haplotypes: List[Haplotype], dist_matrix: np.ndarray
-    ) -> List[Tuple[str, str]]:
-        """
-        Build a random parsimony tree using neighbor joining with random tie-breaking.
-
-        This is a simplified parsimony tree construction that uses distance-based
-        neighbor joining with randomized selection when multiple pairs have equal scores.
-
-        Parameters
-        ----------
-        haplotypes : List[Haplotype]
-            List of haplotypes.
-        dist_matrix : np.ndarray
-            Distance matrix.
-
-        Returns
-        -------
-        List[Tuple[str, str]]
-            List of edges (pairs of haplotype IDs).
-        """
-        n = len(haplotypes)
-        if n < 2:
-            return []
-
-        # Track active clusters (initially each haplotype is a cluster)
-        active_clusters = {i: [haplotypes[i].id] for i in range(n)}
-        edges = []
-
-        # Keep joining until only one cluster remains
-        while len(active_clusters) > 1:
-            # Find pair of clusters to join
-            best_pairs = []
-            best_score = float('inf')
-
-            cluster_ids = list(active_clusters.keys())
-            for i in range(len(cluster_ids)):
-                for j in range(i + 1, len(cluster_ids)):
-                    idx_i = cluster_ids[i]
-                    idx_j = cluster_ids[j]
-
-                    # Get distance between clusters (use minimum for simplicity)
-                    min_dist = float('inf')
-                    for id_i in active_clusters[idx_i]:
-                        i_pos = next(
-                            k for k, h in enumerate(haplotypes) if h.id == id_i
-                        )
-                        for id_j in active_clusters[idx_j]:
-                            j_pos = next(
-                                k for k, h in enumerate(haplotypes) if h.id == id_j
-                            )
-                            if i_pos < n and j_pos < n:
-                                min_dist = min(min_dist, dist_matrix[i_pos, j_pos])
-
-                    # Track best pairs (with ties)
-                    if min_dist < best_score:
-                        best_score = min_dist
-                        best_pairs = [(idx_i, idx_j)]
-                    elif min_dist == best_score:
-                        best_pairs.append((idx_i, idx_j))
-
-            # Randomly select among tied pairs
-            if best_pairs:
-                idx_i, idx_j = random.choice(best_pairs)
-
-                # Add edges between clusters
-                # For simplicity, connect all pairs between clusters
-                for id_i in active_clusters[idx_i]:
-                    for id_j in active_clusters[idx_j]:
-                        edges.append((id_i, id_j))
-                        break  # Only add one edge per cluster pair
-                    break
-
-                # Merge clusters
-                active_clusters[idx_i].extend(active_clusters[idx_j])
-                del active_clusters[idx_j]
-
-        return edges
-
-    def _add_consensus_edges(
+    def _sample_consensus(
         self,
-        network: HaplotypeNetwork,
-        edge_counts: Dict[Tuple[str, str], int],
-        haplotypes: List[Haplotype],
-        alignment: Alignment,
-    ) -> None:
+        condensed: List[str],
+        weights: List[int],
+        trees,
+        n_iterations: int,
+        rng: random.Random,
+    ) -> Tuple[nx.Graph, Dict[int, str], int]:
         """
-        Add consensus edges that meet frequency threshold.
+        Sample tree edges into a frequency-annotated consensus graph.
+
+        Port of AncestralSeqNet::computeGraph's sampling loop: vertices
+        are keyed by sequence string; per iteration, each distinct
+        vertex and edge seen is counted once.
 
         Parameters
         ----------
-        network : HaplotypeNetwork
-            Network to add edges to.
-        edge_counts : Dict[Tuple[str, str], int]
-            Edge counts from tree sampling.
-        haplotypes : List[Haplotype]
-            List of haplotypes.
-        alignment : Alignment
-            Sequence alignment for distance calculation.
+        condensed : list of str
+            Condensed sample sequences.
+        weights : list of int
+            Site weights.
+        trees : list of ParsimonyTree
+            Sampled parsimony trees.
+        n_iterations : int
+            Number of ancestral samplings.
+        rng : random.Random
+            Random source.
 
         Returns
         -------
-        None
-            Network is modified in place.
+        tuple
+            (graph with 'count' and 'distance' edge attrs, vertex id to
+            sequence mapping, number of sample vertices).
         """
-        # Calculate frequency threshold
-        min_count = int(self.n_trees * self.min_edge_frequency)
+        graph = nx.Graph()
+        seq_to_vertex: Dict[str, int] = {}
+        seq_of_vertex: Dict[int, str] = {}
 
-        # Create haplotype ID to sequence mapping
-        hap_seqs = {h.id: h.sequence for h in haplotypes}
+        for idx, seq in enumerate(condensed):
+            seq_to_vertex.setdefault(seq, idx)
+            seq_of_vertex[idx] = seq
+            graph.add_node(idx)
+        n_samples = len(condensed)
+        next_vertex = n_samples
 
-        # Add edges that meet threshold
-        # Note: Unlike the original implementation, we don't automatically
-        # subdivide edges into single-mutation steps. The sampling process
-        # naturally creates the consensus network structure.
-        for edge, count in edge_counts.items():
-            if count >= min_count:
-                id1, id2 = edge
+        for _ in range(n_iterations):
+            tree = trees[rng.randrange(len(trees))]
+            ancestors = tree.sample_ancestors(rng)
+            edge_list = tree.edge_sequences(ancestors)
 
-                # Calculate distance between sequences
-                seq1 = hap_seqs[id1]
-                seq2 = hap_seqs[id2]
-                distance = self._calculate_pairwise_distance(seq1, seq2)
+            vertices_seen = set()
+            edges_seen = set()
+            for seq_from, seq_to in edge_list:
+                u = seq_to_vertex.get(seq_from)
+                if u is None:
+                    u = next_vertex
+                    next_vertex += 1
+                    seq_to_vertex[seq_from] = u
+                    seq_of_vertex[u] = seq_from
+                    graph.add_node(u)
+                v = seq_to_vertex.get(seq_to)
+                if v is None:
+                    v = next_vertex
+                    next_vertex += 1
+                    seq_to_vertex[seq_to] = v
+                    seq_of_vertex[v] = seq_to
+                    graph.add_node(v)
 
-                # Add edge if not already present
-                # Do not add median vertices - the consensus sampling handles structure
-                if not network.has_edge(id1, id2):
-                    network.add_edge(id1, id2, distance=distance)
+                vertices_seen.update((u, v))
+                if u != v:
+                    if not graph.has_edge(u, v):
+                        distance = self._weighted_distance(seq_from, seq_to, weights)
+                        graph.add_edge(u, v, distance=distance, count=0)
+                    edges_seen.add(frozenset((u, v)))
 
-    def _calculate_pairwise_distance(self, seq1: Sequence, seq2: Sequence) -> float:
+            for edge in edges_seen:
+                u, v = tuple(edge)
+                graph[u][v]['count'] += 1
+
+        return graph, seq_of_vertex, n_samples
+
+    def _prune_by_frequency(self, graph: nx.Graph, n_iterations: int) -> None:
         """
-        Calculate distance between two sequences.
+        Remove low-frequency edges unless removal disconnects endpoints.
 
-        Handles sequences of different lengths (e.g., due to gap removal)
-        by padding the shorter sequence.
+        Edges with sampling frequency below alpha are processed lowest
+        frequency first; each is removed only when a path between its
+        endpoints survives, matching the C++ areConnected guard.
 
         Parameters
         ----------
-        seq1 : Sequence
-            First sequence.
-        seq2 : Sequence
-            Second sequence.
+        graph : nx.Graph
+            Consensus graph (modified in place).
+        n_iterations : int
+            Total sampling iterations (frequency denominator).
+        """
+        candidates = sorted(
+            (attrs['count'] / n_iterations, u, v)
+            for u, v, attrs in graph.edges(data=True)
+            if attrs['count'] / n_iterations < self.alpha
+        )
+        for _freq, u, v in candidates:
+            attrs = dict(graph[u][v])
+            graph.remove_edge(u, v)
+            if not nx.has_path(graph, u, v):
+                graph.add_edge(u, v, **attrs)
+
+    @staticmethod
+    def _drop_isolated_ancestors(graph: nx.Graph, n_samples: int) -> None:
+        """
+        Drop ancestral vertices of degree <= 1 (descending pass).
+
+        Parameters
+        ----------
+        graph : nx.Graph
+            Consensus graph (modified in place).
+        n_samples : int
+            Number of sample vertices (never removed).
+        """
+        for vertex in sorted((v for v in graph.nodes if v >= n_samples), reverse=True):
+            if graph.degree(vertex) <= 1:
+                graph.remove_node(vertex)
+
+    @staticmethod
+    def _weighted_distance(s1: str, s2: str, weights: List[int]) -> float:
+        """
+        Site-weighted Hamming distance over condensed sequences.
+
+        Parameters
+        ----------
+        s1 : str
+            First condensed sequence.
+        s2 : str
+            Second condensed sequence.
+        weights : list of int
+            Site weights per condensed column.
 
         Returns
         -------
         float
-            Distance between sequences.
+            Weighted distance (ambiguous positions skipped).
         """
-        # If lengths differ (due to gap removal), pad the shorter one
-        len1, len2 = len(seq1.data), len(seq2.data)
-        if len1 != len2:
-            # Count length difference as mutations
-            length_diff = abs(len1 - len2)
-            # Compare only the overlapping part
-            min_len = min(len1, len2)
-            distance = sum(
-                c1 != c2 for c1, c2 in zip(seq1.data[:min_len], seq2.data[:min_len])
-            )
-            distance += length_diff
-            return float(distance)
+        total = 0
+        for c1, c2, w in zip(s1, s2, weights):
+            if is_ambiguous(c1) or is_ambiguous(c2):
+                continue
+            if c1 != c2:
+                total += w
+        return float(total)
 
-        # Simple Hamming distance for equal length sequences
-        distance = sum(c1 != c2 for c1, c2 in zip(seq1.data, seq2.data))
-        return float(distance)
+    def get_parameters(self) -> dict:
+        """
+        Get algorithm parameters.
+
+        Returns
+        -------
+        dict
+            Parameters including n_trees, alpha, n_iterations and seed.
+        """
+        params = super().get_parameters()
+        params['n_trees'] = self.n_trees
+        params['alpha'] = self.alpha
+        params['n_iterations'] = self.n_iterations
+        params['random_seed'] = self.random_seed
+        return params

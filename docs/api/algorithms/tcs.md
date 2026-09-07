@@ -7,6 +7,7 @@ Statistical Parsimony network construction.
 The TCS (Templeton, Crandall, and Sing) algorithm connects haplotypes within a statistical parsimony limit.
 
 **Characteristics:**
+
 - Statistically justified connections
 - May produce disconnected networks
 - 95% confidence limit by default
@@ -15,7 +16,7 @@ The TCS (Templeton, Crandall, and Sing) algorithm connects haplotypes within a s
 ## Classes
 
 ::: pypopart.algorithms.tcs
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

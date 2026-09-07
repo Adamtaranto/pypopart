@@ -15,8 +15,10 @@ Molecular Ecology 9: 1657-1659
 import math
 from typing import Dict, List, Optional, Tuple
 
+import numpy as np
+
 from ..core.alignment import Alignment
-from ..core.distance import DistanceMatrix, hamming_distance
+from ..core.distance import DistanceMatrix
 from ..core.graph import HaplotypeNetwork
 from ..core.haplotype import Haplotype
 from ..core.haplotype import identify_haplotypes_from_alignment as identify_haplotypes
@@ -35,8 +37,21 @@ class TCS(NetworkAlgorithm):
     4. Uses scoring system to find optimal intermediates
     5. Post-processes to collapse degree-2 vertices
 
-    The TCS method uses a 95% parsimony criterion to determine which
-    haplotypes can be connected with statistical confidence.
+    Parameters
+    ----------
+    distance_method : str, default='hamming'
+        Method for calculating distances (should be hamming).
+    confidence : float, default=0.95
+        Confidence level for the 'auto' connection limit.
+    connection_limit : int or 'auto', optional
+        Optional connection cap; None (default) matches PopART's
+        unlimited behaviour.
+    infer_intermediates : bool, default=True
+        Whether to infer intermediate sequences.
+    collapse_vertices : bool, default=True
+        Whether to collapse degree-2 intermediate vertices.
+    **kwargs : dict
+        Additional parameters passed to the base class.
     """
 
     # Scoring constants from C++ implementation
@@ -48,7 +63,7 @@ class TCS(NetworkAlgorithm):
         self,
         distance_method: str = 'hamming',
         confidence: float = 0.95,
-        connection_limit: Optional[int] = None,
+        connection_limit=None,
         infer_intermediates: bool = True,
         collapse_vertices: bool = True,
         **kwargs,
@@ -58,17 +73,22 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        distance_method :
+        distance_method : str, default='hamming'
             Method for calculating distances (should be hamming).
-        confidence :
-            Confidence level for parsimony criterion (default 0.95).
-        connection_limit :
-            Maximum connection distance (auto-calculated if None).
-        infer_intermediates :
-            Whether to infer intermediate sequences (default True).
-        collapse_vertices :
-            Whether to collapse degree-2 vertices (default True).
-        **kwargs :
+        confidence : float, default=0.95
+            Confidence level for the 'auto' connection limit. Only used
+            when connection_limit='auto'.
+        connection_limit : int or 'auto', optional
+            PopART's TCS has no connection limit and always produces a
+            fully connected network; None (the default) matches that.
+            Pass an int to cap connections at that distance, or 'auto'
+            to derive a cap from `confidence` (PyPopART-specific extras,
+            both off by default).
+        infer_intermediates : bool, default=True
+            Whether to infer intermediate sequences.
+        collapse_vertices : bool, default=True
+            Whether to collapse degree-2 intermediate vertices.
+        **kwargs : dict
             Additional parameters.
         """
         super().__init__(distance_method, **kwargs)
@@ -77,6 +97,8 @@ class TCS(NetworkAlgorithm):
         self.infer_intermediates = infer_intermediates
         self.collapse_vertices = collapse_vertices
         self._intermediate_counter = 0
+        self._path_cache: Dict[str, Dict[str, float]] = {}
+        self._path_cache_version: Optional[int] = None
 
         if distance_method not in ('hamming',):
             import warnings
@@ -97,13 +119,14 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        alignment :
+        alignment : Alignment
             Multiple sequence alignment.
-        distance_matrix :
+        distance_matrix : DistanceMatrix, optional
             Optional pre-computed distance matrix.
 
         Returns
         -------
+        HaplotypeNetwork
             Haplotype network constructed using statistical parsimony.
         """
         # Identify unique haplotypes
@@ -118,18 +141,18 @@ class TCS(NetworkAlgorithm):
             return network
 
         # Calculate distances between haplotypes
-        haplotype_dist_matrix = self._calculate_haplotype_distances(haplotypes)
+        haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
         self._distance_matrix = haplotype_dist_matrix
 
-        # Calculate connection limit if not provided
-        if self.connection_limit is None:
-            self.connection_limit = self._calculate_connection_limit(
-                alignment.length, len(haplotypes)
-            )
+        # PopART's TCS has no connection limit; a cap is opt-in
+        if self.connection_limit == 'auto':
+            limit = self._calculate_connection_limit(alignment.length, len(haplotypes))
+        else:
+            limit = self.connection_limit
 
         # Build network using component-based algorithm (matches C++ TCS.cpp)
         network = self._build_network_with_components(
-            haplotypes, haplotype_dist_matrix, alignment.length
+            haplotypes, haplotype_dist_matrix, alignment.length, limit
         )
 
         # Collapse degree-2 vertices (post-processing simplification)
@@ -150,13 +173,14 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        sequence_length :
+        sequence_length : int
             Length of aligned sequences.
-        num_haplotypes :
+        num_haplotypes : int
             Number of unique haplotypes.
 
         Returns
         -------
+        int
             Maximum connection distance for parsimony criterion.
         """
         connection_limit = 1
@@ -178,15 +202,16 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        k :
+        k : int
             Number of mutations.
-        seq_length :
+        seq_length : int
             Sequence length.
-        sample_size :
+        sample_size : int
             Number of sequences.
 
         Returns
         -------
+        float
             Probability.
         """
         lambda_param = 2.0 * math.log(sample_size) if sample_size > 1 else 1.0
@@ -198,38 +223,12 @@ class TCS(NetworkAlgorithm):
 
         return prob
 
-    def _calculate_haplotype_distances(self, haplotypes: List) -> DistanceMatrix:
-        """
-        Calculate pairwise distances between haplotypes.
-
-        Parameters
-        ----------
-        haplotypes :
-            List of Haplotype objects.
-
-        Returns
-        -------
-            DistanceMatrix with distances between haplotypes.
-        """
-        import numpy as np
-
-        n = len(haplotypes)
-        labels = [h.id for h in haplotypes]
-        matrix = np.zeros((n, n))
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                dist = hamming_distance(
-                    haplotypes[i].sequence,
-                    haplotypes[j].sequence,
-                    ignore_gaps=self.params.get('ignore_gaps', True),
-                )
-                matrix[i, j] = matrix[j, i] = dist
-
-        return DistanceMatrix(labels, matrix)
-
     def _build_network_with_components(
-        self, haplotypes: List, distance_matrix: DistanceMatrix, sequence_length: int
+        self,
+        haplotypes: List,
+        distance_matrix: DistanceMatrix,
+        sequence_length: int,
+        connection_limit: Optional[int] = None,
     ) -> HaplotypeNetwork:
         """
         Build network using component-based algorithm from C++ TCS.cpp.
@@ -246,15 +245,19 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        haplotypes :
+        haplotypes : list of Haplotype
             List of Haplotype objects.
-        distance_matrix :
+        distance_matrix : DistanceMatrix, optional
             Distance matrix.
-        sequence_length :
+        sequence_length : int
             Length of sequences for creating intermediates.
+        connection_limit : int, optional
+            Optional maximum connection distance (None = no limit,
+            matching PopART).
 
         Returns
         -------
+        HaplotypeNetwork
             Network with inferred intermediate sequences.
         """
         # Initialize network with all haplotypes
@@ -274,7 +277,7 @@ class TCS(NetworkAlgorithm):
                 h2 = haplotypes[j]
                 dist = int(round(distance_matrix.get_distance(h1.id, h2.id)))
 
-                if dist <= self.connection_limit:
+                if connection_limit is None or dist <= connection_limit:
                     if dist not in pairs_by_distance:
                         pairs_by_distance[dist] = []
                     pairs_by_distance[dist].append((h1.id, h2.id))
@@ -350,6 +353,44 @@ class TCS(NetworkAlgorithm):
 
         return network
 
+    @staticmethod
+    def _all_path_lengths(
+        network: HaplotypeNetwork, sources: List[str]
+    ) -> Dict[str, Dict[str, float]]:
+        """
+        Compute weighted shortest-path lengths from the given sources.
+
+        One Dijkstra sweep per relevant source, computed once per
+        network state; the per-pair path queries in findIntermediates
+        and computeScore read from this table (C++ caches a
+        Floyd-Warshall the same way). Restricting sources to the two
+        components being joined (plus no-man's-land intermediates)
+        keeps this cheap while components are small.
+
+        Parameters
+        ----------
+        network : HaplotypeNetwork
+            Current network.
+        sources : list of str
+            Vertices to run Dijkstra from.
+
+        Returns
+        -------
+        dict
+            Mapping source -> {target: total distance}; missing targets
+            are unreachable.
+        """
+        import networkx as nx
+
+        graph = network.graph
+        return {
+            source: nx.single_source_dijkstra_path_length(
+                graph, source, weight='distance'
+            )
+            for source in sources
+            if source in graph
+        }
+
     def _add_connection_with_intermediates(
         self,
         network: HaplotypeNetwork,
@@ -368,39 +409,58 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             Current network.
-        u_id :
+        u_id : str
             Source haplotype ID.
-        v_id :
+        v_id : str
             Target haplotype ID.
-        distance :
+        distance : int
             Distance between u and v.
-        sequence_length :
+        sequence_length : int
             Length of sequences.
-        component_ids :
+        component_ids : dict
             Component membership tracker.
-        comp_u :
+        comp_u : int
             Component of u.
-        comp_v :
+        comp_v : int
             Component of v.
         """
         # Find optimal intermediate vertices (like C++ findIntermediates)
+        # Only vertices in the two components being joined (or in
+        # no-man's-land) can appear as path endpoints. Sweeps are cached
+        # per network version and recomputed only after topology changes.
+        version = network._version
+        if self._path_cache_version != version:
+            self._path_cache = {}
+            self._path_cache_version = version
+        # Only paths *from* the connection endpoints and the sampled
+        # members of the two components are ever read (candidate paths
+        # are read from member rows by symmetry), so those are the only
+        # Dijkstra sources needed.
+        index_of = self._distance_matrix._label_index
+        sources = {u_id, v_id}
+        sources.update(
+            node_id
+            for node_id, comp in component_ids.items()
+            if comp in (comp_u, comp_v) and node_id in index_of
+        )
+        missing = [s for s in sources if s not in self._path_cache]
+        self._path_cache.update(self._all_path_lengths(network, missing))
+        path_lengths = self._path_cache
         int_u, int_v, min_path_length = self._find_intermediates(
-            network, u_id, v_id, distance, component_ids, comp_u, comp_v
+            network, u_id, v_id, distance, component_ids, comp_u, comp_v, path_lengths
         )
 
         # Check if path already exists
-        try:
-            existing_path_length = network.get_shortest_path_length(int_u, int_v)
-        except Exception:
-            existing_path_length = float('inf')
+        existing_path_length = path_lengths.get(int_u, {}).get(int_v, float('inf'))
 
-        # Only add new path if it's shorter or doesn't exist
-        if (
-            existing_path_length == float('inf')
-            or existing_path_length > min_path_length
-        ):
+        if existing_path_length < min_path_length:
+            # C++ TCS treats this as an internal inconsistency
+            raise RuntimeError('Shorter path already exists between these vertices!')
+
+        # Only add the new path when none of the right length exists
+        if existing_path_length > min_path_length:
             self._create_composite_path(
                 network, int_u, int_v, min_path_length, sequence_length, component_ids
             )
@@ -414,6 +474,7 @@ class TCS(NetworkAlgorithm):
         component_ids: Dict[str, int],
         comp_u: int,
         comp_v: int,
+        path_lengths: Dict[str, Dict[str, float]],
     ) -> Tuple[str, str, int]:
         """
         Find optimal intermediate vertices to connect two components.
@@ -422,29 +483,36 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             Current network.
-        u_id :
+        u_id : str
             Source haplotype ID from component comp_u.
-        v_id :
+        v_id : str
             Target haplotype ID from component comp_v.
-        dist :
+        dist : int
             Distance between components.
-        component_ids :
+        component_ids : dict
             Component membership tracker.
-        comp_u :
+        comp_u : int
             Source component.
-        comp_v :
+        comp_v : int
             Target component.
+        path_lengths : dict
+            All-pairs weighted path lengths from _all_path_lengths.
 
         Returns
         -------
+        tuple
             Tuple of (intermediate_u_id, intermediate_v_id, path_length).
         """
         max_score = float('-inf')
         min_path_length = dist
         best_u = u_id
         best_v = v_id
+
+        score_context = self._build_score_context(
+            comp_u, comp_v, component_ids, path_lengths
+        )
 
         # Try all vertices in comp_u (or "no man's land" with comp_id < 0)
         for i_id in list(component_ids.keys()):
@@ -455,9 +523,8 @@ class TCS(NetworkAlgorithm):
                 continue
 
             # Check if connected to u
-            try:
-                path_ui = network.get_shortest_path_length(u_id, i_id)
-            except Exception:
+            path_ui = path_lengths.get(u_id, {}).get(i_id)
+            if path_ui is None:
                 continue
 
             if path_ui >= dist:
@@ -472,18 +539,15 @@ class TCS(NetworkAlgorithm):
                     continue
 
                 # Check if connected to v
-                try:
-                    path_vj = network.get_shortest_path_length(v_id, j_id)
-                except Exception:
+                path_vj = path_lengths.get(v_id, {}).get(j_id)
+                if path_vj is None:
                     continue
 
                 if path_vj + path_ui >= dist:
                     continue
 
                 dP = dist - path_vj - path_ui
-                score = self._compute_score(
-                    network, i_id, j_id, comp_u, comp_v, dP, dist, component_ids
-                )
+                score = self._compute_score(i_id, j_id, dP, dist, score_context)
 
                 # Select best scoring pair (or shortest path if tied)
                 if score > max_score or (score == max_score and dP < min_path_length):
@@ -494,86 +558,124 @@ class TCS(NetworkAlgorithm):
 
         return best_u, best_v, min_path_length
 
-    def _compute_score(
-        self,
-        network: HaplotypeNetwork,
-        u_id: str,
-        v_id: str,
+    @staticmethod
+    def _build_score_context(
         comp_u: int,
         comp_v: int,
-        dP: int,
-        clust_dist: int,
         component_ids: Dict[str, int],
-    ) -> float:
+        path_lengths: Dict[str, Dict[str, float]],
+    ) -> Dict:
         """
-        Compute score for intermediate pair using C++ scoring system.
+        Precompute the shared inputs of computeScore for one merge.
 
-        Implements C++ TCS::computeScore().
+        Member lists, the original-distance submatrix, and per-candidate
+        path vectors (cached lazily) are hoisted out of the candidate
+        loop, which calls _compute_score once per candidate pair.
 
         Parameters
         ----------
-        network :
-            Current network.
-        u_id :
-            Intermediate in component u.
-        v_id :
-            Intermediate in component v.
-        comp_u :
-            Component u.
-        comp_v :
-            Component v.
-        dP :
-            Path length between intermediates.
-        clust_dist :
-            Distance between original components.
-        component_ids :
+        comp_u : int
+            Source component.
+        comp_v : int
+            Target component.
+        component_ids : dict
             Component membership tracker.
+        path_lengths : dict
+            Weighted path lengths keyed by source.
 
         Returns
         -------
+        dict
+            Context consumed by _compute_score.
+        """
+        return {
+            'members_u': [h for h, c in component_ids.items() if c == comp_u],
+            'members_v': [h for h, c in component_ids.items() if c == comp_v],
+            'path_lengths': path_lengths,
+            'orig': None,
+            'pu_cache': {},
+            'pv_cache': {},
+        }
+
+    def _compute_score(
+        self, u_id: str, v_id: str, dP: int, clust_dist: int, context: Dict
+    ) -> float:
+        """
+        Compute the score for one intermediate pair (C++ computeScore).
+
+        Vectorised over all (i, j) pairs of original haplotypes in the
+        two components: +BONUS when the path through the intermediates
+        matches the original distance, -LONGPENALTY when longer,
+        -SHORTCUTPENALTY when shorter, and -inf when a shortcut
+        undercuts the cluster distance.
+
+        Parameters
+        ----------
+        u_id : str
+            Candidate intermediate on the comp_u side.
+        v_id : str
+            Candidate intermediate on the comp_v side.
+        dP : int
+            Path length between the candidate intermediates.
+        clust_dist : int
+            Distance between the original components.
+        context : dict
+            Precomputed inputs from _build_score_context.
+
+        Returns
+        -------
+        float
             Score for this intermediate pair.
         """
-        score = 0
+        index_of = self._distance_matrix._label_index
 
-        # Get all original haplotypes (not intermediates)
-        original_haps = [
-            hap_id
-            for hap_id in component_ids.keys()
-            if not hap_id.startswith('intermediate_')
-        ]
+        if context['orig'] is None:
+            context['members_u'] = [h for h in context['members_u'] if h in index_of]
+            context['members_v'] = [h for h in context['members_v'] if h in index_of]
+            context['orig'] = self._distance_matrix.matrix[
+                np.ix_(
+                    [index_of[h] for h in context['members_u']],
+                    [index_of[h] for h in context['members_v']],
+                )
+            ]
 
-        for i_id in original_haps:
-            if component_ids.get(i_id, -1) != comp_u:
-                continue
+        members_u = context['members_u']
+        members_v = context['members_v']
+        if not members_u or not members_v:
+            return 0.0
 
-            for j_id in original_haps:
-                if component_ids.get(j_id, -1) != comp_v:
-                    continue
+        path_lengths = context['path_lengths']
+        pu = context['pu_cache'].get(u_id)
+        if pu is None:
+            # Undirected graph: path(candidate -> member) is read from
+            # the member's row, so candidates need no Dijkstra sweep
+            pu = np.array(
+                [path_lengths.get(h, {}).get(u_id, np.inf) for h in members_u]
+            )
+            context['pu_cache'][u_id] = pu
+        pv = context['pv_cache'].get(v_id)
+        if pv is None:
+            pv = np.array(
+                [path_lengths.get(h, {}).get(v_id, np.inf) for h in members_v]
+            )
+            context['pv_cache'][v_id] = pv
 
-                # Calculate total path through proposed intermediates
-                try:
-                    path_ui = network.get_shortest_path_length(u_id, i_id)
-                    path_vj = network.get_shortest_path_length(v_id, j_id)
-                    total_path = dP + path_ui + path_vj
-                except Exception:
-                    continue
+        total = dP + pu[:, None] + pv[None, :]
+        orig = context['orig']
 
-                # Get original distance
-                orig_dist = self._distance_matrix.get_distance(i_id, j_id)
+        valid = np.isfinite(total)
+        close = valid & (np.abs(total - orig) < 0.5)
+        longer = valid & ~close & (total > orig)
+        shorter = valid & ~close & ~longer
 
-                # Score based on how well path matches original distance
-                if abs(total_path - orig_dist) < 0.5:
-                    score += self.BONUS
-                elif total_path > orig_dist:
-                    score -= self.LONGPENALTY
-                else:
-                    # Shortcut
-                    if total_path < clust_dist:
-                        return float('-inf')  # Invalid
-                    else:
-                        score -= self.SHORTCUTPENALTY
+        if bool((shorter & (total < clust_dist)).any()):
+            return float('-inf')  # Invalid shortcut
 
-        return score
+        return float(
+            self.BONUS * close.sum()
+            - self.LONGPENALTY * longer.sum()
+            - self.SHORTCUTPENALTY * shorter.sum()
+        )
 
     def _create_composite_path(
         self,
@@ -591,17 +693,17 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             Current network.
-        start_id :
+        start_id : str
             Starting vertex ID.
-        end_id :
+        end_id : str
             Ending vertex ID.
-        distance :
+        distance : int
             Number of intermediates to create.
-        sequence_length :
+        sequence_length : int
             Sequence length for intermediates.
-        component_ids :
+        component_ids : dict
             Component membership tracker.
         """
         current_id = start_id
@@ -611,11 +713,11 @@ class TCS(NetworkAlgorithm):
             intermediate_id = f'intermediate_{self._intermediate_counter}'
             self._intermediate_counter += 1
 
-            # Create placeholder sequence
+            # Unlabelled vertex: no sequence, as in C++ newCompositePath
             intermediate_seq = Sequence(
                 id=intermediate_id,
-                data='N' * sequence_length,
-                description='Inferred intermediate sequence',
+                data='',
+                description='Inferred intermediate vertex',
             )
 
             intermediate_hap = Haplotype(
@@ -623,8 +725,9 @@ class TCS(NetworkAlgorithm):
                 sample_ids=[],
             )
 
-            # Add to network
+            # Add to network, marked so collapse and styling can find it
             network.add_haplotype(intermediate_hap)
+            network.graph.nodes[intermediate_id]['is_intermediate'] = True
             network.add_edge(current_id, intermediate_id, distance=1)
 
             # Mark as "no man's land" (component ID = -1)
@@ -644,11 +747,12 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             Network with potential degree-2 vertices.
 
         Returns
         -------
+        HaplotypeNetwork
             Simplified network.
         """
         # Process one vertex at a time (like C++ implementation)
@@ -684,10 +788,9 @@ class TCS(NetworkAlgorithm):
                 except Exception:
                     continue
 
-                # Only collapse intermediates (not original haplotypes)
-                # In C++ this checks if vertex index >= nseqs (number of original sequences)
-                hap = network.get_haplotype(hap_id)
-                if hap.frequency == 0 or 'intermediate' in hap_id.lower():
+                # Only collapse intermediates (not original haplotypes);
+                # C++ checks vertex index >= nseqs, we use the marker attr
+                if network.graph.nodes[hap_id].get('is_intermediate'):
                     try:
                         combined_weight = w1 + w2
 
@@ -708,7 +811,14 @@ class TCS(NetworkAlgorithm):
         return network
 
     def get_parameters(self) -> dict:
-        """Get algorithm parameters."""
+        """
+        Get algorithm parameters.
+
+        Returns
+        -------
+        dict
+            Dictionary of algorithm parameters.
+        """
         params = super().get_parameters()
         params['confidence'] = self.confidence
         params['connection_limit'] = self.connection_limit

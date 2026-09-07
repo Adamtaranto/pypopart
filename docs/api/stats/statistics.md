@@ -15,7 +15,7 @@ The `statistics` module calculates network-level metrics:
 ## Modules
 
 ::: pypopart.stats.statistics
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

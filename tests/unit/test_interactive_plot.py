@@ -14,6 +14,10 @@ from pypopart.visualization.interactive_plot import (
     create_interactive_figure,
     plot_interactive_network,
 )
+from pypopart.visualization.style import (
+    DEFAULT_MEDIAN_COLOR,
+    DEFAULT_NODE_COLOR,
+)
 
 
 @pytest.fixture
@@ -225,7 +229,7 @@ class TestInteractiveNetworkPlotter:
         plotter = InteractiveNetworkPlotter(network_with_median)
 
         color = plotter._get_node_color('mv1', None, None, None, is_median=True)
-        assert color == 'lightgray'
+        assert color == DEFAULT_MEDIAN_COLOR
 
     def test_get_node_color_custom(self, simple_network):
         """Test node color with custom mapping."""
@@ -253,7 +257,7 @@ class TestInteractiveNetworkPlotter:
 
         hap = simple_network.get_haplotype('hap1')
         color = plotter._get_node_color('hap1', hap, None, None, False)
-        assert color == 'lightblue'
+        assert color == DEFAULT_NODE_COLOR
 
     def test_create_hover_text_haplotype(self, simple_network):
         """Test hover text creation for haplotype."""
@@ -422,7 +426,7 @@ class TestEdgeCases:
 
         # This should not crash
         color = plotter._get_node_color('unknown', None, None, None, False)
-        assert color == 'lightblue'
+        assert color == DEFAULT_NODE_COLOR
 
         hover_text = plotter._create_hover_text('unknown', None, False)
         assert 'unknown' in hover_text

@@ -20,6 +20,7 @@ pypopart-gui
 ```
 
 Open your browser to `http://localhost:8050` and follow the visual workflow:
+
 1. Upload sequence file
 2. Configure algorithm
 3. Compute network
@@ -124,6 +125,7 @@ pypopart network mysequences.fasta -a tsw -o network_tsw.graphml
 ```
 
 **Algorithm Comparison:**
+
 - **MST**: Fastest, simplest tree
 - **MSN**: Adds alternative equal-distance connections
 - **TCS**: Best for closely related sequences
@@ -193,34 +195,25 @@ For more control, use Python directly:
 
 ```python
 from pypopart.io import load_alignment
-from pypopart.core.distance import DistanceCalculator
-from pypopart.core.condensation import condense_alignment
-from pypopart.algorithms import MJNAlgorithm
-from pypopart.visualization import StaticVisualizer
+from pypopart.core.haplotype import identify_haplotypes_from_alignment
+from pypopart.algorithms import build
+from pypopart.visualization import StaticNetworkPlotter
 
 # Load sequences
-alignment = load_alignment('mysequences.fasta')
-print(f"Loaded {len(alignment)} sequences")
+alignment = load_alignment('sequences.fasta')
 
-# Calculate distances
-calculator = DistanceCalculator(method='k2p')
-distances = calculator.calculate_matrix(alignment)
+# Identify unique haplotypes (informational; algorithms do this internally)
+haplotypes = identify_haplotypes_from_alignment(alignment)
+print(f'Found {len(haplotypes)} unique haplotypes')
 
-# Identify haplotypes
-haplotypes, freq_map = condense_alignment(alignment)
-print(f"Found {len(haplotypes)} unique haplotypes")
-
-# Construct network
-mjn = MJNAlgorithm(epsilon=0)
-network = mjn.construct_network(haplotypes, distances)
+# Construct a Median-Joining Network with K2P distances
+mjn = build('mjn', distance_method='k2p', epsilon=0)
+network = mjn.build_network(alignment)
 
 # Visualize
-viz = StaticVisualizer(network)
-viz.plot(
-    layout_algorithm='spring',
-    show_labels=True,
-    output_file='network.png'
-)
+plotter = StaticNetworkPlotter(network)
+fig, ax = plotter.plot(layout_algorithm='spring')
+fig.savefig('network.png', dpi=150, bbox_inches='tight')
 ```
 
 ## Common Workflows
@@ -308,7 +301,7 @@ Now that you've created your first network, learn more:
 ## Tips
 
 !!! tip "Performance"
-    For large datasets (>1000 sequences), consider:
+For large datasets (>1000 sequences), consider:
 
 - Using MST or MSN instead of MJN for speed
 - Using Hamming distance instead of more complex models

@@ -7,6 +7,7 @@ Includes support for geographic coordinates (latitude/longitude).
 
 import csv
 import gzip
+import io
 from pathlib import Path
 from typing import Dict, List, Optional, TextIO, Tuple, Union
 
@@ -21,16 +22,19 @@ def parse_coordinate(value: str) -> float:
     - Decimal degrees: "45.5", "-123.4"
     - With degree symbol: "45.5°", "-123.4°"
 
-    Args:
-        value: Coordinate string
+    Parameters
+    ----------
+    value : str
+        Coordinate string.
 
     Returns
     -------
+    float
         Coordinate as float.
 
     Raises
     ------
-        ValueError: If coordinate cannot be parsed
+    ValueError: If coordinate cannot be parsed
     """
     try:
         # Remove degree symbol and whitespace
@@ -44,12 +48,14 @@ def validate_latitude(lat: float) -> None:
     """
     Validate latitude value.
 
-    Args:
-        lat: Latitude value
+    Parameters
+    ----------
+    lat : float
+        Latitude value.
 
     Raises
     ------
-        ValueError: If latitude is out of range [-90, 90]
+    ValueError: If latitude is out of range [-90, 90]
     """
     if not -90 <= lat <= 90:
         raise ValueError(f'Latitude must be between -90 and 90, got {lat}')
@@ -59,12 +65,14 @@ def validate_longitude(lon: float) -> None:
     """
     Validate longitude value.
 
-    Args:
-        lon: Longitude value
+    Parameters
+    ----------
+    lon : float
+        Longitude value.
 
     Raises
     ------
-        ValueError: If longitude is out of range [-180, 180]
+    ValueError: If longitude is out of range [-180, 180]
     """
     if not -180 <= lon <= 180:
         raise ValueError(f'Longitude must be between -180 and 180, got {lon}')
@@ -79,19 +87,25 @@ def extract_coordinates(
     """
     Extract and validate geographic coordinates from metadata.
 
-    Args:
-        metadata: Metadata dictionary
-        lat_column: Name of latitude column
-        lon_column: Name of longitude column
-        validate: Whether to validate coordinate ranges
+    Parameters
+    ----------
+    metadata : Dict[str, str]
+        Metadata dictionary.
+    lat_column : str, default='latitude'
+        Name of latitude column.
+    lon_column : str, default='longitude'
+        Name of longitude column.
+    validate : bool, default=True
+        Whether to validate coordinate ranges.
 
     Returns
     -------
+    Tuple[float, float], optional
         Tuple of (latitude, longitude) or None if coordinates not present.
 
     Raises
     ------
-        ValueError: If coordinates are invalid
+    ValueError: If coordinates are invalid
     """
     if lat_column not in metadata or lon_column not in metadata:
         return None
@@ -107,7 +121,20 @@ def extract_coordinates(
 
 
 class MetadataReader:
-    """Reader for CSV-based metadata files."""
+    """
+    Reader for CSV-based metadata files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Path to metadata CSV file.
+    id_column : str, default='id'
+        Name of column containing sequence IDs.
+    delimiter : str, default=','
+        CSV delimiter character.
+    validate : bool, default=True
+        Whether to validate metadata.
+    """
 
     def __init__(
         self,
@@ -121,13 +148,13 @@ class MetadataReader:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Path to metadata CSV file.
-        id_column :
+        id_column : str, default='id'
             Name of column containing sequence IDs.
-        delimiter :
+        delimiter : str, default=','
             CSV delimiter character.
-        validate :
+        validate : bool, default=True
             Whether to validate metadata.
         """
         self.filepath = Path(filepath)
@@ -138,8 +165,52 @@ class MetadataReader:
         if not self.filepath.exists():
             raise FileNotFoundError(f'File not found: {filepath}')
 
+    @classmethod
+    def from_string(
+        cls,
+        text: str,
+        id_column: str = 'id',
+        delimiter: str = ',',
+        validate: bool = True,
+    ) -> 'MetadataReader':
+        """
+        Create a reader over in-memory CSV text instead of a file.
+
+        Parameters
+        ----------
+        text : str
+            Complete CSV content.
+        id_column : str, default='id'
+            Name of the sequence-id column.
+        delimiter : str, default=','
+            Field delimiter.
+        validate : bool, default=True
+            Whether to validate for duplicate ids.
+
+        Returns
+        -------
+        MetadataReader
+            Reader that parses the given text.
+        """
+        reader = cls.__new__(cls)
+        reader.filepath = None
+        reader.id_column = id_column
+        reader.delimiter = delimiter
+        reader.validate = validate
+        reader._text = text
+        return reader
+
     def _open_file(self) -> TextIO:
-        """Open file handling gzip compression."""
+        """
+        Open file handling gzip compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle, transparently decompressed.
+        """
+        if getattr(self, '_text', None) is not None:
+            return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
         else:
@@ -151,6 +222,7 @@ class MetadataReader:
 
         Returns
         -------
+        Dict[str, Dict[str, str]]
             Dictionary mapping sequence IDs to metadata dictionaries.
         """
         metadata = {}
@@ -183,7 +255,7 @@ class MetadataReader:
 
         Parameters
         ----------
-        alignment :
+        alignment : Alignment
             Alignment object to update.
         """
         metadata = self.read_metadata()
@@ -204,7 +276,20 @@ class MetadataReader:
 
 
 class MetadataWriter:
-    """Writer for CSV-based metadata files."""
+    """
+    Writer for CSV-based metadata files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Output file path.
+    id_column : str, default='id'
+        Name of column for sequence IDs.
+    delimiter : str, default=','
+        CSV delimiter character.
+    compress : str, optional
+        Compression format ('gzip' or None).
+    """
 
     def __init__(
         self,
@@ -218,13 +303,13 @@ class MetadataWriter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
-        id_column :
+        id_column : str, default='id'
             Name of column for sequence IDs.
-        delimiter :
+        delimiter : str, default=','
             CSV delimiter character.
-        compress :
+        compress : str, optional
             Compression format ('gzip' or None).
         """
         self.filepath = Path(filepath)
@@ -236,7 +321,14 @@ class MetadataWriter:
             self.filepath = Path(str(self.filepath) + '.gz')
 
     def _open_file(self) -> TextIO:
-        """Open file for writing with optional compression."""
+        """
+        Open file for writing with optional compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle for writing, optionally compressed.
+        """
         if self.compress == 'gzip':
             return gzip.open(self.filepath, 'wt', encoding='utf-8')
         else:
@@ -252,9 +344,9 @@ class MetadataWriter:
 
         Parameters
         ----------
-        metadata :
+        metadata : Dict[str, Dict[str, str]]
             Dictionary mapping sequence IDs to metadata dictionaries.
-        trait_order :
+        trait_order : List[str], optional
             Optional list specifying order of trait columns.
         """
         if not metadata:
@@ -297,9 +389,9 @@ class MetadataWriter:
 
         Parameters
         ----------
-        alignment :
+        alignment : Alignment
             Alignment object.
-        trait_order :
+        trait_order : List[str], optional
             Optional list specifying order of trait columns.
         """
         metadata = {}

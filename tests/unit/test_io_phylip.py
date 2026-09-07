@@ -101,3 +101,17 @@ class TestPhylipWriter:
         lines = content.strip().split('\n')
         # In strict format, IDs should be truncated to 10 chars
         assert len(lines[1].split()[0]) <= 10
+
+
+class TestPhylipFromString:
+    """Reading PHYLIP content from in-memory text."""
+
+    def test_from_string_roundtrip(self):
+        """from_string parses the same content a file would."""
+        from pypopart.io.phylip import PhylipReader
+
+        alignment = PhylipReader.from_string(
+            ' 2 4\ns1  ACGT\ns2  ACGA\n'
+        ).read_alignment()
+        assert len(alignment) == 2
+        assert alignment[1].data == 'ACGA'

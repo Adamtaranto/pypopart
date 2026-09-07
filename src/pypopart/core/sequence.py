@@ -8,6 +8,17 @@ class Sequence:
     Represents a DNA sequence with metadata.
 
     Supports IUPAC nucleotide codes including ambiguous characters.
+
+    Parameters
+    ----------
+    id : str
+        Sequence identifier.
+    data : str
+        DNA sequence string.
+    metadata : Dict[str, Any], optional
+        Optional metadata dictionary.
+    description : str, optional
+        Optional sequence description.
     """
 
     # IUPAC nucleotide codes (uppercase)
@@ -46,17 +57,18 @@ class Sequence:
 
         Parameters
         ----------
-        id :
+        id : str
             Sequence identifier.
-        data :
+        data : str
             DNA sequence string.
-        metadata :
+        metadata : Dict[str, Any], optional
             Optional metadata dictionary.
-        description :
+        description : str, optional
             Optional sequence description.
 
-        Raises :
-        ValueError :
+        Raises
+        ------
+        ValueError
             If sequence contains invalid characters.
         """
         self.id = id
@@ -73,7 +85,7 @@ class Sequence:
 
         Raises
         ------
-            ValueError: If invalid characters found
+        ValueError: If invalid characters found
         """
         invalid = set(self.data) - self.VALID_CHARS
         if invalid:
@@ -112,6 +124,7 @@ class Sequence:
 
         Returns
         -------
+        Sequence
             New Sequence object with reverse complement.
         """
         rev_comp_data = ''.join(self.COMPLEMENT[base] for base in reversed(self.data))
@@ -130,6 +143,7 @@ class Sequence:
 
         Returns
         -------
+        float
             GC content fraction.
         """
         # Count G, C, and S (which represents G or C)
@@ -147,6 +161,7 @@ class Sequence:
 
         Returns
         -------
+        int
             Number of gaps.
         """
         return self.data.count('-')
@@ -157,6 +172,7 @@ class Sequence:
 
         Returns
         -------
+        int
             Number of ambiguous characters.
         """
         return sum(1 for base in self.data if base in 'N?')
@@ -167,6 +183,7 @@ class Sequence:
 
         Returns
         -------
+        Sequence
             New Sequence object without gaps.
         """
         ungapped_data = self.data.replace('-', '')
@@ -179,17 +196,18 @@ class Sequence:
 
     def slice(self, start: int, end: Optional[int] = None) -> 'Sequence':
         """
-            Extract a slice of the sequence.
+        Extract a slice of the sequence.
 
         Parameters
         ----------
-            start :
-                Start position (0-based, inclusive).
-            end :
-                End position (0-based, exclusive), None for end of sequence.
+        start : int
+            Start position (0-based, inclusive).
+        end : int, optional
+            End position (0-based, exclusive), None for end of sequence.
 
         Returns
         -------
+        Sequence
             New Sequence object with sliced data.
         """
         sliced_data = self.data[start:end]
@@ -207,6 +225,7 @@ class Sequence:
 
         Returns
         -------
+        Dict[str, Any]
             Dictionary with sequence data and statistics.
         """
         return {
@@ -223,15 +242,16 @@ class Sequence:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Sequence':
         """
-            Create sequence from dictionary.
+        Create sequence from dictionary.
 
         Parameters
         ----------
-            data :
-                Dictionary with sequence information.
+        data : Dict[str, Any]
+            Dictionary with sequence information.
 
         Returns
         -------
+        Sequence
             New Sequence object.
         """
         return cls(

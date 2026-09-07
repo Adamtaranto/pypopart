@@ -15,7 +15,7 @@ The `popgen` module provides population genetics analyses:
 ## Modules
 
 ::: pypopart.stats.popgen
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

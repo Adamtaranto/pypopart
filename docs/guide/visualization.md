@@ -5,18 +5,21 @@ PyPopART provides multiple visualization options for creating publication-qualit
 ## Visualization Types
 
 ### Static Plots
+
 - **Format**: PNG, PDF, SVG
 - **Use**: Publications, presentations, reports
 - **Library**: Matplotlib
 - **Customization**: High
 
-### Interactive Plots  
+### Interactive Plots
+
 - **Format**: HTML
 - **Use**: Exploration, web embedding
 - **Library**: Plotly
 - **Features**: Zoom, pan, hover, click
 
 ### GUI Dashboard
+
 - **Format**: Web application
 - **Use**: Interactive analysis
 - **Library**: Dash + Cytoscape
@@ -34,6 +37,7 @@ plot.save("network.png")
 ```
 
 CLI:
+
 ```bash
 pypopart plot network.gml -o figure.png
 ```
@@ -181,6 +185,7 @@ plot.save("interactive_network.html")
 ```
 
 Or use the HTML directly:
+
 ```python
 html_string = plot.to_html()
 # Insert into your web application
@@ -234,7 +239,7 @@ algorithms = ["MST", "MSN", "MJN"]
 for ax, name, net in zip(axes, algorithms, networks):
     plot = StaticPlot(net, ax=ax)
     ax.set_title(name)
-    
+
 plt.tight_layout()
 plt.savefig("comparison.png", dpi=300)
 ```
@@ -323,11 +328,11 @@ plot.add_legend(title="Population", loc="upper right")
 plot.add_scale_bar(mutations_per_unit=1)
 
 # Annotate specific nodes
-plot.annotate_node("Haplotype_1", "Ancestral", 
+plot.annotate_node("Haplotype_1", "Ancestral",
                    fontsize=12, color="red")
 
 # Add text box
-plot.add_textbox("MST Algorithm\nK2P Distance", 
+plot.add_textbox("MST Algorithm\nK2P Distance",
                  position=(0.05, 0.95))
 ```
 
@@ -357,6 +362,7 @@ network.save("network.gml")
 ```
 
 R code:
+
 ```r
 library(igraph)
 network <- read_graph("network.gml", format="gml")
@@ -431,18 +437,23 @@ plot.style_nodes(median, shape="s", color="#ff7f00", size=200)
 ## Troubleshooting
 
 ### "Figure too small"
+
 → Increase `figsize` and `dpi`
 
 ### "Overlapping nodes"
+
 → Try different layout algorithm or increase figure size
 
 ### "Labels unreadable"
+
 → Increase `font_size` or disable labels
 
 ### "Colors not distinct"
+
 → Use fewer categories or colorblind-safe palette
 
 ### "File too large"
+
 → Use vector format (PDF/SVG) or reduce DPI
 
 ## Next Steps

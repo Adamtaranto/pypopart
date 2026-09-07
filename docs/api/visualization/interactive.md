@@ -7,6 +7,7 @@ Interactive HTML-based network exploration.
 The `interactive_plot` module provides Plotly-based interactive visualizations.
 
 **Features:**
+
 - HTML output
 - Zoom and pan
 - Hover information
@@ -16,7 +17,7 @@ The `interactive_plot` module provides Plotly-based interactive visualizations.
 ## Modules
 
 ::: pypopart.visualization.interactive_plot
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

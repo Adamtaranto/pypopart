@@ -15,10 +15,10 @@ class TestTightSpanWalker:
         """Test TSW algorithm initialization."""
         tsw = TightSpanWalker()
         assert tsw.distance_method == 'hamming'
-        assert tsw.epsilon == 1e-6
+        assert tsw.tolerance == 1e-6
 
-        tsw_custom = TightSpanWalker(epsilon=1e-5)
-        assert tsw_custom.epsilon == 1e-5
+        tsw_custom = TightSpanWalker(tolerance=1e-5)
+        assert tsw_custom.tolerance == 1e-5
 
     def test_tsw_empty_alignment(self):
         """Test TSW with empty alignment."""
@@ -84,49 +84,43 @@ class TestTightSpanWalker:
         assert len(network) >= 3
         assert network.is_connected()
 
-    def test_tsw_compute_dt_distances(self):
-        """Test dT distance computation."""
+    def test_tsw_compute_dt(self):
+        """DT includes k == i/j, so dT(i, j) >= d(i, j) always."""
         tsw = TightSpanWalker()
+        tsw._n_samples = 3
+        import numpy as np
 
-        # Create a simple distance matrix
-        labels = ['A', 'B', 'C']
-        matrix = np.array([[0.0, 1.0, 2.0], [1.0, 0.0, 2.0], [2.0, 2.0, 0.0]])
-        dist_matrix = DistanceMatrix(labels, matrix)
+        tsw._d = np.array([[0.0, 1.0, 2.0], [1.0, 0.0, 2.0], [2.0, 2.0, 0.0]])
+        tsw._compute_dt()
 
-        # Compute dT distances
-        tsw._compute_dt_distances(dist_matrix)
-
-        # Check dT matrix is symmetric
-        assert tsw._dt_matrix.shape == (3, 3)
+        # Symmetric and bounded below by d
         for i in range(3):
             for j in range(3):
-                assert tsw._dt_matrix[i, j] == tsw._dt_matrix[j, i]
+                assert tsw._dt_get(i, j) == tsw._dt_get(j, i)
+                assert tsw._dt_get(i, j) >= tsw._d[i, j]
 
-        # dT(A, B) = max(|d(A,C) - d(B,C)|) = |2 - 2| = 0
-        # But need to check all k, including edge case
-        # Actually dT should be computed correctly
-        assert tsw._dt_matrix[0, 1] >= 0
+        # dT(0,1) = max(|0-1|, |1-0|, |2-2|) = 1 (k==i term dominates)
+        assert tsw._dt_get(0, 1) == 1.0
 
-    def test_tsw_median_vertex_creation(self):
-        """Test creation of median vertices."""
+    def test_tsw_internal_vertices_sequenceless(self):
+        """Internal tight-span vertices carry no sequence (C++ parity)."""
         tsw = TightSpanWalker()
-
-        from pypopart.core.haplotype import Haplotype
-        from pypopart.core.sequence import Sequence
-
-        seq1 = Sequence('H1', 'ATCG')
-        seq2 = Sequence('H2', 'ATCC')
-        hap1 = Haplotype(sequence=seq1, sample_ids=['seq1'])
-        hap2 = Haplotype(sequence=seq2, sample_ids=['seq2'])
-
-        median = tsw._create_median_vertex(hap1, hap2)
-
-        # Median should have no samples (inferred)
-        assert median.frequency == 0
-        assert 'Median' in median.id
-
-        # Sequence should be consensus of the two
-        assert len(median.data) == 4
+        alignment = Alignment(
+            [
+                Sequence('s1', 'AAT'),
+                Sequence('s2', 'ATA'),
+                Sequence('s3', 'TAA'),
+            ]
+        )
+        network = tsw.construct_network(alignment)
+        medians = [
+            node
+            for node, attrs in network.graph.nodes(data=True)
+            if attrs.get('median_vector')
+        ]
+        for node in medians:
+            assert network.get_haplotype(node).data == ''
+            assert network.get_haplotype(node).frequency == 0
 
     def test_tsw_with_identical_sequences(self):
         """Test TSW with identical sequences (should be single haplotype)."""
@@ -216,15 +210,15 @@ class TestTightSpanWalker:
 
     def test_tsw_parameters(self):
         """Test getting TSW parameters."""
-        tsw = TightSpanWalker(distance_method='k2p', epsilon=1e-5)
+        tsw = TightSpanWalker(distance_method='k2p', tolerance=1e-5)
         params = tsw.get_parameters()
 
         assert params['distance_method'] == 'k2p'
-        assert params['epsilon'] == 1e-5
+        assert params['tolerance'] == 1e-5
 
     def test_tsw_string_representation(self):
         """Test string representation of TSW."""
-        tsw = TightSpanWalker(distance_method='hamming', epsilon=1e-6)
+        tsw = TightSpanWalker(distance_method='hamming', tolerance=1e-6)
         str_repr = str(tsw)
 
         assert 'TightSpanWalker' in str_repr
@@ -262,8 +256,8 @@ class TestTightSpanWalker:
         assert len(network) >= 3
         assert network.is_connected()
 
-    def test_tsw_different_epsilon_values(self):
-        """Test TSW with different epsilon values."""
+    def test_tsw_different_tolerance_values(self):
+        """Test TSW with different tolerance values."""
         alignment = Alignment(
             [
                 Sequence('seq1', 'AAAA'),
@@ -272,12 +266,12 @@ class TestTightSpanWalker:
             ]
         )
 
-        # Test with strict epsilon
-        tsw1 = TightSpanWalker(epsilon=1e-10)
+        # Test with strict tolerance
+        tsw1 = TightSpanWalker(tolerance=1e-10)
         network1 = tsw1.construct_network(alignment)
 
-        # Test with relaxed epsilon
-        tsw2 = TightSpanWalker(epsilon=1.0)
+        # Test with relaxed tolerance
+        tsw2 = TightSpanWalker(tolerance=1.0)
         network2 = tsw2.construct_network(alignment)
 
         # Both should create valid networks

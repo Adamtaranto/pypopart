@@ -15,7 +15,7 @@ The `topology` module provides specialized network topology analyses:
 ## Modules
 
 ::: pypopart.stats.topology
-    options:
-      show_root_heading: true
-      show_source: true
-      heading_level: 3
+options:
+show_root_heading: true
+show_source: true
+heading_level: 3

@@ -5,6 +5,7 @@ Learn advanced visualization techniques for creating publication-quality figures
 ## Overview
 
 This tutorial covers:
+
 - Static plots for publications
 - Interactive HTML plots
 - Color schemes and styling

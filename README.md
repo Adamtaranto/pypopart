@@ -1,7 +1,7 @@
 # PyPopART
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
 **PyPopART** is a pure Python implementation of PopART (Population Analysis with Reticulate Trees) for constructing and visualizing haplotype networks from DNA sequence data.
 
@@ -28,8 +28,9 @@ pip install -e ".[dev]"
 
 ### Requirements
 
-- Python 3.9 or higher
-- Dependencies: biopython, click, matplotlib, networkx, numpy, pandas, plotly, scipy, scikit-learn, numba
+- Python 3.11 or higher
+- Core dependencies: biopython, click, networkx, numpy
+- Optional extras: `pypopart[viz]` (matplotlib, plotly), `pypopart[gui]` (Dash), `pypopart[speed]` (numba), `pypopart[all]` (everything)
 
 ## Quick Start
 
@@ -175,28 +176,25 @@ Once started, open your browser to `http://localhost:8050` and follow the workfl
 
 ```python
 from pypopart.io import load_alignment
-from pypopart.core.distance import DistanceCalculator
-from pypopart.core.condensation import condense_alignment
-from pypopart.algorithms import MJNAlgorithm
-from pypopart.visualization import StaticVisualizer
+from pypopart.core.haplotype import identify_haplotypes_from_alignment
+from pypopart.algorithms import build
+from pypopart.visualization import StaticNetworkPlotter
 
 # Load sequences
 alignment = load_alignment('sequences.fasta')
 
-# Calculate distances
-calculator = DistanceCalculator(method='k2p')
-dist_matrix = calculator.calculate_matrix(alignment)
+# Identify unique haplotypes (informational; algorithms do this internally)
+haplotypes = identify_haplotypes_from_alignment(alignment)
+print(f'Found {len(haplotypes)} unique haplotypes')
 
-# Identify unique haplotypes
-haplotypes, freq_map = condense_alignment(alignment)
-
-# Construct Median-Joining Network
-mjn = MJNAlgorithm(epsilon=0)
-network = mjn.construct_network(haplotypes, dist_matrix)
+# Construct a Median-Joining Network with K2P distances
+mjn = build('mjn', distance_method='k2p', epsilon=0)
+network = mjn.build_network(alignment)
 
 # Visualize
-viz = StaticVisualizer(network)
-viz.plot(layout_algorithm='spring', output_file='network.png')
+plotter = StaticNetworkPlotter(network)
+fig, ax = plotter.plot(layout_algorithm='spring')
+fig.savefig('network.png', dpi=150, bbox_inches='tight')
 ```
 
 ## Network Construction Algorithms
@@ -327,8 +325,8 @@ pypopart network sequences.fasta -d k2p -o network.graphml
 # Load alignment with population metadata
 pypopart load sequences.fasta -m metadata.csv
 
-# Visualize colored by population
-pypopart visualize network.graphml -o network.png --color-by population
+# Visualize the network
+pypopart visualize network.graphml -o network.png --show-labels
 ```
 
 Metadata CSV format:
@@ -344,7 +342,7 @@ Hap3,PopB,,,,,
 
 ```bash
 # Comprehensive statistics
-pypopart analyze network.graphml --stats --topology --popgen -o results.json
+pypopart analyze network.graphml --stats --topology --popgen -a sequences.fasta -o results.json
 ```
 
 ### Topology Analysis
@@ -367,32 +365,14 @@ Identifies:
 pypopart visualize network.graphml -o network.pdf \
     --layout circular --show-labels --width 1200 --height 1200
 
-# Radial layout, interactive
+# Kamada-Kawai layout, interactive
 pypopart visualize network.graphml -o network.html \
-    --layout radial --interactive
+    --layout kamada_kawai --interactive
 ```
-
-## Examples and Tutorials
-
-Example data and Jupyter notebooks can be found in the `examples/` directory:
-
-- `01_basic_workflow.ipynb` - Complete workflow from sequences to network
-- `02_algorithm_comparison.ipynb` - Comparing different network algorithms
-- `03_visualization_options.ipynb` - Customizing network plots
 
 ## Documentation
 
-Full documentation is available at [https://pypopart.readthedocs.io](https://pypopart.readthedocs.io) (coming soon)
-
-Topics covered:
-
-- Installation and setup
-- Detailed API reference
-- Algorithm descriptions and parameters
-- Visualization customization
-- Population genetics measures
-- File format specifications
-- Troubleshooting guide
+Full documentation is available at [https://adamtaranto.github.io/pypopart](https://adamtaranto.github.io/pypopart/)
 
 ## Citation
 
@@ -409,15 +389,15 @@ GitHub repository: https://github.com/adamtaranto/pypopart
 
 PyPopART implements algorithms from the following publications:
 
-- **Minimum Spanning Tree/Network**: Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies and geographic subdivision to reconstruct gene trees within a species: molecular variance parsimony. *Genetics*, 136(1), 343-359.
+- **Minimum Spanning Tree/Network**: Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies and geographic subdivision to reconstruct gene trees within a species: molecular variance parsimony. _Genetics_, 136(1), 343-359.
 
-- **TCS (Statistical Parsimony)**: Clement, M., Posada, D., & Crandall, K. A. (2000). TCS: a computer program to estimate gene genealogies. *Molecular Ecology*, 9(10), 1657-1659.
+- **TCS (Statistical Parsimony)**: Clement, M., Posada, D., & Crandall, K. A. (2000). TCS: a computer program to estimate gene genealogies. _Molecular Ecology_, 9(10), 1657-1659.
 
-- **Median-Joining Network**: Bandelt, H. J., Forster, P., & Röhl, A. (1999). Median-joining networks for inferring intraspecific phylogenies. *Molecular Biology and Evolution*, 16(1), 37-48.
+- **Median-Joining Network**: Bandelt, H. J., Forster, P., & Röhl, A. (1999). Median-joining networks for inferring intraspecific phylogenies. _Molecular Biology and Evolution_, 16(1), 37-48.
 
-- **Parsimony Network**: Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies and geographic subdivision to reconstruct gene trees within a species: molecular variance parsimony. *Genetics*, 136(1), 343-359.
+- **Parsimony Network**: Excoffier, L. & Smouse, P. E. (1994). Using allele frequencies and geographic subdivision to reconstruct gene trees within a species: molecular variance parsimony. _Genetics_, 136(1), 343-359.
 
-- **Tight Span Walker**: Dress, A. W., Huber, K. T., Koolen, J., Moulton, V., & Spillner, A. (2012). *Basic Phylogenetic Combinatorics*. Cambridge University Press.
+- **Tight Span Walker**: Dress, A. W., Huber, K. T., Koolen, J., Moulton, V., & Spillner, A. (2012). _Basic Phylogenetic Combinatorics_. Cambridge University Press.
 
 ## License
 
@@ -439,9 +419,3 @@ pre-commit install
 ## Acknowledgments
 
 PyPopART is a python port of the original PopART software developed by Jessica Leigh.
-
-## Contact
-
-- Author: Adam Taranto
-- GitHub: [@adamtaranto](https://github.com/adamtaranto)
-- Issues: [GitHub Issues](https://github.com/adamtaranto/pypopart/issues)

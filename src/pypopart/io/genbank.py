@@ -6,11 +6,21 @@ from typing import Iterator, TextIO, Union
 
 from Bio import SeqIO
 
+from pypopart.core.alignment import Alignment
 from pypopart.core.sequence import Sequence
 
 
 class GenBankReader:
-    """Reader for GenBank format sequence files."""
+    """
+    Reader for GenBank format sequence files.
+
+    Parameters
+    ----------
+    filepath : str or Path
+        Path to GenBank file.
+    validate : bool, default=True
+        Whether to validate sequences.
+    """
 
     def __init__(self, filepath: Union[str, Path], validate: bool = True):
         """
@@ -18,9 +28,9 @@ class GenBankReader:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Path to GenBank file.
-        validate :
+        validate : bool, default=True
             Whether to validate sequences.
         """
         self.filepath = Path(filepath)
@@ -30,7 +40,14 @@ class GenBankReader:
             raise FileNotFoundError(f'File not found: {filepath}')
 
     def _open_file(self) -> TextIO:
-        """Open file handling gzip compression."""
+        """
+        Open file handling gzip compression.
+
+        Returns
+        -------
+        TextIO
+            Open file handle, transparently decompressed.
+        """
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
         else:
@@ -42,10 +59,12 @@ class GenBankReader:
 
         Parameters
         ----------
-        progress_callback :
+        progress_callback : callable, optional
             Optional callback function(current, total).
 
-        Yields :
+        Yields
+        ------
+        Sequence
             Sequence objects.
         """
         count = 0
@@ -82,3 +101,22 @@ class GenBankReader:
                     progress_callback(count, None)
 
                 yield seq
+
+    def read_alignment(self, progress_callback=None) -> Alignment:
+        """
+        Read all records into an Alignment.
+
+        Parameters
+        ----------
+        progress_callback : callable, optional
+            Optional callback function(current, total).
+
+        Returns
+        -------
+        Alignment
+            Alignment of all sequences in the file.
+        """
+        alignment = Alignment(list(self.read_sequences(progress_callback)))
+        if self.validate:
+            alignment.validate()
+        return alignment

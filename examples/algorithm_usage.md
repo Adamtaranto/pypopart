@@ -137,9 +137,9 @@ mjn = MedianJoiningNetwork(
 
 ```python
 pn = ParsimonyNetwork(
-    distance_method="hamming",
-    n_trees=100,              # Number of random parsimony trees to sample
-    min_edge_frequency=0.05   # Minimum frequency for edge inclusion
+    n_trees=20,        # Number of stepwise-addition parsimony trees
+    alpha=0.95,        # Edge-frequency threshold for pruning
+    random_seed=42,    # Reproducible sampling
 )
 ```
 
