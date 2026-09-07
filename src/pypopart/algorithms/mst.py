@@ -36,25 +36,25 @@ class MinimumSpanningTree(NetworkAlgorithm):
     Supports both Prim's and Kruskal's algorithms for MST construction:
 
     - **Prim's algorithm**: Grows the tree from a single starting node,
-      always adding the minimum-weight edge that connects a new node.
-      Time complexity: O(E log V) with binary heap.
+    always adding the minimum-weight edge that connects a new node.
+    Time complexity: O(E log V) with binary heap.
 
     - **Kruskal's algorithm**: Sorts all edges and adds them in order of
-      increasing weight, skipping edges that would create cycles.
-      Time complexity: O(E log E) with union-find.
+    increasing weight, skipping edges that would create cycles.
+    Time complexity: O(E log E) with union-find.
 
     Parameters
     ----------
     distance_method :
-        str, default='hamming'.
+        Str, default='hamming'.
         Method for calculating pairwise distances between sequences.
     Options :
         'hamming', 'jukes_cantor', 'kimura_2p', 'tamura_nei'.
     algorithm :
-        str, default='prim'.
+        Str, default='prim'.
         MST construction algorithm to use: 'prim' or 'kruskal'.
     **kwargs :
-        dict.
+        Dict.
         Additional parameters passed to base NetworkAlgorithm.
 
     Attributes
@@ -100,11 +100,11 @@ class MinimumSpanningTree(NetworkAlgorithm):
 
         Parameters
         ----------
-        distance_method :
+        distance_method : str, default='hamming'
             Method for calculating distances.
-        algorithm :
+        algorithm : str, default='prim'
             MST algorithm to use ('prim' or 'kruskal').
-        **kwargs :
+        **kwargs : dict
             Additional parameters.
         """
         super().__init__(distance_method, **kwargs)
@@ -118,17 +118,18 @@ class MinimumSpanningTree(NetworkAlgorithm):
         self, alignment: Alignment, distance_matrix: Optional[DistanceMatrix] = None
     ) -> HaplotypeNetwork:
         """
-            Construct MST from sequence alignment.
+        Construct MST from sequence alignment.
 
         Parameters
         ----------
-            alignment :
-                Multiple sequence alignment.
-            distance_matrix :
-                Optional pre-computed distance matrix.
+        alignment : Alignment
+            Multiple sequence alignment.
+        distance_matrix : DistanceMatrix, optional
+            Optional pre-computed distance matrix.
 
         Returns
         -------
+        HaplotypeNetwork
             Haplotype network representing the MST.
         """
         # Identify unique haplotypes
@@ -162,17 +163,18 @@ class MinimumSpanningTree(NetworkAlgorithm):
         self, haplotypes: List, distance_matrix: DistanceMatrix
     ) -> List[Tuple[str, str, float]]:
         """
-            Construct MST using Prim's algorithm.
+        Construct MST using Prim's algorithm.
 
         Parameters
         ----------
-            haplotypes :
-                List of Haplotype objects.
-            distance_matrix :
-                Distance matrix between haplotypes.
+        haplotypes : List
+            List of Haplotype objects.
+        distance_matrix : DistanceMatrix
+            Distance matrix between haplotypes.
 
         Returns
         -------
+        List[Tuple[str, str, float]]
             List of edges (id1, id2, distance).
         """
         if len(haplotypes) == 0:
@@ -220,17 +222,18 @@ class MinimumSpanningTree(NetworkAlgorithm):
         self, haplotypes: List, distance_matrix: DistanceMatrix
     ) -> List[Tuple[str, str, float]]:
         """
-            Construct MST using Kruskal's algorithm with Union-Find.
+        Construct MST using Kruskal's algorithm with Union-Find.
 
         Parameters
         ----------
-            haplotypes :
-                List of Haplotype objects.
-            distance_matrix :
-                Distance matrix between haplotypes.
+        haplotypes : List
+            List of Haplotype objects.
+        distance_matrix : DistanceMatrix
+            Distance matrix between haplotypes.
 
         Returns
         -------
+        List[Tuple[str, str, float]]
             List of edges (id1, id2, distance).
         """
         if len(haplotypes) == 0:
@@ -291,17 +294,18 @@ class MinimumSpanningTree(NetworkAlgorithm):
         self, haplotypes: List, edges: List[Tuple[str, str, float]]
     ) -> HaplotypeNetwork:
         """
-            Build HaplotypeNetwork from haplotypes and MST edges.
+        Build HaplotypeNetwork from haplotypes and MST edges.
 
         Parameters
         ----------
-            haplotypes :
-                List of Haplotype objects.
-            edges :
-                List of edges (id1, id2, distance).
+        haplotypes : List
+            List of Haplotype objects.
+        edges : List[Tuple[str, str, float]]
+            List of edges (id1, id2, distance).
 
         Returns
         -------
+        HaplotypeNetwork
             Constructed haplotype network.
         """
         network = HaplotypeNetwork()

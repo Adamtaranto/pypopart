@@ -46,15 +46,19 @@ def calculate_haplotype_frequencies(
     """
     Calculate haplotype frequencies overall and by population.
 
-    Args:
-        network: HaplotypeNetwork object
-        normalize: If True, return frequencies as proportions (0-1)
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    normalize : bool, default=False
+        If True, return frequencies as proportions (0-1).
 
     Returns
     -------
+    Dict[str, Dict[str, float]]
         Dictionary with:.
-            'overall': Dict[haplotype_id -> frequency/count]
-            'by_population': Dict[population -> Dict[haplotype_id -> frequency/count]]
+        'overall': Dict[haplotype_id -> frequency/count]
+        'by_population': Dict[population -> Dict[haplotype_id -> frequency/count]]
     """
     overall_counts: Dict[str, int] = defaultdict(int)
     pop_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
@@ -108,12 +112,16 @@ def calculate_diversity_metrics(
     """
     Calculate diversity metrics for a haplotype network.
 
-    Args:
-        network: HaplotypeNetwork object
-        alignment: Optional alignment for nucleotide diversity calculation
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    alignment : Alignment, optional
+        Optional alignment for nucleotide diversity calculation.
 
     Returns
     -------
+    DiversityMetrics
         DiversityMetrics object with calculated metrics.
     """
     # Get frequencies
@@ -204,11 +212,14 @@ def calculate_network_metrics(network: HaplotypeNetwork) -> NetworkMetrics:
     """
     Calculate comprehensive network topology metrics.
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    NetworkMetrics
         NetworkMetrics object with calculated metrics.
     """
     G = network.to_networkx()
@@ -274,12 +285,16 @@ def identify_central_haplotypes(
     """
     Identify central haplotypes using various centrality measures.
 
-    Args:
-        network: HaplotypeNetwork object
-        method: Centrality method ('degree', 'betweenness', 'closeness', 'eigenvector')
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    method : str, default='degree'
+        Centrality method ('degree', 'betweenness', 'closeness', 'eigenvector').
 
     Returns
     -------
+    List[Tuple[str, float]]
         List of (haplotype_id, centrality_score) tuples, sorted by score (descending).
     """
     G = network.to_networkx()
@@ -323,11 +338,14 @@ def calculate_reticulation_index(network: HaplotypeNetwork) -> float:
     The reticulation index measures the proportion of reticulations
     (alternative connections) in the network compared to a simple tree.
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    float
         Reticulation index (0 for a tree, >0 for networks with reticulations).
     """
     G = network.to_networkx()
@@ -356,11 +374,14 @@ def get_frequency_distribution(network: HaplotypeNetwork) -> Dict[int, int]:
     Returns a dictionary mapping frequency values to the number of
     haplotypes with that frequency.
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    Dict[int, int]
         Dictionary mapping frequency -> count of haplotypes.
     """
     frequencies = []
@@ -379,12 +400,16 @@ def calculate_summary_statistics(
     """
     Calculate comprehensive summary statistics for a network.
 
-    Args:
-        network: HaplotypeNetwork object
-        alignment: Optional alignment for additional metrics
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    alignment : Alignment, optional
+        Optional alignment for additional metrics.
 
     Returns
     -------
+    Dict[str, any]
         Dictionary with all calculated statistics.
     """
     # Get diversity metrics

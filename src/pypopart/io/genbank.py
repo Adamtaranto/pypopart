@@ -19,9 +19,9 @@ class GenBankReader:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Path to GenBank file.
-        validate :
+        validate : bool, default=True
             Whether to validate sequences.
         """
         self.filepath = Path(filepath)
@@ -43,10 +43,12 @@ class GenBankReader:
 
         Parameters
         ----------
-        progress_callback :
+        progress_callback : callable, optional
             Optional callback function(current, total).
 
-        Yields :
+        Yields
+        ------
+        Sequence
             Sequence objects.
         """
         count = 0

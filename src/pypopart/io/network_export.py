@@ -24,7 +24,7 @@ def _as_nx_graph(network: Union[HaplotypeNetwork, nx.Graph]) -> nx.Graph:
 
     Parameters
     ----------
-    network :
+    network : HaplotypeNetwork or nx.Graph
         HaplotypeNetwork or NetworkX graph.
 
     Returns
@@ -48,14 +48,15 @@ def _sanitize_graph_for_export(
 
     Parameters
     ----------
-    graph :
+    graph : nx.Graph
         NetworkX graph with potentially non-serializable attributes.
-    format_type :
+    format_type : str, default='generic'
         Export format type. 'graphml' uses stricter serialization (only primitives),
         'generic' allows lists and dicts for formats like JSON and GML.
 
     Returns
     -------
+    nx.Graph
         New graph with sanitized attributes.
     """
     # Create a deep copy to avoid modifying original
@@ -148,7 +149,7 @@ class GraphMLExporter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
         """
         self.filepath = Path(filepath)
@@ -159,7 +160,7 @@ class GraphMLExporter:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
         """
         # Convert network to NetworkX graph if needed
@@ -181,7 +182,7 @@ class GMLExporter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
         """
         self.filepath = Path(filepath)
@@ -192,7 +193,7 @@ class GMLExporter:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
         """
         graph = _as_nx_graph(network)
@@ -213,7 +214,7 @@ class CytoscapeExporter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
         """
         self.filepath = Path(filepath)
@@ -224,7 +225,7 @@ class CytoscapeExporter:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
         """
         graph = _as_nx_graph(network)
@@ -248,7 +249,7 @@ class JSONExporter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
         """
         self.filepath = Path(filepath)

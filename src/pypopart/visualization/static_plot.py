@@ -30,7 +30,7 @@ class StaticNetworkPlotter:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object to visualize.
         """
         self.network = network
@@ -54,39 +54,40 @@ class StaticNetworkPlotter:
         **kwargs,
     ) -> Tuple[plt.Figure, plt.Axes]:
         """
-            Create a static network plot.
+        Create a static network plot.
 
         Parameters
         ----------
-            layout :
-                Pre-computed node positions {node_id: (x, y)}.
-            layout_algorithm :
-                NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
-            node_size_scale :
-                Scaling factor for node sizes.
-            node_color_map :
-                Custom color mapping {node_id: color}.
-            population_colors :
-                Color mapping for populations {pop_name: color}.
-            edge_width_scale :
-                Scaling factor for edge widths.
-            show_labels :
-                Whether to show node labels.
-            show_mutations :
-                Whether to show mutation counts on edges.
-            median_vector_color :
-                Color for median vector nodes.
-            median_vector_marker :
-                Marker shape for median vectors ('s'=square, 'o'=circle).
-            figsize :
-                Figure size (width, height) in inches.
-            title :
-                Plot title.
-            **kwargs :
-                Additional arguments passed to networkx drawing functions.
+        layout : Dict[str, Tuple[float, float]], optional
+            Pre-computed node positions {node_id: (x, y)}.
+        layout_algorithm : str, default='spring'
+            NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
+        node_size_scale : float, default=300.0
+            Scaling factor for node sizes.
+        node_color_map : Dict[str, str], optional
+            Custom color mapping {node_id: color}.
+        population_colors : Dict[str, str], optional
+            Color mapping for populations {pop_name: color}.
+        edge_width_scale : float, default=1.0
+            Scaling factor for edge widths.
+        show_labels : bool, default=True
+            Whether to show node labels.
+        show_mutations : bool, default=True
+            Whether to show mutation counts on edges.
+        median_vector_color : str, default='lightgray'
+            Color for median vector nodes.
+        median_vector_marker : str, default='s'
+            Marker shape for median vectors ('s'=square, 'o'=circle).
+        figsize : Tuple[float, float], default=(12, 10)
+            Figure size (width, height) in inches.
+        title : str, optional
+            Plot title.
+        **kwargs : dict
+            Additional arguments passed to networkx drawing functions.
 
         Returns
         -------
+        Tuple[plt.Figure, plt.Axes]
             Figure and axes objects.
         """
         # Create figure and axes
@@ -200,15 +201,15 @@ class StaticNetworkPlotter:
 
         Parameters
         ----------
-        population_colors :
+        population_colors : Dict[str, str], optional
             Population color mapping {pop_name: color}.
-        show_median_vectors :
+        show_median_vectors : bool, default=True
             Whether to include median vectors in legend.
-        show_size_scale :
+        show_size_scale : bool, default=True
             Whether to show node size scale.
-        loc :
+        loc : str, default='best'
             Legend location.
-        **kwargs :
+        **kwargs : dict
             Additional arguments passed to plt.legend().
         """
         if self.ax is None:
@@ -305,13 +306,13 @@ class StaticNetworkPlotter:
 
         Parameters
         ----------
-        num_mutations :
+        num_mutations : int, default=1
             Number of mutations represented by scale bar.
-        position :
+        position : Tuple[float, float], default=(0.05, 0.05)
             Position as fraction of axes (x, y).
-        length :
+        length : float, default=0.1
             Length of scale bar as fraction of axes width.
-        **kwargs :
+        **kwargs : dict
             Additional arguments for the line and text.
         """
         if self.ax is None:
@@ -358,11 +359,11 @@ class StaticNetworkPlotter:
 
         Parameters
         ----------
-        stats :
+        stats : Dict[str, Any], optional
             Dictionary of statistics to display.
-        position :
+        position : Tuple[float, float], default=(0.02, 0.98)
             Position as fraction of axes (x, y).
-        **kwargs :
+        **kwargs : dict
             Additional arguments for the text box.
         """
         if self.ax is None:
@@ -414,13 +415,13 @@ class StaticNetworkPlotter:
 
         Parameters
         ----------
-        filename :
+        filename : str
             Output filename (extension determines format: .png, .pdf, .svg).
-        dpi :
+        dpi : int, default=300
             Resolution in dots per inch.
-        bbox_inches :
+        bbox_inches : str, default='tight'
             Bounding box setting.
-        **kwargs :
+        **kwargs : dict
             Additional arguments passed to plt.savefig().
         """
         if self.figure is None:
@@ -452,15 +453,16 @@ class StaticNetworkPlotter:
 
     def _compute_node_sizes(self, scale: float) -> Dict[str, float]:
         """
-            Compute node sizes based on haplotype frequencies.
+        Compute node sizes based on haplotype frequencies.
 
         Parameters
         ----------
-            scale :
-                Scaling factor for node sizes.
+        scale : float
+            Scaling factor for node sizes.
 
         Returns
         -------
+        Dict[str, float]
             Dictionary mapping node IDs to sizes.
         """
         sizes = {}
@@ -485,19 +487,20 @@ class StaticNetworkPlotter:
         median_vector_color: str,
     ) -> Dict[str, str]:
         """
-            Compute node colors based on population or custom mapping.
+        Compute node colors based on population or custom mapping.
 
         Parameters
         ----------
-            node_color_map :
-                Custom node color mapping.
-            population_colors :
-                Population color mapping.
-            median_vector_color :
-                Color for median vectors.
+        node_color_map : Dict[str, str], optional
+            Custom node color mapping.
+        population_colors : Dict[str, str], optional
+            Population color mapping.
+        median_vector_color : str
+            Color for median vectors.
 
         Returns
         -------
+        Dict[str, str]
             Dictionary mapping node IDs to colors.
         """
         from .style import node_color
@@ -517,15 +520,16 @@ class StaticNetworkPlotter:
 
     def _compute_edge_widths(self, scale: float) -> List[float]:
         """
-            Compute edge widths based on mutation distances.
+        Compute edge widths based on mutation distances.
 
         Parameters
         ----------
-            scale :
-                Scaling factor for edge widths.
+        scale : float
+            Scaling factor for edge widths.
 
         Returns
         -------
+        List[float]
             List of edge widths.
         """
         widths = []
@@ -548,9 +552,9 @@ class StaticNetworkPlotter:
 
         Parameters
         ----------
-        graph :
+        graph : nx.Graph
             NetworkX graph.
-        layout :
+        layout : Dict[str, Tuple[float, float]]
             Node positions.
         """
         edge_labels = {}
@@ -579,15 +583,18 @@ def plot_network(network: HaplotypeNetwork, **kwargs) -> Tuple[plt.Figure, plt.A
     """
     Plot a haplotype network.
 
-    Args:
-        network: HaplotypeNetwork object to visualize
-        **kwargs: Arguments passed to StaticNetworkPlotter.plot()
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object to visualize.
+    **kwargs : dict
+        Arguments passed to StaticNetworkPlotter.plot().
 
     Returns
     -------
+    Tuple[plt.Figure, plt.Axes]
         Figure and axes objects.
-
-    Example:
+        Example:
         >>> from pypopart.core.graph import HaplotypeNetwork
         >>> from pypopart.visualization.static_plot import plot_network
         >>> network = HaplotypeNetwork()
@@ -608,17 +615,22 @@ def create_publication_figure(
     """
     Create a publication-ready figure with legend and scale bar.
 
-    Args:
-        network: HaplotypeNetwork object to visualize
-        population_colors: Color mapping for populations
-        filename: Optional filename to save figure
-        **kwargs: Additional arguments passed to plot()
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object to visualize.
+    population_colors : Dict[str, str], optional
+        Color mapping for populations.
+    filename : str, optional
+        Optional filename to save figure.
+    **kwargs : dict
+        Additional arguments passed to plot().
 
     Returns
     -------
+    Tuple[plt.Figure, plt.Axes]
         Figure and axes objects.
-
-    Example:
+        Example:
         >>> fig, ax = create_publication_figure(
         ...     network,
         ...     population_colors={'PopA': 'red', 'PopB': 'blue'},

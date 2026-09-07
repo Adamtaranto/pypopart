@@ -36,7 +36,7 @@ class Alignment:
 
         Parameters
         ----------
-        sequences :
+        sequences : List[Sequence], optional
             List of Sequence objects.
         """
         self._sequences: List[Sequence] = []
@@ -52,11 +52,12 @@ class Alignment:
 
         Parameters
         ----------
-        sequence :
+        sequence : Sequence
             Sequence object to add.
 
-        Raises :
-        ValueError :
+        Raises
+        ------
+        ValueError
             If sequence ID already exists or length doesn't match.
         """
         if sequence.id in self._sequence_index:
@@ -77,11 +78,12 @@ class Alignment:
 
         Parameters
         ----------
-        sequence_id :
+        sequence_id : str
             ID of sequence to remove.
 
-        Raises :
-        KeyError :
+        Raises
+        ------
+        KeyError
             If sequence ID not found.
         """
         if sequence_id not in self._sequence_index:
@@ -95,20 +97,20 @@ class Alignment:
 
     def get_sequence(self, sequence_id: str) -> Sequence:
         """
-            Get sequence by ID.
+        Get sequence by ID.
 
         Parameters
         ----------
-            sequence_id :
-                ID of sequence to retrieve.
+        sequence_id : str
+            ID of sequence to retrieve.
 
         Returns
         -------
+        Sequence
             Sequence object.
-
             Raises :
             KeyError :
-                If sequence ID not found.
+            If sequence ID not found.
         """
         if sequence_id not in self._sequence_index:
             raise KeyError(f"Sequence ID '{sequence_id}' not found in alignment")
@@ -126,15 +128,16 @@ class Alignment:
 
     def __getitem__(self, key: Union[int, str, slice]) -> Union[Sequence, 'Alignment']:
         """
-            Get sequence(s) by index, ID, or slice.
+        Get sequence(s) by index, ID, or slice.
 
         Parameters
         ----------
-            key :
-                Index, sequence ID, or slice.
+        key : int or str or slice
+            Index, sequence ID, or slice.
 
         Returns
         -------
+        Sequence or Alignment
             Sequence object or new Alignment object for slices.
         """
         if isinstance(key, str):
@@ -164,6 +167,7 @@ class Alignment:
 
         Returns
         -------
+        bool
             True if all sequences have the same length.
         """
         if not self._sequences:
@@ -178,7 +182,7 @@ class Alignment:
 
         Raises
         ------
-            ValueError: If alignment is invalid
+        ValueError: If alignment is invalid
         """
         if not self.is_valid():
             lengths = [len(seq) for seq in self._sequences]
@@ -188,15 +192,16 @@ class Alignment:
 
     def get_column(self, position: int) -> List[str]:
         """
-            Get all characters at a specific position.
+        Get all characters at a specific position.
 
         Parameters
         ----------
-            position :
-                0-based position in alignment.
+        position : int
+            0-based position in alignment.
 
         Returns
         -------
+        List[str]
             List of characters at that position.
         """
         if position < 0 or position >= self.length:
@@ -206,17 +211,18 @@ class Alignment:
 
     def slice_alignment(self, start: int, end: Optional[int] = None) -> 'Alignment':
         """
-            Extract a slice of the alignment (specific columns).
+        Extract a slice of the alignment (specific columns).
 
         Parameters
         ----------
-            start :
-                Start position (0-based, inclusive).
-            end :
-                End position (0-based, exclusive, None for end).
+        start : int
+            Start position (0-based, inclusive).
+        end : int, optional
+            End position (0-based, exclusive, None for end).
 
         Returns
         -------
+        Alignment
             New Alignment object with sliced sequences.
         """
         sliced_sequences = []
@@ -228,15 +234,16 @@ class Alignment:
 
     def remove_gaps_columns(self, gap_threshold: float = 1.0) -> 'Alignment':
         """
-            Remove columns with gaps above threshold.
+        Remove columns with gaps above threshold.
 
         Parameters
         ----------
-            gap_threshold :
-                Fraction of gaps required to remove column (0.0-1.0).
+        gap_threshold : float, default=1.0
+            Fraction of gaps required to remove column (0.0-1.0).
 
         Returns
         -------
+        Alignment
             New Alignment object with gap columns removed.
         """
         columns_to_keep = []
@@ -268,6 +275,7 @@ class Alignment:
 
         Returns
         -------
+        AlignmentStats
             AlignmentStats object with alignment metrics.
         """
         if not self._sequences:
@@ -324,16 +332,17 @@ class Alignment:
 
     def get_distance_matrix(self, distance_func=None) -> np.ndarray:
         """
-            Calculate pairwise distance matrix between sequences.
+        Calculate pairwise distance matrix between sequences.
 
         Parameters
         ----------
-            distance_func :
-                Function to calculate distance between two sequences.
-                              If None, uses Hamming distance.
+        distance_func : callable, optional
+            Function to calculate distance between two sequences.
+                          If None, uses Hamming distance.
 
         Returns
         -------
+        np.ndarray
             Square numpy array with pairwise distances.
         """
         if distance_func is None:
@@ -351,17 +360,18 @@ class Alignment:
 
     def _hamming_distance(self, seq1: Sequence, seq2: Sequence) -> int:
         """
-            Calculate Hamming distance between two sequences.
+        Calculate Hamming distance between two sequences.
 
         Parameters
         ----------
-            seq1 :
-                First sequence.
-            seq2 :
-                Second sequence.
+        seq1 : Sequence
+            First sequence.
+        seq2 : Sequence
+            Second sequence.
 
         Returns
         -------
+        int
             Number of differing positions.
         """
         if len(seq1) != len(seq2):
@@ -377,6 +387,7 @@ class Alignment:
 
         Returns
         -------
+        Dict[str, List[str]]
             Dictionary mapping unique sequence data to list of sequence IDs.
         """
         haplotypes = {}
@@ -398,6 +409,7 @@ class Alignment:
 
         Returns
         -------
+        str
             FASTA formatted string.
         """
         return '\n'.join(str(seq) for seq in self._sequences)

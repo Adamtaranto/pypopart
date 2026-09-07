@@ -58,12 +58,16 @@ def identify_star_patterns(
     A star pattern has a central node connected to multiple leaves
     (nodes with degree 1).
 
-    Args:
-        network: HaplotypeNetwork object
-        min_leaves: Minimum number of leaves for a pattern to be considered
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    min_leaves : int, default=3
+        Minimum number of leaves for a pattern to be considered.
 
     Returns
     -------
+    List[StarPattern]
         List of StarPattern objects.
     """
     G = network.to_networkx()
@@ -112,11 +116,14 @@ def detect_network_partitions(network: HaplotypeNetwork) -> List[Partition]:
     """
     Detect partitions (connected components) in the network.
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    List[Partition]
         List of Partition objects, sorted by size (descending).
     """
     G = network.to_networkx()
@@ -162,14 +169,18 @@ def calculate_node_centrality(
     """
     Calculate various centrality measures for all nodes.
 
-    Args:
-        network: HaplotypeNetwork object
-        methods: List of centrality methods to calculate
-                 ('degree', 'betweenness', 'closeness', 'eigenvector')
-                 If None, calculates all methods
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    methods : List[str], optional
+        List of centrality methods to calculate.
+        ('degree', 'betweenness', 'closeness', 'eigenvector')
+        If None, calculates all methods
 
     Returns
     -------
+    Dict[str, Dict[str, float]]
         Dictionary mapping node_id -> {method -> centrality_score}.
     """
     if methods is None:
@@ -224,12 +235,16 @@ def identify_ancestral_nodes(
     - Central position in the network
     - High betweenness centrality
 
-    Args:
-        network: HaplotypeNetwork object
-        top_n: Number of top candidates to return
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    top_n : int, default=5
+        Number of top candidates to return.
 
     Returns
     -------
+    List[AncestralNode]
         List of AncestralNode objects, sorted by score (descending).
     """
     G = network.to_networkx()
@@ -290,11 +305,14 @@ def calculate_topology_summary(network: HaplotypeNetwork) -> Dict[str, any]:
     """
     Create a comprehensive topology summary report.
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    Dict[str, any]
         Dictionary with topology analysis results.
     """
     G = network.to_networkx()
@@ -393,13 +411,17 @@ def find_central_hub_nodes(
     """
     Find hub nodes (nodes with high degree).
 
-    Args:
-        network: HaplotypeNetwork object
-        degree_threshold: Minimum degree to be considered a hub
-                         If None, uses mean degree + 1 std dev
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
+    degree_threshold : int, optional
+        Minimum degree to be considered a hub.
+        If None, uses mean degree + 1 std dev
 
     Returns
     -------
+    List[Tuple[str, int]]
         List of (node_id, degree) tuples, sorted by degree (descending).
     """
     G = network.to_networkx()
@@ -441,11 +463,14 @@ def detect_bridges(network: HaplotypeNetwork) -> List[Tuple[str, str]]:
     A bridge is an edge whose removal would disconnect the network
     or increase the number of connected components.
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    List[Tuple[str, str]]
         List of (node1, node2) tuples representing bridge edges.
     """
     G = network.to_networkx()
@@ -466,11 +491,14 @@ def identify_bottleneck_nodes(network: HaplotypeNetwork) -> List[Tuple[str, floa
     Bottleneck nodes are those whose removal would significantly
     disrupt information flow in the network.
 
-    Args:
-        network: HaplotypeNetwork object
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object.
 
     Returns
     -------
+    List[Tuple[str, float]]
         List of (node_id, betweenness_score) tuples, sorted by score (descending).
     """
     G = network.to_networkx()

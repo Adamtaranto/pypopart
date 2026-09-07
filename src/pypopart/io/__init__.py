@@ -31,17 +31,15 @@ def load_alignment(filepath: Union[str, Path], format: Optional[str] = None):
 
     Parameters
     ----------
-    filepath :
-        str or Path.
+    filepath : str or Path
         Path to sequence file.
-    format :
-        str, optional.
+    format : str, optional
         File format: 'fasta', 'nexus', 'phylip', 'genbank'
         If None, auto-detect from extension.
 
     Returns
     -------
-        Alignment        Alignment object with sequences.
+    Alignment        Alignment object with sequences.
     """
     filepath = Path(filepath)
 
@@ -81,14 +79,11 @@ def save_alignment(alignment, filepath: Union[str, Path], format: str = 'fasta')
 
     Parameters
     ----------
-    alignment :
-        Alignment.
+    alignment : Alignment
         Alignment to save.
-    filepath :
-        str or Path.
+    filepath : str or Path
         Output file path.
-    format :
-        str.
+    format : str, default='fasta'
         Output format: 'fasta', 'nexus', 'phylip'.
     """
     filepath = Path(filepath)
@@ -111,11 +106,9 @@ def load_network(filepath: Union[str, Path], format: Optional[str] = None):
 
     Parameters
     ----------
-    filepath :
-        str or Path.
+    filepath : str or Path
         Path to network file.
-    format :
-        str, optional.
+    format : str, optional
         File format: 'graphml', 'gml', 'json'
         If None, auto-detect from extension.
 
@@ -177,14 +170,11 @@ def save_network(
 
     Parameters
     ----------
-    network :
-        networkx.Graph.
+    network : nx.Graph
         Network to save.
-    filepath :
-        str or Path.
+    filepath : str or Path
         Output file path.
-    format :
-        str.
+    format : str, default='graphml'
         Output format: 'graphml', 'gml', 'json', 'nexus', 'cytoscape', 'csv'.
     """
     filepath = Path(filepath)

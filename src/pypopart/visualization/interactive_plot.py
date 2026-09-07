@@ -29,7 +29,7 @@ class InteractiveNetworkPlotter:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object to visualize.
         """
         self.network = network
@@ -52,39 +52,40 @@ class InteractiveNetworkPlotter:
         **kwargs,
     ) -> Figure:
         """
-            Create an interactive network plot.
+        Create an interactive network plot.
 
         Parameters
         ----------
-            layout :
-                Pre-computed node positions {node_id: (x, y)}.
-            layout_algorithm :
-                NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
-            node_size_scale :
-                Scaling factor for node sizes.
-            node_color_map :
-                Custom color mapping {node_id: color}.
-            population_colors :
-                Color mapping for populations {pop_name: color}.
-            edge_width_scale :
-                Scaling factor for edge widths.
-            show_labels :
-                Whether to show node labels.
-            show_edge_labels :
-                Whether to show edge labels with mutation counts.
-            median_vector_color :
-                Color for median vector nodes.
-            title :
-                Plot title.
-            width :
-                Figure width in pixels.
-            height :
-                Figure height in pixels.
-            **kwargs :
-                Additional layout arguments.
+        layout : Dict[str, Tuple[float, float]], optional
+            Pre-computed node positions {node_id: (x, y)}.
+        layout_algorithm : str, default='spring'
+            NetworkX layout algorithm ('spring', 'circular', 'kamada_kawai').
+        node_size_scale : float, default=20.0
+            Scaling factor for node sizes.
+        node_color_map : Dict[str, str], optional
+            Custom color mapping {node_id: color}.
+        population_colors : Dict[str, str], optional
+            Color mapping for populations {pop_name: color}.
+        edge_width_scale : float, default=2.0
+            Scaling factor for edge widths.
+        show_labels : bool, default=True
+            Whether to show node labels.
+        show_edge_labels : bool, default=True
+            Whether to show edge labels with mutation counts.
+        median_vector_color : str, default='lightgray'
+            Color for median vector nodes.
+        title : str, optional
+            Plot title.
+        width : int, default=1000
+            Figure width in pixels.
+        height : int, default=800
+            Figure height in pixels.
+        **kwargs : dict
+            Additional layout arguments.
 
         Returns
         -------
+        Figure
             Plotly Figure object.
         """
         # Get graph and compute layout if not provided
@@ -136,7 +137,7 @@ class InteractiveNetworkPlotter:
 
         Parameters
         ----------
-        population_colors :
+        population_colors : Dict[str, str]
             Color mapping for populations.
         """
         if self.figure is None:
@@ -162,11 +163,11 @@ class InteractiveNetworkPlotter:
 
         Parameters
         ----------
-        filename :
+        filename : str
             Output filename (should end with .html).
-        auto_open :
+        auto_open : bool, default=False
             Whether to automatically open in browser.
-        **kwargs :
+        **kwargs : dict
             Additional arguments passed to write_html().
         """
         if self.figure is None:
@@ -215,13 +216,13 @@ class InteractiveNetworkPlotter:
 
         Parameters
         ----------
-        graph :
+        graph : nx.Graph
             NetworkX graph.
-        layout :
+        layout : Dict[str, Tuple[float, float]]
             Node positions.
-        width_scale :
+        width_scale : float
             Edge width scaling factor.
-        show_edge_labels :
+        show_edge_labels : bool, default=True
             Whether to show edge labels with mutation counts.
         """
         edge_traces = []
@@ -294,19 +295,19 @@ class InteractiveNetworkPlotter:
 
         Parameters
         ----------
-        graph :
+        graph : nx.Graph
             NetworkX graph.
-        layout :
+        layout : Dict[str, Tuple[float, float]]
             Node positions.
-        size_scale :
+        size_scale : float
             Node size scaling factor.
-        node_color_map :
+        node_color_map : Dict[str, str], optional
             Custom node color mapping.
-        population_colors :
+        population_colors : Dict[str, str], optional
             Population color mapping.
-        median_vector_color :
+        median_vector_color : str
             Color for median vectors.
-        show_labels :
+        show_labels : bool
             Whether to show node labels.
         """
         # Separate haplotypes and median vectors
@@ -357,21 +358,21 @@ class InteractiveNetworkPlotter:
 
         Parameters
         ----------
-        nodes :
+        nodes : List[str]
             List of node IDs.
-        layout :
+        layout : Dict[str, Tuple[float, float]]
             Node positions.
-        size_scale :
+        size_scale : float
             Size scaling factor.
-        node_color_map :
+        node_color_map : Dict[str, str], optional
             Custom color mapping.
-        population_colors :
+        population_colors : Dict[str, str], optional
             Population color mapping.
-        symbol :
+        symbol : str
             Marker symbol ('circle' or 'square').
-        show_labels :
+        show_labels : bool
             Whether to show labels.
-        is_median :
+        is_median : bool
             Whether these are median vectors.
         """
         x_coords = []
@@ -444,23 +445,24 @@ class InteractiveNetworkPlotter:
         is_median: bool,
     ) -> str:
         """
-            Determine node color based on priority.
+        Determine node color based on priority.
 
         Parameters
         ----------
-            node :
-                Node ID.
-            hap :
-                Haplotype object or None.
-            node_color_map :
-                Custom color mapping.
-            population_colors :
-                Population color mapping.
-            is_median :
-                Whether this is a median vector.
+        node : str
+            Node ID.
+        hap : Any
+            Haplotype object or None.
+        node_color_map : Dict[str, str], optional
+            Custom color mapping.
+        population_colors : Dict[str, str], optional
+            Population color mapping.
+        is_median : bool
+            Whether this is a median vector.
 
         Returns
         -------
+        str
             Color string.
         """
         from .style import node_color
@@ -475,19 +477,20 @@ class InteractiveNetworkPlotter:
 
     def _create_hover_text(self, node: str, hap: Any, is_median: bool) -> str:
         """
-            Create hover text for a node.
+        Create hover text for a node.
 
         Parameters
         ----------
-            node :
-                Node ID.
-            hap :
-                Haplotype object or None.
-            is_median :
-                Whether this is a median vector.
+        node : str
+            Node ID.
+        hap : Any
+            Haplotype object or None.
+        is_median : bool
+            Whether this is a median vector.
 
         Returns
         -------
+        str
             Formatted hover text string.
         """
         lines = [f'<b>{node}</b>']
@@ -519,15 +522,18 @@ def plot_interactive_network(network: HaplotypeNetwork, **kwargs) -> Figure:
     """
     Plot an interactive haplotype network.
 
-    Args:
-        network: HaplotypeNetwork object to visualize
-        **kwargs: Arguments passed to InteractiveNetworkPlotter.plot()
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object to visualize.
+    **kwargs : dict
+        Arguments passed to InteractiveNetworkPlotter.plot().
 
     Returns
     -------
+    Figure
         Plotly Figure object.
-
-    Example:
+        Example:
         >>> from pypopart.core.graph import HaplotypeNetwork
         >>> from pypopart.visualization.interactive_plot import plot_interactive_network
         >>> network = HaplotypeNetwork()
@@ -549,18 +555,24 @@ def create_interactive_figure(
     """
     Create an interactive figure with legend.
 
-    Args:
-        network: HaplotypeNetwork object to visualize
-        population_colors: Color mapping for populations
-        filename: Optional filename to save HTML file
-        auto_open: Whether to open the file in browser
-        **kwargs: Additional arguments passed to plot()
+    Parameters
+    ----------
+    network : HaplotypeNetwork
+        HaplotypeNetwork object to visualize.
+    population_colors : Dict[str, str], optional
+        Color mapping for populations.
+    filename : str, optional
+        Optional filename to save HTML file.
+    auto_open : bool, default=False
+        Whether to open the file in browser.
+    **kwargs : dict
+        Additional arguments passed to plot().
 
     Returns
     -------
+    Figure
         Plotly Figure object.
-
-    Example:
+        Example:
         >>> fig = create_interactive_figure(
         ...     network,
         ...     population_colors={'PopA': 'red', 'PopB': 'blue'},

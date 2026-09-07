@@ -25,9 +25,9 @@ class FastaReader:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Path to FASTA file.
-        validate :
+        validate : bool, default=True
             Whether to validate sequences.
         """
         self.filepath = Path(filepath)
@@ -68,6 +68,7 @@ class FastaReader:
 
         Returns
         -------
+        TextIO
             File handle.
         """
         if getattr(self, '_text', None) is not None:
@@ -90,10 +91,12 @@ class FastaReader:
 
         Parameters
         ----------
-        progress_callback :
+        progress_callback : callable, optional
             Optional callback function(current, total).
 
-        Yields :
+        Yields
+        ------
+        Sequence
             Sequence objects.
         """
         count = 0
@@ -127,15 +130,16 @@ class FastaReader:
 
     def read_alignment(self, progress_callback=None) -> Alignment:
         """
-            Read alignment from FASTA file.
+        Read alignment from FASTA file.
 
         Parameters
         ----------
-            progress_callback :
-                Optional callback function(current, total).
+        progress_callback : callable, optional
+            Optional callback function(current, total).
 
         Returns
         -------
+        Alignment
             Alignment object.
         """
         sequences = list(self.read_sequences(progress_callback))
@@ -161,11 +165,11 @@ class FastaWriter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
-        line_length :
+        line_length : int, default=80
             Maximum line length for sequences (0 for no wrapping).
-        compress :
+        compress : str, optional
             Compression format ('gzip' or None).
         """
         self.filepath = Path(filepath)
@@ -182,6 +186,7 @@ class FastaWriter:
 
         Returns
         -------
+        TextIO
             File handle.
         """
         if self.compress == 'gzip':
@@ -193,17 +198,18 @@ class FastaWriter:
         self, sequences: Iterator[Sequence], progress_callback=None
     ) -> int:
         """
-            Write sequences to FASTA file.
+        Write sequences to FASTA file.
 
         Parameters
         ----------
-            sequences :
-                Iterable of Sequence objects.
-            progress_callback :
-                Optional callback function(current, total).
+        sequences : Iterator[Sequence]
+            Iterable of Sequence objects.
+        progress_callback : callable, optional
+            Optional callback function(current, total).
 
         Returns
         -------
+        int
             Number of sequences written.
         """
         count = 0
@@ -237,17 +243,18 @@ class FastaWriter:
 
     def write_alignment(self, alignment: Alignment, progress_callback=None) -> int:
         """
-            Write alignment to FASTA file.
+        Write alignment to FASTA file.
 
         Parameters
         ----------
-            alignment :
-                Alignment object.
-            progress_callback :
-                Optional callback function(current, total).
+        alignment : Alignment
+            Alignment object.
+        progress_callback : callable, optional
+            Optional callback function(current, total).
 
         Returns
         -------
+        int
             Number of sequences written.
         """
         return self.write_sequences(iter(alignment), progress_callback)

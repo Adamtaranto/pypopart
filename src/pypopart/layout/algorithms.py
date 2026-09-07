@@ -7,22 +7,22 @@ including force-directed, hierarchical, spectral, and custom layouts.
 Algorithm Selection Guide
 -------------------------
 For small networks (<50 nodes):
-    - KamadaKawaiLayout: Best quality, slow
-    - ForceDirectedLayout: Good quality, moderate speed
+- KamadaKawaiLayout: Best quality, slow
+- ForceDirectedLayout: Good quality, moderate speed
 
 For medium networks (50-500 nodes):
-    - ForceDirectedLayout: Default choice, good balance
-    - SpectralLayout: Faster alternative, good quality
-    - HierarchicalLayout: Very fast, tree-like structure
+- ForceDirectedLayout: Default choice, good balance
+- SpectralLayout: Faster alternative, good quality
+- HierarchicalLayout: Very fast, tree-like structure
 
 For large networks (>500 nodes):
-    - SpectralLayout: Fast, maintains structure
-    - HierarchicalLayout: Fastest option
-    - CircularLayout: Simple, very fast
+- SpectralLayout: Fast, maintains structure
+- HierarchicalLayout: Fastest option
+- CircularLayout: Simple, very fast
 
 Special purposes:
-    - RadialLayout: Emphasize central node
-    - CircularLayout: Show connectivity patterns
+- RadialLayout: Emphasize central node
+- CircularLayout: Show connectivity patterns
 """
 
 import json
@@ -47,7 +47,7 @@ class LayoutAlgorithm:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
         """
         self.network = network
@@ -55,15 +55,16 @@ class LayoutAlgorithm:
 
     def compute(self, **kwargs) -> Dict[str, Tuple[float, float]]:
         """
-            Compute node positions.
+        Compute node positions.
 
         Parameters
         ----------
-            **kwargs :
-                Algorithm-specific parameters.
+        **kwargs : dict
+            Algorithm-specific parameters.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Dictionary mapping node IDs to (x, y) positions.
         """
         raise NotImplementedError('Subclasses must implement compute()')
@@ -76,9 +77,9 @@ class LayoutAlgorithm:
 
         Parameters
         ----------
-        layout :
+        layout : Dict[str, Tuple[float, float]]
             Node positions dictionary.
-        filename :
+        filename : str
             Output filename.
         """
         # Convert tuples to lists for JSON serialization
@@ -90,15 +91,16 @@ class LayoutAlgorithm:
     @staticmethod
     def load_layout(filename: str) -> Dict[str, Tuple[float, float]]:
         """
-            Load layout from a JSON file.
+        Load layout from a JSON file.
 
         Parameters
         ----------
-            filename :
-                Input filename.
+        filename : str
+            Input filename.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Dictionary mapping node IDs to (x, y) positions.
         """
         with open(filename, 'r') as f:
@@ -139,24 +141,25 @@ class ForceDirectedLayout(LayoutAlgorithm):
         **kwargs,
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute force-directed layout.
+        Compute force-directed layout.
 
         Parameters
         ----------
-            k :
-                Optimal distance between nodes (None for auto).
-                Smaller values bring nodes closer together.
-            iterations :
-                Number of iterations for optimization.
-                More iterations = better quality but slower.
-                Default 50 is good for most networks.
-            seed :
-                Random seed for reproducibility.
-            **kwargs :
-                Additional parameters passed to spring_layout.
+        k : float, optional
+            Optimal distance between nodes (None for auto).
+            Smaller values bring nodes closer together.
+        iterations : int, default=50
+            Number of iterations for optimization.
+            More iterations = better quality but slower.
+            Default 50 is good for most networks.
+        seed : int, optional
+            Random seed for reproducibility.
+        **kwargs : dict
+            Additional parameters passed to spring_layout.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         layout = nx.spring_layout(
@@ -178,19 +181,20 @@ class CircularLayout(LayoutAlgorithm):
         self, scale: float = 1.0, center: Optional[Tuple[float, float]] = None, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute circular layout.
+        Compute circular layout.
 
         Parameters
         ----------
-            scale :
-                Scale factor for the layout.
-            center :
-                Center position (x, y).
-            **kwargs :
-                Additional parameters passed to circular_layout.
+        scale : float, default=1.0
+            Scale factor for the layout.
+        center : Tuple[float, float], optional
+            Center position (x, y).
+        **kwargs : dict
+            Additional parameters passed to circular_layout.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         layout = nx.circular_layout(self.graph, scale=scale, center=center, **kwargs)
@@ -210,19 +214,20 @@ class RadialLayout(LayoutAlgorithm):
         self, center_node: Optional[str] = None, scale: float = 1.0, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute radial layout.
+        Compute radial layout.
 
         Parameters
         ----------
-            center_node :
-                Node to place at center (most connected if None).
-            scale :
-                Scale factor for the layout.
-            **kwargs :
-                Additional parameters.
+        center_node : str, optional
+            Node to place at center (most connected if None).
+        scale : float, default=1.0
+            Scale factor for the layout.
+        **kwargs : dict
+            Additional parameters.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         if not self.graph.nodes():
@@ -290,23 +295,24 @@ class HierarchicalLayout(LayoutAlgorithm):
         **kwargs,
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute hierarchical layout.
+        Compute hierarchical layout.
 
         Parameters
         ----------
-            root_node :
-                Root node for hierarchy (most connected if None).
-            vertical :
-                If True, levels are horizontal; if False, levels are vertical.
-            width :
-                Total width of the layout.
-            height :
-                Total height of the layout.
-            **kwargs :
-                Additional parameters.
+        root_node : str, optional
+            Root node for hierarchy (most connected if None).
+        vertical : bool, default=True
+            If True, levels are horizontal; if False, levels are vertical.
+        width : float, default=2.0
+            Total width of the layout.
+        height : float, default=2.0
+            Total height of the layout.
+        **kwargs : dict
+            Additional parameters.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         if not self.graph.nodes():
@@ -391,19 +397,20 @@ class KamadaKawaiLayout(LayoutAlgorithm):
         self, scale: float = 1.0, center: Optional[Tuple[float, float]] = None, **kwargs
     ) -> Dict[str, Tuple[float, float]]:
         """
-            Compute Kamada-Kawai layout.
+        Compute Kamada-Kawai layout.
 
         Parameters
         ----------
-            scale :
-                Scale factor for the layout.
-            center :
-                Center position (x, y).
-            **kwargs :
-                Additional parameters passed to kamada_kawai_layout.
+        scale : float, default=1.0
+            Scale factor for the layout.
+        center : Tuple[float, float], optional
+            Center position (x, y).
+        **kwargs : dict
+            Additional parameters passed to kamada_kawai_layout.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
 
         Warnings
@@ -452,18 +459,19 @@ class SpectralLayout(LayoutAlgorithm):
 
         Parameters
         ----------
-        scale :
+        scale : float, default=1.0
             Scale factor for the layout.
-        center :
+        center : Tuple[float, float], optional
             Center position (x, y).
-        dim :
+        dim : int, default=2
             Dimensionality of layout (default 2 for 2D visualization).
-        **kwargs :
+        **kwargs : dict
             Additional parameters passed to spectral_layout.
 
         Returns
         -------
-        Node positions dictionary.
+        Dict[str, Tuple[float, float]]
+            Node positions dictionary.
         """
         layout = nx.spectral_layout(
             self.graph, scale=scale, center=center, dim=dim, **kwargs
@@ -489,9 +497,9 @@ class ManualLayout(LayoutAlgorithm):
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
-        initial_positions :
+        initial_positions : Dict[str, Tuple[float, float]], optional
             Starting positions for nodes.
         """
         super().__init__(network)
@@ -499,15 +507,16 @@ class ManualLayout(LayoutAlgorithm):
 
     def compute(self, **kwargs) -> Dict[str, Tuple[float, float]]:
         """
-            Return current manual positions.
+        Return current manual positions.
 
         Parameters
         ----------
-            **kwargs :
-                Ignored.
+        **kwargs : dict
+            Ignored.
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         # Fill in missing nodes with default layout
@@ -525,9 +534,9 @@ class ManualLayout(LayoutAlgorithm):
 
         Parameters
         ----------
-        node :
+        node : str
             Node ID.
-        position :
+        position : Tuple[float, float]
             (x, y) coordinates.
         """
         if node not in self.graph.nodes():
@@ -541,11 +550,11 @@ class ManualLayout(LayoutAlgorithm):
 
         Parameters
         ----------
-        node :
+        node : str
             Node ID.
-        dx :
+        dx : float
             X offset.
-        dy :
+        dy : float
             Y offset.
         """
         if node not in self.positions:
@@ -584,9 +593,9 @@ class LayoutManager:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object.
-        enable_cache :
+        enable_cache : bool, default=True
             Enable caching of layout computations. Default True.
         """
         self.network = network
@@ -612,17 +621,18 @@ class LayoutManager:
 
         Parameters
         ----------
-        algorithm :
+        algorithm : str, default='force_directed'
             Layout algorithm name.
-        use_cache :
+        use_cache : bool, default=True
             If True and caching is enabled, return cached result if available.
             Default True.
-        **kwargs :
+        **kwargs : dict
             Algorithm-specific parameters.
 
         Returns
         -------
-        Node positions dictionary.
+        Dict[str, Tuple[float, float]]
+            Node positions dictionary.
 
         Raises
         ------
@@ -697,9 +707,9 @@ class LayoutManager:
 
         Parameters
         ----------
-        layout :
+        layout : Dict[str, Tuple[float, float]]
             Node positions dictionary.
-        filename :
+        filename : str
             Output filename (JSON format).
         """
         algo = LayoutAlgorithm(self.network)
@@ -707,15 +717,16 @@ class LayoutManager:
 
     def load_layout(self, filename: str) -> Dict[str, Tuple[float, float]]:
         """
-            Load layout from file.
+        Load layout from file.
 
         Parameters
         ----------
-            filename :
-                Input filename (JSON format).
+        filename : str
+            Input filename (JSON format).
 
         Returns
         -------
+        Dict[str, Tuple[float, float]]
             Node positions dictionary.
         """
         return LayoutAlgorithm.load_layout(filename)
@@ -726,6 +737,7 @@ class LayoutManager:
 
         Returns
         -------
+        List[str]
             List of algorithm names.
         """
         return list(self._algorithms.keys())

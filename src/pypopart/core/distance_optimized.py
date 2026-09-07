@@ -25,19 +25,17 @@ def hamming_distance_numba(
 
     Parameters
     ----------
-    seq1_bytes :
-        np.ndarray.
+    seq1_bytes : np.ndarray
         First sequence as numpy array of bytes.
-    seq2_bytes :
-        np.ndarray.
+    seq2_bytes : np.ndarray
         Second sequence as numpy array of bytes.
-    ignore_gaps :
-        bool, default=True.
+    ignore_gaps : bool, default=True
         Whether to ignore gap characters ('-').
 
     Returns
     -------
-        int        Number of differing positions.
+    int
+        Int        Number of differing positions.
 
     Notes
     -----
@@ -83,16 +81,15 @@ def pairwise_hamming_matrix_numba(
 
     Parameters
     ----------
-    sequences :
-        np.ndarray.
+    sequences : np.ndarray
         2D array where each row is a sequence (as bytes).
-    ignore_gaps :
-        bool, default=True.
+    ignore_gaps : bool, default=True
         Whether to ignore gap characters.
 
     Returns
     -------
-        np.ndarray        Symmetric distance matrix of shape (n_sequences, n_sequences).
+    np.ndarray
+        Np.ndarray        Symmetric distance matrix of shape (n_sequences, n_sequences).
 
     Notes
     -----
@@ -121,19 +118,17 @@ def hamming_distance_optimized(seq1, seq2, ignore_gaps: bool = True) -> int:
 
     Parameters
     ----------
-    seq1 :
-        Sequence or str.
+    seq1 : Sequence or str
         First sequence.
-    seq2 :
-        Sequence or str.
+    seq2 : Sequence or str
         Second sequence.
-    ignore_gaps :
-        bool, default=True.
+    ignore_gaps : bool, default=True
         Whether to ignore gap characters.
 
     Returns
     -------
-        int        Hamming distance.
+    int
+        Int        Hamming distance.
 
     Notes
     -----

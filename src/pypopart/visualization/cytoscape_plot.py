@@ -29,7 +29,7 @@ class InteractiveCytoscapePlotter:
 
         Parameters
         ----------
-        network :
+        network : HaplotypeNetwork
             HaplotypeNetwork object to visualize.
         """
         self.network = network
@@ -43,11 +43,12 @@ class InteractiveCytoscapePlotter:
 
         Parameters
         ----------
-        pie_data :
+        pie_data : List[Dict]
             List of dicts with 'percent' and 'color' keys for each segment.
 
         Returns
         -------
+        str
             Data URI string with base64-encoded SVG.
         """
         size = 100
@@ -119,25 +120,26 @@ class InteractiveCytoscapePlotter:
 
         Parameters
         ----------
-        layout :
+        layout : Dict[str, Tuple[float, float]], optional
             Pre-computed node positions {node_id: (x, y)}.
-        node_size_scale :
+        node_size_scale : float, default=20.0
             Scaling factor for node sizes.
-        population_colors :
+        population_colors : Dict[str, str], optional
             Color mapping for populations {pop_name: color}.
-        population_mapping :
+        population_mapping : Dict[str, str], optional
             Mapping of sample_id to population {sample_id: population}.
-        show_labels :
+        show_labels : bool, default=True
             Whether to show node labels.
-        show_edge_labels :
+        show_edge_labels : bool, default=True
             Whether to show edge labels with mutation counts.
-        median_vector_color :
+        median_vector_color : str, default='#D3D3D3'
             Color for median vector nodes.
-        node_labels :
+        node_labels : Dict[str, str], optional
             Custom labels for nodes {node_id: label}.
 
         Returns
         -------
+        List[Dict]
             List of Cytoscape element dictionaries.
         """
         elements = []
@@ -347,13 +349,14 @@ class InteractiveCytoscapePlotter:
 
         Parameters
         ----------
-        population_colors :
+        population_colors : Dict[str, str], optional
             Color mapping for populations.
-        median_vector_color :
+        median_vector_color : str, default='#D3D3D3'
             Color for median vector nodes.
 
         Returns
         -------
+        List[Dict]
             List of stylesheet dictionaries.
         """
         stylesheet = [
@@ -427,11 +430,12 @@ class InteractiveCytoscapePlotter:
 
         Parameters
         ----------
-        population_colors :
+        population_colors : Dict[str, str]
             Color mapping for populations.
 
         Returns
         -------
+        List[Dict]
             List of stylesheet rules for pie chart nodes.
         """
         pie_styles = []
@@ -473,11 +477,12 @@ class InteractiveCytoscapePlotter:
 
         Parameters
         ----------
-        populations :
+        populations : List[str]
             List of population names.
 
         Returns
         -------
+        Dict[str, str]
             Dictionary mapping population names to hex colors.
         """
         from .style import generate_population_colors as shared
@@ -501,27 +506,28 @@ def create_cytoscape_network(
 
     Parameters
     ----------
-    network :
+    network : HaplotypeNetwork
         HaplotypeNetwork object to visualize.
-    layout :
+    layout : Dict[str, Tuple[float, float]], optional
         Pre-computed node positions {node_id: (x, y)}.
-    population_colors :
+    population_colors : Dict[str, str], optional
         Color mapping for populations.
-    population_mapping :
+    population_mapping : Dict[str, str], optional
         Mapping of sample_id to population {sample_id: population}.
-    node_size_scale :
+    node_size_scale : float, default=20.0
         Scaling factor for node sizes.
-    show_labels :
+    show_labels : bool, default=True
         Whether to show node labels.
-    show_edge_labels :
+    show_edge_labels : bool, default=True
         Whether to show edge labels with mutation counts.
-    median_vector_color :
+    median_vector_color : str, default='#D3D3D3'
         Color for median vector nodes.
-    node_labels :
+    node_labels : Dict[str, str], optional
         Custom labels for nodes {node_id: label}.
 
     Returns
     -------
+    Tuple[List[Dict], List[Dict]]
         Tuple of (elements, stylesheet) for Cytoscape component.
     """
     plotter = InteractiveCytoscapePlotter(network)

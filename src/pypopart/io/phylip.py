@@ -24,11 +24,11 @@ class PhylipReader:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Path to PHYLIP file.
-        strict :
+        strict : bool, default=False
             Whether to use strict format (10-char IDs).
-        validate :
+        validate : bool, default=True
             Whether to validate sequences and alignment.
         """
         self.filepath = Path(filepath)
@@ -80,15 +80,16 @@ class PhylipReader:
 
     def read_alignment(self, progress_callback=None) -> Alignment:
         """
-            Read alignment from PHYLIP file.
+        Read alignment from PHYLIP file.
 
         Parameters
         ----------
-            progress_callback :
-                Optional callback function(current, total).
+        progress_callback : callable, optional
+            Optional callback function(current, total).
 
         Returns
         -------
+        Alignment
             Alignment object.
         """
         with self._open_file() as handle:
@@ -194,15 +195,15 @@ class PhylipWriter:
 
         Parameters
         ----------
-        filepath :
+        filepath : str or Path
             Output file path.
-        strict :
+        strict : bool, default=False
             Whether to use strict format (10-char IDs).
-        interleaved :
+        interleaved : bool, default=False
             Whether to write in interleaved format.
-        line_length :
+        line_length : int, default=60
             Line length for interleaved format.
-        compress :
+        compress : str, optional
             Compression format ('gzip' or None).
         """
         self.filepath = Path(filepath)
