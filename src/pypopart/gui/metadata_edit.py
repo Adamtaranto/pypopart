@@ -1,4 +1,5 @@
-"""Pure helpers backing the editable metadata table in the GUI.
+"""
+Pure helpers backing the editable metadata table in the GUI.
 
 Kept free of callbacks so the row/store transformations can be tested
 without a running Dash app.

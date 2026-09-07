@@ -1,4 +1,5 @@
-"""Draft-until-commit editing of the metadata table.
+"""
+Draft-until-commit editing of the metadata table.
 
 Edits typed into the metadata table are held as a draft and only reach
 the figure when the user clicks Compute Network, so a half-finished set

@@ -12,7 +12,7 @@ from pypopart.gui.metadata_edit import (
 
 @pytest.fixture
 def metadata_store():
-    """A metadata store as written by the CSV upload callback."""
+    """Build a metadata store in the shape the CSV upload writes."""
     return {
         'raw': {
             'S1': {'population': 'PopA', 'color': '#ff0000'},
@@ -205,9 +205,7 @@ class TestMetadataDataTable:
         """Colours are tinted cells, since DataTable cannot render HTML."""
         table = build_metadata_datatable([], metadata_store['population_colors'])
 
-        backgrounds = {
-            rule['backgroundColor'] for rule in table.style_data_conditional
-        }
+        backgrounds = {rule['backgroundColor'] for rule in table.style_data_conditional}
         assert backgrounds == {'#ff0000', '#00ff00'}
 
     def test_no_colours_means_no_conditional_styles(self):
