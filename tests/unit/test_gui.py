@@ -1,5 +1,7 @@
 """Unit tests for PyPopART GUI application."""
 
+from pypopart.gui.layout import cards
+
 
 class TestPyPopARTApp:
     """Test cases for PyPopART Dash GUI."""
@@ -31,70 +33,49 @@ class TestPyPopARTApp:
 
     def test_create_upload_card(self):
         """Test upload card creation."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
-        card = app._create_upload_card()
+        card = cards.create_upload_card()
 
         assert card is not None
         assert hasattr(card, 'children')
 
     def test_create_algorithm_card(self):
         """Test algorithm card creation."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
-        card = app._create_algorithm_card()
+        card = cards.create_algorithm_card()
 
         assert card is not None
         assert hasattr(card, 'children')
 
     def test_create_layout_card(self):
         """Test layout card creation."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
-        card = app._create_layout_card()
+        card = cards.create_layout_card()
 
         assert card is not None
         assert hasattr(card, 'children')
 
     def test_create_export_card(self):
         """Test export card creation."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
-        card = app._create_export_card()
+        card = cards.create_export_card()
 
         assert card is not None
         assert hasattr(card, 'children')
 
     def test_create_network_tab(self):
         """Test network tab creation."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
-        tab = app._create_network_tab()
+        tab = cards.create_network_tab()
 
         assert tab is not None
         assert hasattr(tab, 'children')
 
     def test_create_statistics_tab(self):
         """Test statistics tab creation."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
-        tab = app._create_statistics_tab()
+        tab = cards.create_statistics_tab()
 
         assert tab is not None
         assert hasattr(tab, 'children')
 
     def test_create_alignment_tab(self):
         """Test alignment tab creation."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
-        tab = app._create_alignment_tab()
+        tab = cards.create_alignment_tab()
 
         assert tab is not None
         assert hasattr(tab, 'children')
@@ -133,32 +114,23 @@ class TestPyPopARTApp:
 
     def test_default_layout_is_hierarchical(self):
         """Test that default layout is set to hierarchical."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
         # Find the layout dropdown in the layout
         # It should have 'hierarchical' as the default value
         # This verifies Issue 4 is fixed
-        layout_card = app._create_layout_card()
+        layout_card = cards.create_layout_card()
         assert layout_card is not None
 
     def test_search_dropdown_supports_multi_select(self):
         """Test that search dropdown supports multiple selections."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
         # Find the haplotype search dropdown in the network tab
         # It should have multi=True set
         # This verifies Issue 6 is fixed
-        network_tab = app._create_network_tab()
+        network_tab = cards.create_network_tab()
         assert network_tab is not None
 
     def test_haplotype_summary_tab_has_mapping_components(self):
         """Test that haplotype summary tab has label mapping components."""
-        from pypopart.gui.app import PyPopARTApp
-
-        app = PyPopARTApp(debug=False)
-        tab = app._create_haplotype_summary_tab()
+        tab = cards.create_haplotype_summary_tab()
 
         assert tab is not None
         # Tab should have children including buttons and stores

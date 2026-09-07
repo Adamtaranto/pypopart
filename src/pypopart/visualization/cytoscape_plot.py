@@ -6,7 +6,6 @@ with manual node repositioning, pie chart nodes, and legend support.
 """
 
 import base64
-import colorsys
 import math
 from typing import Dict, List, Optional, Tuple
 
@@ -481,24 +480,9 @@ class InteractiveCytoscapePlotter:
         -------
             Dictionary mapping population names to hex colors.
         """
-        n = len(populations)
-        colors = {}
+        from .style import generate_population_colors as shared
 
-        for i, pop in enumerate(sorted(populations)):
-            # Generate evenly spaced hues
-            hue = i / n
-            # Use high saturation and value for vivid colors
-            saturation = 0.7
-            value = 0.9
-            # Convert to RGB
-            r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
-            # Convert to hex
-            hex_color = '#{:02x}{:02x}{:02x}'.format(
-                int(r * 255), int(g * 255), int(b * 255)
-            )
-            colors[pop] = hex_color
-
-        return colors
+        return shared(populations)
 
 
 def create_cytoscape_network(

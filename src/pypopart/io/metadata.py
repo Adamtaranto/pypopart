@@ -6,6 +6,7 @@ Includes support for geographic coordinates (latitude/longitude).
 """
 
 import csv
+import io
 import gzip
 from pathlib import Path
 from typing import Dict, List, Optional, TextIO, Tuple, Union
@@ -138,8 +139,45 @@ class MetadataReader:
         if not self.filepath.exists():
             raise FileNotFoundError(f'File not found: {filepath}')
 
+    @classmethod
+    def from_string(
+        cls,
+        text: str,
+        id_column: str = 'id',
+        delimiter: str = ',',
+        validate: bool = True,
+    ) -> 'MetadataReader':
+        """
+        Create a reader over in-memory CSV text instead of a file.
+
+        Parameters
+        ----------
+        text : str
+            Complete CSV content.
+        id_column : str, default='id'
+            Name of the sequence-id column.
+        delimiter : str, default=','
+            Field delimiter.
+        validate : bool, default=True
+            Whether to validate for duplicate ids.
+
+        Returns
+        -------
+        MetadataReader
+            Reader that parses the given text.
+        """
+        reader = cls.__new__(cls)
+        reader.filepath = None
+        reader.id_column = id_column
+        reader.delimiter = delimiter
+        reader.validate = validate
+        reader._text = text
+        return reader
+
     def _open_file(self) -> TextIO:
         """Open file handling gzip compression."""
+        if getattr(self, '_text', None) is not None:
+            return io.StringIO(self._text)
         if self.filepath.suffix == '.gz':
             return gzip.open(self.filepath, 'rt')
         else:

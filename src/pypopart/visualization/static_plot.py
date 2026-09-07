@@ -500,29 +500,19 @@ class StaticNetworkPlotter:
         -------
             Dictionary mapping node IDs to colors.
         """
+        from .style import node_color
+
         colors = {}
-
         for node in self.network._graph.nodes():
-            if self.network.is_median_vector(node):
-                colors[node] = median_vector_color
-            elif node_color_map and node in node_color_map:
-                colors[node] = node_color_map[node]
-            elif population_colors:
-                # Color by dominant population
-                hap = self.network.get_haplotype(node)
-                if hap:
-                    pop_counts = hap.get_frequency_by_population()
-                    if pop_counts:
-                        # Find population with highest count
-                        dominant_pop = max(pop_counts.items(), key=lambda x: x[1])[0]
-                        colors[node] = population_colors.get(dominant_pop, 'lightblue')
-                    else:
-                        colors[node] = 'lightblue'
-                else:
-                    colors[node] = 'lightblue'
-            else:
-                colors[node] = 'lightblue'
-
+            hap = self.network.get_haplotype(node)
+            colors[node] = node_color(
+                node,
+                hap,
+                self.network.is_median_vector(node),
+                node_color_map=node_color_map,
+                population_colors=population_colors,
+                median_vector_color=median_vector_color,
+            )
         return colors
 
     def _compute_edge_widths(self, scale: float) -> List[float]:

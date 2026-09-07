@@ -463,18 +463,15 @@ class InteractiveNetworkPlotter:
         -------
             Color string.
         """
-        if is_median:
-            return 'lightgray'
-        elif node_color_map and node in node_color_map:
-            return node_color_map[node]
-        elif population_colors and hap:
-            pop_counts = hap.get_frequency_by_population()
-            if pop_counts:
-                # Find dominant population
-                dominant_pop = max(pop_counts.items(), key=lambda x: x[1])[0]
-                return population_colors.get(dominant_pop, 'lightblue')
+        from .style import node_color
 
-        return 'lightblue'
+        return node_color(
+            node,
+            hap,
+            is_median,
+            node_color_map=node_color_map,
+            population_colors=population_colors,
+        )
 
     def _create_hover_text(self, node: str, hap: Any, is_median: bool) -> str:
         """
