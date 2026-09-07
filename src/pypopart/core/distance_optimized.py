@@ -10,6 +10,10 @@ from typing import Tuple
 import numba
 import numpy as np
 
+#: str.translate table folding non-gap IUPAC ambiguity codes to 'N', so
+#: the byte kernels (which skip N/?) honour the full ambiguity set.
+_AMBIGUITY_FOLD = str.maketrans(dict.fromkeys('YRMSVWKDHBX', 'N'))
+
 
 @numba.jit(nopython=True, cache=True)
 def hamming_distance_numba(
@@ -308,7 +312,10 @@ def hamming_distance_optimized(seq1, seq2, ignore_gaps: bool = True) -> int:
     s1 = seq1.data if hasattr(seq1, 'data') else str(seq1)
     s2 = seq2.data if hasattr(seq2, 'data') else str(seq2)
 
-    # Convert to NumPy byte arrays
+    # Fold IUPAC ambiguity codes to 'N' so the kernel skips them,
+    # then convert to NumPy byte arrays
+    s1 = s1.translate(_AMBIGUITY_FOLD)
+    s2 = s2.translate(_AMBIGUITY_FOLD)
     seq1_bytes = np.frombuffer(s1.encode('ascii'), dtype=np.uint8)
     seq2_bytes = np.frombuffer(s2.encode('ascii'), dtype=np.uint8)
 

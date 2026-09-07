@@ -486,25 +486,37 @@ class HaplotypeNetwork:
         """
         return nx.shortest_path(self._graph, source, target)
 
-    def get_shortest_path_length(self, source: str, target: str) -> int:
+    def get_shortest_path_length(self, source: str, target: str) -> float:
         """
-            Get length of shortest path between two nodes.
+        Get the genetic-distance-weighted shortest path between two nodes.
+
+        Uses each edge's 'distance' attribute as its weight, matching
+        PopART's weighted path lengths (Graph::pathLength); an edge
+        without a distance counts as one step.
 
         Parameters
         ----------
-            source :
-                Source node ID.
-            target :
-                Target node ID.
+        source : str
+            Source node ID.
+        target : str
+            Target node ID.
 
         Returns
         -------
-            Number of edges in shortest path.
+        float
+            Total distance along the shortest weighted path.
 
-            Raises :
-                nx.NetworkXNoPath: If no path exists
+        Raises
+        ------
+        networkx.NetworkXNoPath
+            If no path exists between the nodes.
         """
-        return nx.shortest_path_length(self._graph, source, target)
+        return nx.shortest_path_length(
+            self._graph,
+            source,
+            target,
+            weight=lambda u, v, attrs: attrs.get('distance') or 1,
+        )
 
     def calculate_centrality(self) -> Dict[str, float]:
         """

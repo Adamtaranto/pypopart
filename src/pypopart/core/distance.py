@@ -12,6 +12,7 @@ import numpy as np
 
 from .alignment import Alignment
 from .sequence import Sequence
+from .site_patterns import AMBIGUOUS_CHARS
 
 if TYPE_CHECKING:
     import matplotlib.figure
@@ -23,6 +24,37 @@ try:
     _NUMBA_AVAILABLE = True
 except ImportError:
     _NUMBA_AVAILABLE = False
+
+#: Ambiguity codes always skipped in distance calculations. The gap
+#: character is handled separately via ignore_gaps.
+_AMBIGUOUS_NO_GAP = frozenset(AMBIGUOUS_CHARS - {'-'})
+
+#: Byte translation table folding every non-gap ambiguity code to 'N',
+#: so the byte-level kernels (which skip N/?) honour the full IUPAC set.
+_FOLD_AMBIGUOUS = np.arange(256, dtype=np.uint8)
+for _char in _AMBIGUOUS_NO_GAP:
+    _FOLD_AMBIGUOUS[ord(_char)] = ord('N')
+
+
+def _encode_for_kernel(strings: List[str]) -> np.ndarray:
+    """
+    Encode equal-length sequence strings for the byte-level kernels.
+
+    Parameters
+    ----------
+    strings : list of str
+        Equal-length sequence strings.
+
+    Returns
+    -------
+    np.ndarray
+        (n, L) uint8 array with ambiguity codes folded to 'N'.
+    """
+    n, length = len(strings), len(strings[0])
+    encoded = np.zeros((n, length), dtype=np.uint8)
+    for i, s in enumerate(strings):
+        encoded[i] = np.frombuffer(s.encode('ascii'), dtype=np.uint8)
+    return _FOLD_AMBIGUOUS[encoded]
 
 
 def hamming_distance(
@@ -78,8 +110,8 @@ def hamming_distance(
     for c1, c2 in zip(seq1.data, seq2.data):
         if ignore_gaps and (c1 == '-' or c2 == '-'):
             continue
-        # Skip positions with N or ? (ambiguous bases)
-        if c1 in 'N?' or c2 in 'N?':
+        # Skip ambiguous positions (N, ?, and IUPAC codes, as in PopART)
+        if c1 in _AMBIGUOUS_NO_GAP or c2 in _AMBIGUOUS_NO_GAP:
             continue
         if c1 != c2:
             differences += 1
@@ -659,7 +691,11 @@ def sequence_distance(
 
 
 def pairwise_distance_matrix(
-    sequences, method: str = 'hamming', ignore_gaps: bool = True
+    sequences,
+    method: str = 'hamming',
+    ignore_gaps: bool = True,
+    mask: Optional[np.ndarray] = None,
+    site_weights: Optional[np.ndarray] = None,
 ) -> DistanceMatrix:
     """
     Calculate a pairwise distance matrix for sequences or haplotypes.
@@ -667,7 +703,7 @@ def pairwise_distance_matrix(
     This is the single shared distance path for all network algorithms.
     For Hamming distances it uses a whole-matrix numba kernel when numba
     is installed, or a vectorised numpy fallback otherwise; both match the
-    scalar function's gap and N/? ambiguity handling. Other methods fall
+    scalar function's gap and IUPAC-ambiguity handling. Other methods fall
     back to a per-pair loop over the scalar distance functions.
 
     Parameters
@@ -678,49 +714,78 @@ def pairwise_distance_matrix(
         Distance method name or alias (see normalize_distance_method).
     ignore_gaps : bool, default=True
         Whether to ignore gap positions.
+    mask : np.ndarray of bool, optional
+        Per-column mask; columns where the mask is False are excluded
+        from the calculation (PopART's character masking).
+    site_weights : np.ndarray, optional
+        Per-column weights, e.g. from site-pattern condensation; a
+        mismatch at column i contributes site_weights[i]. Hamming only.
 
     Returns
     -------
     DistanceMatrix
         Symmetric matrix of pairwise distances, labelled by sequence id.
+
+    Raises
+    ------
+    ValueError
+        If site_weights is combined with a non-Hamming method, or the
+        mask/weights lengths don't match the alignment length.
     """
     method = normalize_distance_method(method)
     items = list(sequences)
     labels = [item.id for item in items]
     n = len(items)
+    strings = [item.data for item in items]
 
-    if method == 'hamming' and n > 1:
-        strings = [item.data for item in items]
+    if mask is not None:
+        mask = np.asarray(mask, dtype=bool)
+        if strings and len(mask) != len(strings[0]):
+            raise ValueError('mask length must match sequence length')
+        kept = np.flatnonzero(mask)
+        strings = [''.join(s[i] for i in kept) for s in strings]
+        if site_weights is not None:
+            site_weights = np.asarray(site_weights)[kept]
+
+    if site_weights is not None and method != 'hamming':
+        raise ValueError('site_weights are only supported for hamming distances')
+
+    equal_length = n > 1 and strings and all(len(s) == len(strings[0]) for s in strings)
+
+    if method == 'hamming' and equal_length:
         length = len(strings[0])
-        if all(len(s) == length for s in strings):
-            if _NUMBA_AVAILABLE:
-                from .distance_optimized import (
-                    pairwise_hamming_matrix_numba,
-                    prepare_sequences_for_numba,
-                )
+        if site_weights is not None and len(site_weights) != length:
+            raise ValueError('site_weights length must match sequence length')
 
-                encoded = prepare_sequences_for_numba(strings)
-                matrix = pairwise_hamming_matrix_numba(encoded, ignore_gaps)
-                return DistanceMatrix(labels, matrix.astype(float))
+        if site_weights is None and _NUMBA_AVAILABLE:
+            from .distance_optimized import pairwise_hamming_matrix_numba
 
-            # Vectorised numpy fallback with identical semantics
-            encoded = np.zeros((n, length), dtype=np.uint8)
-            for i, s in enumerate(strings):
-                encoded[i] = np.frombuffer(s.encode('ascii'), dtype=np.uint8)
+            matrix = pairwise_hamming_matrix_numba(
+                _encode_for_kernel(strings), ignore_gaps
+            )
+            return DistanceMatrix(labels, matrix.astype(float))
 
-            invalid = (encoded == ord('N')) | (encoded == ord('?'))
-            if ignore_gaps:
-                invalid |= encoded == ord('-')
-            valid = ~invalid
+        # Vectorised numpy path (also handles weighted distances)
+        encoded = _encode_for_kernel(strings)
+        invalid = (encoded == ord('N')) | (encoded == ord('?'))
+        if ignore_gaps:
+            invalid |= encoded == ord('-')
+        valid = ~invalid
 
-            matrix = np.zeros((n, n))
-            for i in range(n):
-                comparable = valid[i] & valid
-                diffs = (encoded[i] != encoded) & comparable
-                matrix[i] = diffs.sum(axis=1)
-            return DistanceMatrix(labels, matrix)
+        weights = (
+            np.ones(length) if site_weights is None else np.asarray(site_weights, float)
+        )
+        matrix = np.zeros((n, n))
+        for i in range(n):
+            comparable = valid[i] & valid
+            diffs = (encoded[i] != encoded) & comparable
+            matrix[i] = diffs @ weights
+        return DistanceMatrix(labels, matrix)
 
     # Per-pair scalar loop for corrected distances (and tiny inputs)
+    if mask is not None:
+        # Rebuild lightweight records over masked strings
+        items = [Sequence(id=label, data=s) for label, s in zip(labels, strings)]
     func = _distance_function(method)
     matrix = np.zeros((n, n))
     for i in range(n):
