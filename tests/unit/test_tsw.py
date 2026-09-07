@@ -88,14 +88,16 @@ class TestTightSpanWalker:
         """DT includes k == i/j, so dT(i, j) >= d(i, j) always."""
         tsw = TightSpanWalker()
         tsw._n_samples = 3
-        tsw._d = [[0.0, 1.0, 2.0], [1.0, 0.0, 2.0], [2.0, 2.0, 0.0]]
+        import numpy as np
+
+        tsw._d = np.array([[0.0, 1.0, 2.0], [1.0, 0.0, 2.0], [2.0, 2.0, 0.0]])
         tsw._compute_dt()
 
         # Symmetric and bounded below by d
         for i in range(3):
             for j in range(3):
                 assert tsw._dt_get(i, j) == tsw._dt_get(j, i)
-                assert tsw._dt_get(i, j) >= tsw._d[i][j]
+                assert tsw._dt_get(i, j) >= tsw._d[i, j]
 
         # dT(0,1) = max(|0-1|, |1-0|, |2-2|) = 1 (k==i term dominates)
         assert tsw._dt_get(0, 1) == 1.0

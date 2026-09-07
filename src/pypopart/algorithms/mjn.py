@@ -304,12 +304,31 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         dict
             Mapping (i, j) with i > j to weighted distance.
         """
+        import numpy as np
+
+        from ..core.site_patterns import AMBIGUOUS_CHARS
+
+        n = len(active)
+        if n == 0:
+            return {}
+        length = len(seqs[active[0]])
+        encoded = np.zeros((n, length), dtype=np.uint8)
+        for pos, idx in enumerate(active):
+            encoded[pos] = np.frombuffer(seqs[idx].encode('ascii'), dtype=np.uint8)
+        invalid = np.isin(
+            encoded, np.frombuffer(''.join(AMBIGUOUS_CHARS).encode(), np.uint8)
+        )
+        valid = ~invalid
+        weight_arr = np.asarray(weights, dtype=float)
+
         matrix: Dict[Tuple[int, int], float] = {}
         for a_pos, i in enumerate(active):
-            for j in active[:a_pos]:
-                matrix[(i, j)] = matrix[(j, i)] = self._weighted_distance(
-                    seqs[i], seqs[j], weights
-                )
+            comparable = valid[a_pos] & valid
+            diffs = (encoded[a_pos] != encoded) & comparable
+            row = diffs @ weight_arr
+            for b_pos in range(a_pos):
+                j = active[b_pos]
+                matrix[(i, j)] = matrix[(j, i)] = float(row[b_pos])
         return matrix
 
     @staticmethod
@@ -388,6 +407,18 @@ class MedianJoiningNetwork(MinimumSpanningNetwork):
         feasible: Set[Tuple[int, int]] = set()
 
         def merge(components: List[int], i: int, j: int) -> None:
+            """
+            Merge two component ids with C++-style renumbering.
+
+            Parameters
+            ----------
+            components : list of int
+                Component id per position (modified in place).
+            i : int
+                First position.
+            j : int
+                Second position.
+            """
             high = max(components[i], components[j])
             low = min(components[i], components[j])
             for k in range(n):

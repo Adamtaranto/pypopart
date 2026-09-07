@@ -76,9 +76,15 @@ def test_algorithm_small(benchmark, name):
     benchmark(algo.build_network, SMALL)
 
 
-@pytest.mark.parametrize('name', ['mst', 'msn', 'tcs'])
+@pytest.mark.parametrize('name', ['mst', 'msn'])
 def test_algorithm_medium(benchmark, name):
-    """Fast algorithms on the medium alignment (TSW/MJN/PN excluded)."""
+    """Fast algorithms on the medium alignment.
+
+    TCS (~3 min: many intermediate inferences), MJN, TSW and PN are
+    excluded here - they are inherently heavy at this size (as in
+    PopART) and would dominate the benchmark job; track them at the
+    small size instead.
+    """
     from pypopart.algorithms import build
 
     algo = build(name)

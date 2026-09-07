@@ -8,41 +8,50 @@ concrete ancestral sequence per internal node (PopART's
 computeAncestors resolves ties randomly on every call, which is what
 makes repeated edge sampling explore the ancestor space).
 
+State sets are numpy uint8 bitmasks (A=1, C=2, G=4, T=8; gaps and
+ambiguity codes are the full mask, mirroring SankoffUp's zero-cost '-'
+handling), so the up-pass is vectorised over sites.
+
 PopART receives its parsimony trees from a Nexus TREES block; PyPopART
 has no tree input path yet, so trees are generated here by random-order
 stepwise addition, keeping each taxon's best-scoring insertion point.
 """
 
 import random
-from typing import Dict, List, Sequence as SequenceType, Tuple
+from typing import Dict, List, Optional, Tuple
+from typing import Sequence as SequenceType
 
 import networkx as nx
+import numpy as np
 
-#: Wildcard state set used for gaps and ambiguity codes (PopART assigns
-#: zero cost to every nucleotide for '-').
-_ALL_STATES = frozenset('ACGT')
+_BIT_OF = {'A': 1, 'C': 2, 'G': 4, 'T': 8, 'U': 8}
+_ALL_BITS = 15
+
+#: Byte-indexed lookup table: character -> state bitmask.
+_ENCODE_TABLE = np.full(256, _ALL_BITS, dtype=np.uint8)
+for _char, _bit in _BIT_OF.items():
+    _ENCODE_TABLE[ord(_char)] = _bit
+    _ENCODE_TABLE[ord(_char.lower())] = _bit
+
+_CHAR_OF_BIT = {1: 'A', 2: 'C', 4: 'G', 8: 'T'}
 
 
-def _site_states(char: str) -> frozenset:
+def encode_sequence(sequence: str) -> np.ndarray:
     """
-    Map a sequence character to its Fitch state set.
+    Encode a sequence as per-site Fitch state bitmasks.
 
     Parameters
     ----------
-    char : str
-        Upper-case sequence character.
+    sequence : str
+        Sequence string.
 
     Returns
     -------
-    frozenset
-        Allowed nucleotide states at the site.
+    np.ndarray
+        Uint8 array of state bitmasks (gaps/ambiguity = all states).
     """
-    if char in ('U', 'u'):
-        return frozenset('T')
-    if char in 'ACGT':
-        return frozenset(char)
-    # Gaps and ambiguity codes cost nothing anywhere, as in SankoffUp
-    return _ALL_STATES
+    raw = np.frombuffer(sequence.encode('ascii'), dtype=np.uint8)
+    return _ENCODE_TABLE[raw]
 
 
 class ParsimonyTree:
@@ -58,6 +67,9 @@ class ParsimonyTree:
         Condensed sequence per leaf index.
     weights : list of int
         Site weights for the condensed columns.
+    encoded : list of np.ndarray, optional
+        Precomputed encode_sequence arrays per leaf (shared across the
+        candidate trees stepwise addition evaluates).
     """
 
     def __init__(
@@ -65,6 +77,7 @@ class ParsimonyTree:
         topology: nx.Graph,
         sequences: SequenceType[str],
         weights: SequenceType[int],
+        encoded: Optional[List[np.ndarray]] = None,
     ):
         """
         Initialize the tree.
@@ -77,22 +90,28 @@ class ParsimonyTree:
             Condensed leaf sequences.
         weights : list of int
             Site weights.
+        encoded : list of np.ndarray, optional
+            Precomputed leaf encodings.
         """
         self.topology = topology
         self.sequences = list(sequences)
-        self.weights = list(weights)
-        self._n_sites = len(self.sequences[0]) if self.sequences else 0
-        self._state_sets: Dict[int, List[frozenset]] = {}
-        self._score: int = 0
+        self.weights = np.asarray(weights, dtype=float)
+        self._encoded = (
+            encoded
+            if encoded is not None
+            else [encode_sequence(s) for s in self.sequences]
+        )
+        self._state_sets: Dict[int, np.ndarray] = {}
+        self._score: float = 0.0
         self._up_pass_done = False
 
-    def compute_score(self) -> int:
+    def compute_score(self) -> float:
         """
         Run the Fitch up-pass and return the weighted parsimony score.
 
         Returns
         -------
-        int
+        float
             Weighted number of state changes implied by the tree.
         """
         root = self._pick_root()
@@ -100,34 +119,27 @@ class ParsimonyTree:
         parent = nx.dfs_predecessors(self.topology, source=root)
 
         self._state_sets = {}
-        score = 0
+        score = 0.0
         for node in order:
             if node >= 0:  # leaf
-                self._state_sets[node] = [_site_states(c) for c in self.sequences[node]]
+                self._state_sets[node] = self._encoded[node]
                 continue
             children = [
                 neighbour
                 for neighbour in self.topology.neighbors(node)
                 if parent.get(neighbour) == node
             ]
-            sets: List[frozenset] = []
-            for site in range(self._n_sites):
-                child_sets = [self._state_sets[c][site] for c in children]
-                intersection = frozenset.intersection(*child_sets)
-                if intersection:
-                    sets.append(intersection)
+            merged = self._state_sets[children[0]]
+            for child in children[1:]:
+                child_set = self._state_sets[child]
+                intersection = merged & child_set
+                empty = intersection == 0
+                if empty.any():
+                    score += float(self.weights[empty].sum())
+                    merged = np.where(empty, merged | child_set, intersection)
                 else:
-                    # Pairwise Fitch union accumulation for >2 children
-                    merged = child_sets[0]
-                    for child_set in child_sets[1:]:
-                        overlap = merged & child_set
-                        if overlap:
-                            merged = overlap
-                        else:
-                            merged = merged | child_set
-                            score += self.weights[site]
-                    sets.append(merged)
-            self._state_sets[node] = sets
+                    merged = intersection
+            self._state_sets[node] = merged
 
         self._root = root
         self._parent = parent
@@ -157,23 +169,27 @@ class ParsimonyTree:
             self.compute_score()
 
         ancestors: Dict[int, str] = {}
-        order = list(nx.dfs_preorder_nodes(self.topology, source=self._root))
-        assigned: Dict[int, List[str]] = {}
-        for node in order:
+        assigned_bits: Dict[int, np.ndarray] = {}
+        for node in nx.dfs_preorder_nodes(self.topology, source=self._root):
             if node >= 0:
                 continue
+            states = self._state_sets[node]
             parent = self._parent.get(node)
-            chars: List[str] = []
-            for site in range(self._n_sites):
-                states = self._state_sets[node][site]
-                if parent is not None and parent < 0:
-                    parent_char = assigned[parent][site]
-                    if parent_char in states:
-                        chars.append(parent_char)
-                        continue
-                chars.append(rng.choice(sorted(states)))
-            assigned[node] = chars
-            ancestors[node] = ''.join(chars)
+
+            if parent is not None and parent < 0:
+                parent_bits = assigned_bits[parent]
+                chosen = np.where(parent_bits & states, parent_bits, 0).astype(np.uint8)
+            else:
+                chosen = np.zeros(len(states), dtype=np.uint8)
+
+            # Random resolution wherever the parent state isn't allowed
+            for site in np.flatnonzero(chosen == 0):
+                bits = int(states[site])
+                options = [b for b in (1, 2, 4, 8) if bits & b]
+                chosen[site] = rng.choice(options)
+
+            assigned_bits[node] = chosen
+            ancestors[node] = ''.join(_CHAR_OF_BIT[int(b)] for b in chosen)
         return ancestors
 
     def edge_sequences(self, ancestors: Dict[int, str]) -> List[Tuple[str, str]]:
@@ -192,6 +208,19 @@ class ParsimonyTree:
         """
 
         def seq_of(node: int) -> str:
+            """
+            Return the sequence string for a leaf or sampled ancestor.
+
+            Parameters
+            ----------
+            node : int
+                Tree node id.
+
+            Returns
+            -------
+            str
+                The node's sequence.
+            """
             return self.sequences[node] if node >= 0 else ancestors[node]
 
         return [(seq_of(u), seq_of(v)) for u, v in self.topology.edges()]
@@ -215,6 +244,7 @@ def stepwise_addition_tree(
     sequences: SequenceType[str],
     weights: SequenceType[int],
     rng: random.Random,
+    encoded: Optional[List[np.ndarray]] = None,
 ) -> ParsimonyTree:
     """
     Build a parsimony tree by random-order stepwise addition.
@@ -232,6 +262,8 @@ def stepwise_addition_tree(
         Site weights.
     rng : random.Random
         Random source.
+    encoded : list of np.ndarray, optional
+        Precomputed leaf encodings (shared across candidate trees).
 
     Returns
     -------
@@ -239,6 +271,8 @@ def stepwise_addition_tree(
         The constructed tree.
     """
     n = len(sequences)
+    if encoded is None:
+        encoded = [encode_sequence(s) for s in sequences]
     order = list(range(n))
     rng.shuffle(order)
 
@@ -246,15 +280,23 @@ def stepwise_addition_tree(
     internal_counter = [0]
 
     def new_internal() -> int:
+        """
+        Allocate the next internal-node id.
+
+        Returns
+        -------
+        int
+            A fresh negative node id.
+        """
         internal_counter[0] -= 1
         return internal_counter[0]
 
     if n == 1:
         topology.add_node(order[0])
-        return ParsimonyTree(topology, sequences, weights)
+        return ParsimonyTree(topology, sequences, weights, encoded)
     if n == 2:
         topology.add_edge(order[0], order[1])
-        return ParsimonyTree(topology, sequences, weights)
+        return ParsimonyTree(topology, sequences, weights, encoded)
 
     # Seed with the first three taxa around one internal node
     hub = new_internal()
@@ -271,7 +313,7 @@ def stepwise_addition_tree(
             topology.add_edge(attach, v)
             topology.add_edge(attach, leaf)
 
-            score = ParsimonyTree(topology, sequences, weights).compute_score()
+            score = ParsimonyTree(topology, sequences, weights, encoded).compute_score()
             if best_score is None or score < best_score:
                 best_score = score
                 best_edges = [(u, v)]
@@ -288,7 +330,7 @@ def stepwise_addition_tree(
         topology.add_edge(attach, v)
         topology.add_edge(attach, leaf)
 
-    return ParsimonyTree(topology, sequences, weights)
+    return ParsimonyTree(topology, sequences, weights, encoded)
 
 
 def sample_parsimony_trees(
@@ -316,12 +358,18 @@ def sample_parsimony_trees(
     list of ParsimonyTree
         The sampled trees (scores already computed).
     """
+    encoded = [encode_sequence(s) for s in sequences]
     trees = []
     for _ in range(n_trees):
-        tree = stepwise_addition_tree(sequences, weights, rng)
+        tree = stepwise_addition_tree(sequences, weights, rng, encoded)
         tree.compute_score()
         trees.append(tree)
     return trees
 
 
-__all__ = ['ParsimonyTree', 'sample_parsimony_trees', 'stepwise_addition_tree']
+__all__ = [
+    'ParsimonyTree',
+    'encode_sequence',
+    'sample_parsimony_trees',
+    'stepwise_addition_tree',
+]

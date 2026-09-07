@@ -52,6 +52,9 @@ class HaplotypeNetwork:
         self._haplotype_map: Dict[str, Haplotype] = {}
         self._median_vectors: Set[str] = set()
         self.metadata: Dict[str, Any] = {}
+        # Mutation counter for invalidating cached derived metrics
+        self._version = 0
+        self._metric_cache: Dict[str, Any] = {}
 
     @classmethod
     def from_serialized(cls, network_data: Dict) -> 'HaplotypeNetwork':
@@ -184,6 +187,8 @@ class HaplotypeNetwork:
         if median_vector:
             self._median_vectors.add(node_id)
 
+        self._touch()
+
         # Add node with attributes
         self._graph.add_node(
             node_id,
@@ -211,6 +216,7 @@ class HaplotypeNetwork:
         if haplotype_id not in self._graph:
             raise KeyError(f"Haplotype '{haplotype_id}' not found in network")
 
+        self._touch()
         self._graph.remove_node(haplotype_id)
         self._haplotype_map.pop(haplotype_id, None)
         self._median_vectors.discard(haplotype_id)
@@ -242,6 +248,7 @@ class HaplotypeNetwork:
         if target not in self._graph:
             raise KeyError(f"Target node '{target}' not found in network")
 
+        self._touch()
         self._graph.add_edge(
             source, target, weight=weight, distance=distance, **attributes
         )
@@ -264,6 +271,7 @@ class HaplotypeNetwork:
         if not self._graph.has_edge(source, target):
             raise KeyError(f'Edge ({source}, {target}) not found in network')
 
+        self._touch()
         self._graph.remove_edge(source, target)
 
     def get_haplotype(self, haplotype_id: str) -> Haplotype:
@@ -453,18 +461,49 @@ class HaplotypeNetwork:
         """
         return [set(component) for component in nx.connected_components(self._graph)]
 
+    def _touch(self) -> None:
+        """Invalidate cached metrics after a structural change."""
+        self._version += 1
+        self._metric_cache.clear()
+
+    def _cached(self, key: str, compute):
+        """
+        Return a cached derived metric, recomputing after mutations.
+
+        Parameters
+        ----------
+        key : str
+            Cache key naming the metric.
+        compute : callable
+            Zero-argument function producing the value.
+
+        Returns
+        -------
+        Any
+            The cached or freshly computed value.
+        """
+        if key not in self._metric_cache:
+            self._metric_cache[key] = compute()
+        return self._metric_cache[key]
+
     def calculate_diameter(self) -> int:
         """
         Calculate network diameter (longest shortest path).
 
+        Cached until the network is structurally modified.
+
         Returns
         -------
+        int
             Network diameter, or -1 if not connected.
         """
-        if not self.is_connected():
-            return -1
 
-        return nx.diameter(self._graph)
+        def compute() -> int:
+            if not self.is_connected():
+                return -1
+            return nx.diameter(self._graph)
+
+        return self._cached('diameter', compute)
 
     def get_shortest_path(self, source: str, target: str) -> List[str]:
         """
@@ -522,11 +561,16 @@ class HaplotypeNetwork:
         """
         Calculate betweenness centrality for all nodes.
 
+        Cached until the network is structurally modified.
+
         Returns
         -------
+        dict
             Dictionary mapping node ID to centrality score.
         """
-        return nx.betweenness_centrality(self._graph)
+        return self._cached(
+            'centrality', lambda: nx.betweenness_centrality(self._graph)
+        )
 
     def get_total_samples(self) -> int:
         """
@@ -542,8 +586,22 @@ class HaplotypeNetwork:
         """
         Calculate comprehensive network statistics.
 
+        Cached until the network is structurally modified.
+
         Returns
         -------
+        NetworkStats
+            NetworkStats object with network metrics.
+        """
+        return self._cached('stats', self._compute_stats)
+
+    def _compute_stats(self) -> NetworkStats:
+        """
+        Compute network statistics (uncached).
+
+        Returns
+        -------
+        NetworkStats
             NetworkStats object with network metrics.
         """
         num_nodes = self.num_nodes

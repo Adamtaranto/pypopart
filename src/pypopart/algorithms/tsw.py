@@ -14,12 +14,12 @@ import math
 from typing import Dict, List, Optional, Tuple
 
 import networkx as nx
+import numpy as np
 
 from ..core.alignment import Alignment
 from ..core.distance import DistanceMatrix
 from ..core.graph import HaplotypeNetwork
-from ..core.haplotype import Haplotype
-from ..core.haplotype import identify_haplotypes_from_alignment
+from ..core.haplotype import Haplotype, identify_haplotypes_from_alignment
 from ..core.sequence import Sequence
 from ..core.site_patterns import condense_site_patterns, is_ambiguous
 from .base import NetworkAlgorithm
@@ -106,13 +106,15 @@ class TightSpanWalker(NetworkAlgorithm):
         n = len(haplotypes)
 
         self._n_samples = n
-        self._d = [
+        self._d = np.array(
             [
-                self._weighted_distance(condensed[i], condensed[j], weights)
-                for j in range(n)
+                [
+                    self._weighted_distance(condensed[i], condensed[j], weights)
+                    for j in range(n)
+                ]
+                for i in range(n)
             ]
-            for i in range(n)
-        ]
+        )
         self._compute_dt()
         self._vertex_map = {}
         self._graph = nx.Graph()
@@ -120,7 +122,7 @@ class TightSpanWalker(NetworkAlgorithm):
         self._n_vertices = n
 
         for i in range(n):
-            self._vertex_map[tuple(self._dt_row(i))] = i
+            self._vertex_map[tuple(self._dt_rows[i].tolist())] = i
 
         for i in range(n):
             for j in range(i):
@@ -188,11 +190,12 @@ class TightSpanWalker(NetworkAlgorithm):
         abs(d(i,k) - d(j,k)), so dT(i, j) >= d(i, j) always holds.
         """
         n = self._n_samples
+        # dT over samples in one broadcast; per-vertex rows (dT to every
+        # sample) are the working representation for the geodesic walk
+        dt = np.abs(self._d[:, None, :] - self._d[None, :, :]).max(axis=2)
+        np.fill_diagonal(dt, 0.0)
+        self._dt_rows = {i: dt[i].copy() for i in range(n)}
         self._dt = {}
-        for i in range(n):
-            for j in range(i):
-                value = max(abs(self._d[i][k] - self._d[j][k]) for k in range(n))
-                self._dt[(i, j)] = self._dt[(j, i)] = value
 
     def _dt_get(self, i: int, j: int) -> float:
         """
@@ -212,6 +215,11 @@ class TightSpanWalker(NetworkAlgorithm):
         """
         if i == j:
             return 0.0
+        n = self._n_samples
+        if j < n:
+            return float(self._dt_rows[i][j])
+        if i < n:
+            return float(self._dt_rows[j][i])
         return self._dt[(i, j)]
 
     def _dt_row(self, i: int) -> List[float]:
@@ -226,9 +234,9 @@ class TightSpanWalker(NetworkAlgorithm):
         Returns
         -------
         list of float
-            dT(i, k) for each sample k.
+            The values dT(i, k) for each sample k.
         """
-        return [self._dt_get(i, k) for k in range(self._n_samples)]
+        return list(self._dt_rows[i])
 
     def _about_equal(self, a: float, b: float) -> bool:
         """
@@ -259,7 +267,8 @@ class TightSpanWalker(NetworkAlgorithm):
         Iterative version of the C++ tail recursion: each step either
         connects f directly to g (when dT(f, g) equals delta) or
         materialises/reuses the internal vertex h one delta-step from f
-        and continues from h.
+        and continues from h. The auxiliary-graph test, delta minimum,
+        and dT-extension formula are vectorised over sample vertices.
 
         Parameters
         ----------
@@ -276,16 +285,22 @@ class TightSpanWalker(NetworkAlgorithm):
             apparent negative edge length.
         """
         n = self._n_samples
+        D = self._d
+        tol = self.tolerance
+        g_row = self._dt_rows[g]
 
         while True:
-            # Build the auxiliary graph K over sample vertices: an edge
-            # (i, j) whenever dT(f,i) + dT(f,j) == d(i,j)
+            f_row = self._dt_rows[f]
+            dt_fg = float(f_row[g]) if g < n else self._dt_get(f, g)
+
+            # Auxiliary graph K over sample vertices: edge (i, j) when
+            # dT(f,i) + dT(f,j) == d(i,j)
+            close = np.isclose(np.add.outer(f_row, f_row), D, rtol=tol, atol=tol)
             adjacency: Dict[int, List[int]] = {i: [] for i in range(n)}
             edge_order: List[Tuple[int, int]] = []
             for i in range(n):
-                f_i = self._dt_get(f, i)
                 for j in range(i):
-                    if self._about_equal(f_i + self._dt_get(f, j), self._d[i][j]):
+                    if close[i, j]:
                         adjacency[i].append(j)
                         adjacency[j].append(i)
                         edge_order.append((i, j))
@@ -294,13 +309,11 @@ class TightSpanWalker(NetworkAlgorithm):
             colour = [BLACK] * n
 
             # Seed colours from edges lying on the f-g geodesic
-            dt_fg = self._dt_get(f, g)
             for i, j in edge_order:
-                # C++ names: edge (from=v, to=u) = our (i, j) -> v=i, u=j
                 v, u = i, j
-                fv, gv = self._dt_get(v, f), self._dt_get(v, g)
-                fu, gu = self._dt_get(u, f), self._dt_get(u, g)
-                weight = self._d[i][j]
+                fv, gv = float(f_row[v]), float(g_row[v])
+                fu, gu = float(f_row[u]), float(g_row[u])
+                weight = float(D[i, j])
                 if fv < gv:
                     if (
                         self._about_equal(fv + dt_fg + gu, weight)
@@ -335,13 +348,14 @@ class TightSpanWalker(NetworkAlgorithm):
                         if not marked[u]:
                             queue.append(u)
 
+            colour_arr = np.asarray(colour)
+            green = np.flatnonzero(colour_arr == GREEN)
+
             # delta = half the minimum over green pairs (i == j included)
             delta = float('inf')
-            green = [i for i in range(n) if colour[i] == GREEN]
-            for a_pos, i in enumerate(green):
-                f_i = self._dt_get(f, i)
-                for j in green[: a_pos + 1]:
-                    delta = min(delta, f_i + self._dt_get(f, j) - self._d[i][j])
+            if green.size:
+                fg = f_row[green]
+                delta = float((np.add.outer(fg, fg) - D[np.ix_(green, green)]).min())
             delta /= 2
 
             if delta < 0:
@@ -353,42 +367,30 @@ class TightSpanWalker(NetworkAlgorithm):
                 return
 
             if dt_fg > delta:
-                new_dt_vector: List[float] = []
-                for i in range(n):
-                    f_i = self._dt_get(f, i)
-                    if colour[i] == GREEN:
-                        new_dt_vector.append(f_i - delta)
-                    elif colour[i] == RED:
-                        new_dt_vector.append(f_i + delta)
-                    else:
-                        raise RuntimeError('Uncoloured vertex!')
+                if (colour_arr == BLACK).any():
+                    raise RuntimeError('Uncoloured vertex!')
+                new_dt_vector = np.where(
+                    colour_arr == GREEN, f_row - delta, f_row + delta
+                )
 
-                key = tuple(new_dt_vector)
+                key = tuple(new_dt_vector.tolist())
                 existing = self._vertex_map.get(key)
                 if existing is None:
                     h = self._n_vertices
                     self._n_vertices += 1
                     self._graph.add_node(h)
                     self._vertex_map[key] = h
+                    self._dt_rows[h] = new_dt_vector
 
-                    for i in range(n):
-                        self._dt[(h, i)] = self._dt[(i, h)] = new_dt_vector[i]
                     # dT between h and previously created internal
                     # vertices: max over sample pairs (both orders) of
                     # d(j,k) - dT(h,j) - dT(i,k)
                     for i in range(n, h):
-                        dt_ih = -float('inf')
-                        for j in range(n):
-                            for k in range(n):
-                                dt_ih = max(
-                                    dt_ih,
-                                    self._d[j][k]
-                                    - self._dt_get(h, j)
-                                    - self._dt_get(i, k),
-                                    self._d[j][k]
-                                    - self._dt_get(h, k)
-                                    - self._dt_get(i, j),
-                                )
+                        i_row = self._dt_rows[i]
+                        dt_ih = max(
+                            float((D - np.add.outer(new_dt_vector, i_row)).max()),
+                            float((D - np.add.outer(i_row, new_dt_vector)).max()),
+                        )
                         self._dt[(h, i)] = self._dt[(i, h)] = dt_ih
 
                     self._graph.add_edge(f, h, distance=delta)
