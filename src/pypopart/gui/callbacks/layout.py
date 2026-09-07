@@ -8,7 +8,11 @@ from dash.exceptions import PreventUpdate
 
 from pypopart.core.graph import HaplotypeNetwork
 from pypopart.gui.serialization import merge_node_positions
-from pypopart.layout.algorithms import LayoutManager, snap_to_grid
+from pypopart.layout.algorithms import (
+    LayoutManager,
+    resolve_grid_collisions,
+    snap_to_grid,
+)
 from pypopart.visualization.cytoscape_plot import (
     DEFAULT_TICK_THRESHOLD,
     InteractiveCytoscapePlotter,
@@ -28,6 +32,74 @@ CYTOSCAPE_POSITION_SCALE = 100.0
 #: How far a node must move, in stored units, to count as dragged. Below
 #: this the change is float noise from the position scaling round trip.
 POSITION_EPSILON = 0.01
+
+
+def _has_moved(old: Optional[Tuple[float, float]], new: Tuple[float, float]) -> bool:
+    """
+    Report whether a node moved further than float noise.
+
+    Parameters
+    ----------
+    old : Tuple[float, float], optional
+        Previous position, or ``None`` for a node with no baseline.
+    new : Tuple[float, float]
+        Current position.
+
+    Returns
+    -------
+    bool
+        True when the node moved beyond :data:`POSITION_EPSILON`.
+    """
+    if old is None:
+        return False
+    return (
+        abs(old[0] - new[0]) > POSITION_EPSILON
+        or abs(old[1] - new[1]) > POSITION_EPSILON
+    )
+
+
+def _adjacency(graph) -> Dict[str, List[str]]:
+    """
+    List each node's neighbours, for deciding which way is 'away'.
+
+    Parameters
+    ----------
+    graph : networkx.Graph
+        Graph to read.
+
+    Returns
+    -------
+    Dict[str, List[str]]
+        Node to neighbour IDs.
+    """
+    return {node: list(graph.neighbors(node)) for node in graph.nodes()}
+
+
+def _adjacency_from_elements(elements: List[Dict]) -> Dict[str, List[str]]:
+    """
+    Rebuild adjacency from Cytoscape elements.
+
+    Used on the drag path, which already receives the elements and so
+    does not need to deserialise the whole network again.
+
+    Parameters
+    ----------
+    elements : List[Dict]
+        Cytoscape elements, nodes and edges.
+
+    Returns
+    -------
+    Dict[str, List[str]]
+        Node to neighbour IDs.
+    """
+    adjacency: Dict[str, List[str]] = {}
+    for element in elements:
+        data = element.get('data', {})
+        source, target = data.get('source'), data.get('target')
+        if source and target:
+            adjacency.setdefault(source, []).append(target)
+            adjacency.setdefault(target, []).append(source)
+    return adjacency
 
 
 def _grid_step(snap_enabled: Optional[bool], grid_size: Optional[float]) -> float:
@@ -285,7 +357,13 @@ def register(app, logger) -> None:
 
             # Snap after the spacing multiply, so the grid is what the user
             # sees rather than what the algorithm happened to produce.
-            positions = snap_to_grid(positions, _grid_step(snap_enabled, grid_size))
+            step = _grid_step(snap_enabled, grid_size)
+            positions = snap_to_grid(positions, step)
+            # Quantising pulls near-coincident nodes onto the same
+            # intersection, where one would hide the other.
+            positions = resolve_grid_collisions(
+                positions, step, _adjacency(network.graph)
+            )
 
             # Convert to serializable format
             layout_data = {node: list(pos) for node, pos in positions.items()}
@@ -580,16 +658,24 @@ def register(app, logger) -> None:
             # Idempotent, so re-running it on already-snapped positions is a
             # no-op -- this callback fires on every elements change, not only
             # at the end of a drag.
-            dragged = snap_to_grid(dragged, step)
+            snapped = snap_to_grid(dragged, step)
+
+            # Only nodes that actually moved give way, so dropping one node
+            # onto another displaces the one being dragged rather than
+            # rearranging the network around it.
+            moved = [
+                node_id
+                for node_id, pos in snapped.items()
+                if _has_moved(baseline.get(node_id), pos)
+            ]
+            dragged = resolve_grid_collisions(
+                snapped, step, _adjacency_from_elements(elements), movable=moved
+            )
 
             updated = dict(current_positions or {})
             position_changed = False
             for node_id, (x, y) in dragged.items():
-                old_pos = baseline.get(node_id)
-                if old_pos is not None and (
-                    abs(old_pos[0] - x) > POSITION_EPSILON
-                    or abs(old_pos[1] - y) > POSITION_EPSILON
-                ):
+                if _has_moved(baseline.get(node_id), (x, y)):
                     position_changed = True
                 # Rounded so repeated round trips cannot accumulate noise.
                 updated[node_id] = [round(x, 6), round(y, 6)]

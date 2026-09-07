@@ -26,7 +26,8 @@ Special purposes:
 """
 
 import json
-from typing import Dict, List, Optional, Tuple
+import math
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -788,3 +789,185 @@ def snap_to_grid(
         )
         for node, pos in positions.items()
     }
+
+
+#: Extra cost charged for routing a displaced node through a cell that is
+#: already taken, so a detour around a cluster wins over a path straight
+#: across it when both take the same number of moves.
+OCCUPIED_STEP_PENALTY = 3.0
+
+#: How far, in grid cells, to search for a free intersection before giving
+#: up and leaving a node where it landed. Bounds the search on a network
+#: dense enough to have no free cell nearby.
+MAX_COLLISION_SEARCH = 12
+
+#: The four grid directions a node may step in.
+_GRID_STEPS = ((1, 0), (-1, 0), (0, 1), (0, -1))
+
+
+def resolve_grid_collisions(
+    positions: Dict[str, Tuple[float, float]],
+    grid_size: float,
+    neighbours: Optional[Dict[str, List[str]]] = None,
+    movable: Optional[Iterable[str]] = None,
+) -> Dict[str, Tuple[float, float]]:
+    """
+    Spread nodes that snapped onto the same grid intersection.
+
+    Snapping quantises positions, so nodes that were merely close end up
+    exactly coincident and one hides the other. Each surplus node is
+    walked outwards to the nearest free intersection, preferring to move
+    away from its closest connected neighbour so an edge is not folded
+    back over itself.
+
+    Ties on distance are broken by that away-direction, and a route that
+    crosses occupied cells is charged :data:`OCCUPIED_STEP_PENALTY` per
+    crossing, so a node steps around a cluster rather than through it.
+
+    Parameters
+    ----------
+    positions : Dict[str, Tuple[float, float]]
+        Node positions, already snapped to the grid.
+    grid_size : float
+        Grid spacing, in the same units as ``positions``. Zero or less
+        returns the positions unchanged.
+    neighbours : Dict[str, List[str]], optional
+        Adjacency, used to decide which way is "away". Nodes with no
+        neighbours simply take the nearest free cell.
+    movable : iterable of str, optional
+        Nodes allowed to move. Everything else holds its cell, which is
+        how a single dragged node is displaced rather than the network
+        rearranging itself around it. Defaults to every node.
+
+    Returns
+    -------
+    Dict[str, Tuple[float, float]]
+        New positions with at most one node per intersection.
+    """
+    if grid_size <= 0 or not positions:
+        return dict(positions)
+
+    cells = {
+        node: (round(pos[0] / grid_size), round(pos[1] / grid_size))
+        for node, pos in positions.items()
+    }
+    movable_set = (
+        set(cells) if movable is None else {node for node in movable if node in cells}
+    )
+
+    # Pinned nodes claim their cell first; the rest are placed in a
+    # stable order so the same input always gives the same output.
+    taken = {}
+    for node in sorted(cells):
+        if node not in movable_set:
+            taken.setdefault(cells[node], node)
+
+    resolved = {node: cells[node] for node in cells if node not in movable_set}
+
+    for node in sorted(movable_set):
+        start = cells[node]
+        if start not in taken:
+            taken[start] = node
+            resolved[node] = start
+            continue
+
+        target = _nearest_free_cell(start, taken, _away_vector(node, cells, neighbours))
+        taken[target] = node
+        resolved[node] = target
+
+    return {
+        node: (grid_cell[0] * grid_size, grid_cell[1] * grid_size)
+        for node, grid_cell in resolved.items()
+    }
+
+
+def _away_vector(
+    node: str,
+    cells: Dict[str, Tuple[int, int]],
+    neighbours: Optional[Dict[str, List[str]]],
+) -> Tuple[float, float]:
+    """
+    Point away from a node's closest connected neighbour.
+
+    Parameters
+    ----------
+    node : str
+        Node being displaced.
+    cells : Dict[str, Tuple[int, int]]
+        Grid cell of every node.
+    neighbours : Dict[str, List[str]], optional
+        Adjacency.
+
+    Returns
+    -------
+    Tuple[float, float]
+        Unit-ish direction to prefer, or ``(0.0, 0.0)`` when the node has
+        no neighbours to move away from.
+    """
+    linked = [n for n in (neighbours or {}).get(node, []) if n in cells]
+    if not linked:
+        return (0.0, 0.0)
+
+    x, y = cells[node]
+    nearest = min(linked, key=lambda n: (cells[n][0] - x) ** 2 + (cells[n][1] - y) ** 2)
+    dx, dy = x - cells[nearest][0], y - cells[nearest][1]
+    length = math.hypot(dx, dy)
+    if length == 0:
+        return (0.0, 0.0)
+    return (dx / length, dy / length)
+
+
+def _nearest_free_cell(
+    start: Tuple[int, int],
+    taken: Dict[Tuple[int, int], str],
+    away: Tuple[float, float],
+) -> Tuple[int, int]:
+    """
+    Find the cheapest unoccupied cell reachable from a start cell.
+
+    A uniform-cost search over the grid: one unit per step, plus a
+    penalty for stepping through a cell that is already taken.
+
+    Parameters
+    ----------
+    start : Tuple[int, int]
+        Occupied cell the node landed on.
+    taken : Dict[Tuple[int, int], str]
+        Cells already claimed.
+    away : Tuple[float, float]
+        Preferred direction, used only to break ties.
+
+    Returns
+    -------
+    Tuple[int, int]
+        A free cell, or ``start`` if none was found within
+        :data:`MAX_COLLISION_SEARCH` cells.
+    """
+    import heapq
+
+    seen = {start}
+    queue = [(0.0, 0.0, start, start)]
+    while queue:
+        cost, _, _, current = heapq.heappop(queue)
+        if current not in taken and current != start:
+            return current
+        if cost >= MAX_COLLISION_SEARCH:
+            continue
+
+        for step_x, step_y in _GRID_STEPS:
+            nxt = (current[0] + step_x, current[1] + step_y)
+            if nxt in seen:
+                continue
+            seen.add(nxt)
+            # Charge for crossing an occupied cell, not for landing free.
+            step_cost = 1.0 + (OCCUPIED_STEP_PENALTY if nxt in taken else 0.0)
+
+            # Ties on cost go to the cell best aligned with the away
+            # direction, then to the cell itself so the result never
+            # depends on iteration order.
+            dx, dy = nxt[0] - start[0], nxt[1] - start[1]
+            length = math.hypot(dx, dy) or 1.0
+            alignment = (dx / length) * away[0] + (dy / length) * away[1]
+            heapq.heappush(queue, (cost + step_cost, -alignment, nxt, nxt))
+
+    return start

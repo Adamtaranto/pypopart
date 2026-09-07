@@ -141,13 +141,99 @@ def register(app, logger) -> None:
 
                     cy.on('pan zoom resize', window.pypopartDrawGrid);
 
+                    // Mirrors resolve_grid_collisions in
+                    // layout/algorithms.py: same cost model, same
+                    // tie-break, so what the user sees on drop matches
+                    // what the server stores. Run here as well because
+                    // a drag no longer round-trips through a redraw.
+                    const OCCUPIED_PENALTY = 3;
+                    const MAX_SEARCH = 12;
+                    const STEPS = [[1,0], [-1,0], [0,1], [0,-1]];
+
+                    function freeCell(start, taken, away) {
+                        const key = c => c[0] + ',' + c[1];
+                        const seen = new Set([key(start)]);
+                        let queue = [{cost: 0, cell: start}];
+                        while (queue.length) {
+                            queue.sort(function(a, b) {
+                                if (a.cost !== b.cost) return a.cost - b.cost;
+                                return b.align - a.align;
+                            });
+                            const node = queue.shift();
+                            const cell = node.cell;
+                            if (!taken.has(key(cell)) &&
+                                key(cell) !== key(start)) {
+                                return cell;
+                            }
+                            if (node.cost >= MAX_SEARCH) { continue; }
+                            for (const [sx, sy] of STEPS) {
+                                const next = [cell[0] + sx, cell[1] + sy];
+                                if (seen.has(key(next))) { continue; }
+                                seen.add(key(next));
+                                const dx = next[0] - start[0];
+                                const dy = next[1] - start[1];
+                                const len = Math.hypot(dx, dy) || 1;
+                                queue.push({
+                                    cost: node.cost + 1 +
+                                        (taken.has(key(next)) ? OCCUPIED_PENALTY : 0),
+                                    align: (dx / len) * away[0] + (dy / len) * away[1],
+                                    cell: next,
+                                });
+                            }
+                        }
+                        return start;
+                    }
+
                     cy.on('dragfree', 'node', function(evt) {
                         const grid = settings();
                         if (!grid.enabled || !grid.size) { return; }
-                        const pos = evt.target.position();
-                        evt.target.position({
-                            x: Math.round(pos.x / grid.size) * grid.size,
-                            y: Math.round(pos.y / grid.size) * grid.size,
+                        const node = evt.target;
+                        const pos = node.position();
+                        const cell = [
+                            Math.round(pos.x / grid.size),
+                            Math.round(pos.y / grid.size),
+                        ];
+
+                        // Every other node's cell is spoken for.
+                        const taken = new Set();
+                        cy.nodes().forEach(function(other) {
+                            if (other.id() === node.id()) { return; }
+                            const p = other.position();
+                            taken.add(
+                                Math.round(p.x / grid.size) + ',' +
+                                Math.round(p.y / grid.size)
+                            );
+                        });
+
+                        let target = cell;
+                        if (taken.has(cell[0] + ',' + cell[1])) {
+                            // Prefer moving away from the closest
+                            // connected neighbour, so an edge is not
+                            // folded back over itself.
+                            let away = [0, 0];
+                            let best = Infinity;
+                            node.neighborhood('node').forEach(function(nb) {
+                                const p = nb.position();
+                                const nc = [
+                                    Math.round(p.x / grid.size),
+                                    Math.round(p.y / grid.size),
+                                ];
+                                const d = (nc[0] - cell[0]) ** 2 +
+                                          (nc[1] - cell[1]) ** 2;
+                                if (d < best) {
+                                    best = d;
+                                    const dx = cell[0] - nc[0];
+                                    const dy = cell[1] - nc[1];
+                                    const len = Math.hypot(dx, dy);
+                                    away = len ? [dx / len, dy / len] : [0, 0];
+                                }
+                            });
+                            target = freeCell(cell, taken, away);
+                        }
+
+                        node.position({
+                            x: target[0] * grid.size,
+                            y: target[1] * grid.size,
                         });
                     });
 

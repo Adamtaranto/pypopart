@@ -749,3 +749,126 @@ class TestMergeNodePositions:
         from pypopart.gui.serialization import merge_node_positions
 
         assert merge_node_positions(None, {'a': [1.0, 2.0]}) == {}
+
+
+class TestResolveGridCollisions:
+    """Snapping can drop two nodes on one intersection; spread them."""
+
+    def test_coincident_nodes_are_separated(self):
+        """The whole point: one node per intersection."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        out = resolve_grid_collisions(
+            {'a': (0.0, 0.0), 'b': (0.0, 0.0), 'c': (0.0, 0.0)}, 0.5
+        )
+
+        assert len(set(out.values())) == 3
+
+    def test_result_stays_on_the_grid(self):
+        """A displaced node lands on an intersection, not between them."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        out = resolve_grid_collisions({'a': (0.0, 0.0), 'b': (0.0, 0.0)}, 0.25)
+
+        for x, y in out.values():
+            assert abs(x / 0.25 - round(x / 0.25)) < 1e-9
+            assert abs(y / 0.25 - round(y / 0.25)) < 1e-9
+
+    def test_moves_away_from_the_nearest_neighbour(self):
+        """Displacing toward a neighbour would fold the edge back."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        out = resolve_grid_collisions(
+            {'pinned': (0.0, 0.0), 'moved': (0.0, 0.0), 'left': (-1.0, 0.0)},
+            1.0,
+            {'moved': ['left'], 'left': ['moved']},
+            movable=['moved'],
+        )
+
+        assert out['moved'] == (1.0, 0.0)
+
+    def test_takes_the_fewest_moves(self):
+        """A free cell one step away beats one two steps away."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        out = resolve_grid_collisions(
+            {'pinned': (0.0, 0.0), 'moved': (0.0, 0.0)}, 1.0, movable=['moved']
+        )
+        x, y = out['moved']
+
+        assert abs(x) + abs(y) == 1.0
+
+    def test_steps_around_an_occupied_run(self):
+        """Crossing occupied cells is penalised, so it goes around."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        # A wall of pinned nodes to the right of the collision.
+        positions = {f'wall{i}': (float(i), 0.0) for i in range(1, 4)}
+        positions.update({'pinned': (0.0, 0.0), 'moved': (0.0, 0.0)})
+
+        out = resolve_grid_collisions(
+            positions, 1.0, {'moved': ['far']}, movable=['moved']
+        )
+
+        # Anywhere but further along the blocked row.
+        assert out['moved'] not in {(1.0, 0.0), (2.0, 0.0), (3.0, 0.0)}
+        assert len(set(out.values())) == len(positions)
+
+    def test_pinned_nodes_do_not_move(self):
+        """Dropping a node onto another displaces the one being dragged."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        out = resolve_grid_collisions(
+            {'kept': (2.0, 2.0), 'dragged': (2.0, 2.0)},
+            0.5,
+            {'dragged': ['kept'], 'kept': ['dragged']},
+            movable=['dragged'],
+        )
+
+        assert out['kept'] == (2.0, 2.0)
+        assert out['dragged'] != (2.0, 2.0)
+
+    def test_no_collisions_is_a_no_op(self):
+        """Already-distinct positions come back untouched."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        positions = {'a': (0.0, 0.0), 'b': (1.0, 1.0), 'c': (-2.0, 0.5)}
+
+        assert resolve_grid_collisions(positions, 0.5) == positions
+
+    @pytest.mark.parametrize('grid', [0, -1])
+    def test_disabled_grid_passes_through(self, grid):
+        """With snapping off there is no lattice to de-conflict on."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        positions = {'a': (0.0, 0.0), 'b': (0.0, 0.0)}
+
+        assert resolve_grid_collisions(positions, grid) == positions
+
+    def test_is_deterministic(self):
+        """The same input must always give the same layout."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        positions = dict.fromkeys('abcdefgh', (0.0, 0.0))
+        first = resolve_grid_collisions(positions, 1.0)
+        second = resolve_grid_collisions(positions, 1.0)
+
+        assert first == second
+
+    def test_handles_a_dense_pile_up(self):
+        """Twenty nodes on one cell still each get their own."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        positions = {f'n{i:02d}': (0.0, 0.0) for i in range(20)}
+        out = resolve_grid_collisions(positions, 1.0)
+
+        assert len(set(out.values())) == 20
+
+    def test_does_not_mutate_input(self):
+        """Callers keep their own copy."""
+        from pypopart.layout.algorithms import resolve_grid_collisions
+
+        positions = {'a': (0.0, 0.0), 'b': (0.0, 0.0)}
+        resolve_grid_collisions(positions, 1.0)
+
+        assert positions == {'a': (0.0, 0.0), 'b': (0.0, 0.0)}
