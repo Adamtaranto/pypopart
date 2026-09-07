@@ -9,7 +9,8 @@ Distances then count a weighted mismatch per condensed column, which is
 what makes PopART's distances differ from naive per-site Hamming counts.
 """
 
-from typing import List, Sequence as SequenceType, Tuple
+from typing import List, Tuple
+from typing import Sequence as SequenceType
 
 #: Characters PopART treats as ambiguous for DNA (Sequence::isAmbiguousChar),
 #: extended with '?' (binary/missing) and 'X' (amino acid) which PyPopART's

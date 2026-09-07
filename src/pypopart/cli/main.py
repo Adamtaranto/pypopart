@@ -54,7 +54,11 @@ def _fail(ctx: click.Context, error: BaseException) -> None:
     raise click.ClickException(str(error))
 
 
-@click.group()
+@click.group(
+    help='PyPopART - Pure Python implementation of PopART haplotype network '
+    'analysis.\n\nConstruct and visualize haplotype networks from DNA '
+    'sequence alignments.'
+)
 @click.version_option(version=__version__)
 @click.option(
     '-v',
@@ -65,11 +69,10 @@ def _fail(ctx: click.Context, error: BaseException) -> None:
 @click.option('-q', '--quiet', is_flag=True, help='Suppress all output except errors')
 @click.pass_context
 def main(ctx: click.Context, verbose: int, quiet: bool) -> None:
-    r"""
+    """
     Cli: PyPopART - Pure Python implementation of PopART haplotype network analysis.
 
     Construct and visualize haplotype networks from DNA sequence alignments.
-    \f
 
     Parameters
     ----------
@@ -86,7 +89,9 @@ def main(ctx: click.Context, verbose: int, quiet: bool) -> None:
     ctx.obj['quiet'] = quiet
 
 
-@main.command()
+@main.command(
+    help='Load and validate sequence alignment data.\n\nINPUT_FILE: Path to sequence alignment file'
+)
 @click.argument('input_file', type=click.Path(exists=True, dir_okay=False))
 @click.option(
     '-f',
@@ -114,11 +119,10 @@ def load(
     metadata: Optional[str],
     output: Optional[str],
 ) -> None:
-    r"""
+    """
     Load and validate sequence alignment data.
 
     INPUT_FILE: Path to sequence alignment file
-    \f
 
     Parameters
     ----------
@@ -182,7 +186,9 @@ def load(
         _fail(ctx, e)
 
 
-@main.command()
+@main.command(
+    help='Construct haplotype network from sequence alignment.\n\nINPUT_FILE: Path to sequence alignment file'
+)
 @click.argument('input_file', type=click.Path(exists=True, dir_okay=False))
 @click.option(
     '-a',
@@ -245,11 +251,10 @@ def network(
     output: Optional[str],
     output_format: str,
 ) -> None:
-    r"""
+    """
     Construct haplotype network from sequence alignment.
 
     INPUT_FILE: Path to sequence alignment file
-    \f
 
     Parameters
     ----------
@@ -334,7 +339,9 @@ def network(
         _fail(ctx, e)
 
 
-@main.command()
+@main.command(
+    help='Analyze haplotype network statistics.\n\nNETWORK_FILE: Path to network file (GraphML, GML, or JSON)'
+)
 @click.argument('network_file', type=click.Path(exists=True, dir_okay=False))
 @click.option(
     '--stats',
@@ -371,11 +378,10 @@ def analyze(
     alignment_file: Optional[str],
     output: Optional[str],
 ) -> None:
-    r"""
+    """
     Analyze haplotype network statistics.
 
     NETWORK_FILE: Path to network file (GraphML, GML, or JSON)
-    \f
 
     Parameters
     ----------
@@ -481,7 +487,9 @@ def analyze(
         _fail(ctx, e)
 
 
-@main.command()
+@main.command(
+    help='Visualize haplotype network.\n\nNETWORK_FILE: Path to network file (GraphML, GML, or JSON)'
+)
 @click.argument('network_file', type=click.Path(exists=True, dir_okay=False))
 @click.option(
     '-o',
@@ -536,11 +544,10 @@ def visualize(
     interactive: bool,
     show_labels: bool,
 ) -> None:
-    r"""
+    """
     Visualize haplotype network.
 
     NETWORK_FILE: Path to network file (GraphML, GML, or JSON)
-    \f
 
     Parameters
     ----------
@@ -607,7 +614,7 @@ def visualize(
         _fail(ctx, e)
 
 
-@main.command()
+@main.command(help='Display information about PyPopART capabilities.')
 @click.option(
     '--list-algorithms',
     is_flag=True,
@@ -628,10 +635,8 @@ def info(
     list_distances: bool,
     list_formats: bool,
 ) -> None:
-    r"""
+    """
     Display information about PyPopART capabilities.
-
-    \f
 
     Parameters
     ----------

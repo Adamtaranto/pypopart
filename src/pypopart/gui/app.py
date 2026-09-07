@@ -88,7 +88,11 @@ def create_app(debug: bool = False, port: int = 8050) -> PyPopARTApp:
     return PyPopARTApp(debug=debug, port=port)
 
 
-@click.command(name='pypopart-gui')
+@click.command(
+    name='pypopart-gui',
+    help='Launch the PyPopART GUI application.\n\nOnce started, open your '
+    'browser to http://localhost:PORT. Press Ctrl+C to stop the server.',
+)
 @click.option('--debug', is_flag=True, help='Enable debug mode for development.')
 @click.option(
     '--port',
@@ -98,12 +102,11 @@ def create_app(debug: bool = False, port: int = 8050) -> PyPopARTApp:
     help='Port number for web server.',
 )
 def main(debug: bool = False, port: int = 8050) -> None:
-    r"""
+    """
     Launch the PyPopART GUI application.
 
     Once started, open your browser to http://localhost:PORT.
     Press Ctrl+C to stop the server.
-    \f
 
     Parameters
     ----------

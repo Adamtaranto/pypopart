@@ -6,8 +6,8 @@ Includes support for geographic coordinates (latitude/longitude).
 """
 
 import csv
-import io
 import gzip
+import io
 from pathlib import Path
 from typing import Dict, List, Optional, TextIO, Tuple, Union
 

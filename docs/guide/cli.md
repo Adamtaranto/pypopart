@@ -1,239 +1,113 @@
 # Command-Line Interface
 
-PyPopART provides a comprehensive command-line interface for scripting and automation.
+PyPopART installs a `pypopart` command with five subcommands. Every
+example below matches the shipped CLI (`pypopart --help` is always the
+authoritative reference).
 
-## Basic Usage
+```text
+Usage: pypopart [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --version      Show the version and exit.
+  -v, --verbose  Increase verbosity (can be repeated: -v, -vv, -vvv)
+  -q, --quiet    Suppress all output except errors
+
+Commands:
+  analyze    Analyze haplotype network statistics.
+  info       Display information about PyPopART capabilities.
+  load       Load and validate sequence alignment data.
+  network    Construct haplotype network from sequence alignment.
+  visualize  Visualize haplotype network.
+```
+
+Use `-v` to print full tracebacks on errors, and `-q` to suppress all
+informational output (useful in scripts).
+
+## load — inspect an alignment
 
 ```bash
-pypopart [OPTIONS] COMMAND [ARGS]...
+pypopart load sequences.fasta
+pypopart load sequences.fasta -m metadata.csv       # match metadata rows
+pypopart load sequences.nex -o resaved.fasta        # convert formats
 ```
 
-## Main Commands
+| Option                                         | Description                                                |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| `-f, --format [fasta\|nexus\|phylip\|genbank]` | Input format (auto-detected from the extension if omitted) |
+| `-m, --metadata FILE`                          | Metadata CSV; reports how many sequences matched           |
+| `-o, --output PATH`                            | Re-save the alignment (format from the output extension)   |
 
-### `network` - Build Haplotype Networks
+Prints alignment statistics: sequence count, length, variable sites,
+parsimony-informative sites, and GC content.
 
-Create a haplotype network from sequence data:
+## network — build a haplotype network
 
 ```bash
-pypopart network input.fasta -a MST -o output
+pypopart network sequences.fasta -o network.graphml            # MJN (default)
+pypopart network sequences.fasta -a tcs -o network.graphml     # TCS
+pypopart network sequences.fasta -a mst -d k2p -o net.graphml  # K2P distances
+pypopart network sequences.fasta -a pn --seed 42 -o net.graphml
 ```
 
-**Options:**
+| Option                                              | Description                                                                      |
+| --------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `-a, --algorithm [mst\|msn\|tcs\|mjn\|pn\|tsw]`     | Construction algorithm (default: `mjn`)                                          |
+| `-d, --distance [hamming\|jc\|k2p\|tn\|tamura_nei]` | Distance metric (default: `hamming`; `tamura_nei` is an alias for `tn`)          |
+| `-e, --epsilon FLOAT`                               | Epsilon for MSN/MJN (default: 0)                                                 |
+| `-p, --parsimony-limit FLOAT`                       | Opt in to a TCS connection limit at this confidence (PopART default is no limit) |
+| `--seed INTEGER`                                    | Random seed for stochastic algorithms (`pn`)                                     |
+| `-o, --output PATH`                                 | Output network file                                                              |
+| `--format [graphml\|gml\|json\|nexus]`              | Output format (default: `graphml`)                                               |
 
-- `-i, --input PATH`: Input sequence file (required)
-- `-a, --algorithm ALGORITHM`: Network algorithm (MST, MSN, TCS, MJN, PN, TSW)
-- `-d, --distance METRIC`: Distance metric (hamming, jukes-cantor, k2p, tamura-nei)
-- `-o, --output PATH`: Output prefix for files
-- `-f, --format FORMAT`: Output format (nexus, gml, graphml, json)
-- `--epsilon FLOAT`: TCS connection limit (default: 0.95)
-- `--plot`: Generate visualization plot
-- `--interactive`: Create interactive HTML plot
-
-**Examples:**
+## analyze — network statistics
 
 ```bash
-# Basic MST network
-pypopart network sequences.fasta -a MST -o my_network
-
-# TCS network with custom epsilon
-pypopart network sequences.fasta -a TCS --epsilon 0.99 -o tcs_network
-
-# MJN network with interactive plot
-pypopart network sequences.fasta -a MJN --plot --interactive -o mjn_network
+pypopart analyze network.graphml                 # statistics (default)
+pypopart analyze network.graphml --topology
+pypopart analyze network.graphml --popgen -a sequences.fasta
+pypopart analyze network.graphml --stats -o results.json
 ```
 
-### `distance` - Calculate Distance Matrix
+| Option                 | Description                                                        |
+| ---------------------- | ------------------------------------------------------------------ |
+| `--stats`              | Network statistics (the default when no flag is given)             |
+| `--topology`           | Topology analysis: components, star patterns, ancestral candidates |
+| `--popgen`             | Population genetics (Tajima's D); requires `-a/--alignment`        |
+| `-a, --alignment FILE` | The original alignment (needed for `--popgen` and diversity)       |
+| `-o, --output PATH`    | Write results as JSON                                              |
 
-Compute pairwise genetic distances:
+## visualize — plot a network
 
 ```bash
-pypopart distance input.fasta -m k2p -o distances.csv
+pypopart visualize network.graphml -o network.png --show-labels
+pypopart visualize network.graphml -o network.html            # interactive
+pypopart visualize network.graphml -o net.pdf --layout kamada_kawai
 ```
 
-**Options:**
+| Option                                      | Description                                                  |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| `-o, --output PATH`                         | Output file; `.html` produces an interactive plot (required) |
+| `--layout [spring\|circular\|kamada_kawai]` | Layout algorithm (default: `spring`)                         |
+| `--width / --height INTEGER`                | Figure size in pixels (defaults: 800x600)                    |
+| `--interactive`                             | Force interactive HTML output                                |
+| `--show-labels`                             | Show node labels                                             |
 
-- `-i, --input PATH`: Input sequence file (required)
-- `-m, --metric METRIC`: Distance metric (hamming, jukes-cantor, k2p, tamura-nei)
-- `-o, --output PATH`: Output file path
-- `-f, --format FORMAT`: Output format (csv, tsv, json)
+Static output (PNG/PDF/SVG) requires the `viz` extra:
+`pip install 'pypopart[viz]'`.
 
-### `stats` - Network Statistics
-
-Calculate network statistics:
+## info — capability listings
 
 ```bash
-pypopart stats network.gml -o statistics.txt
+pypopart info --list-algorithms
+pypopart info --list-distances
+pypopart info --list-formats
 ```
 
-**Options:**
-
-- `-i, --input PATH`: Input network file (required)
-- `-o, --output PATH`: Output file path
-- `--topology`: Include topology metrics
-- `--diversity`: Include diversity indices
-- `--popgen`: Include population genetics statistics
-
-### `plot` - Visualize Networks
-
-Create network visualizations:
+## A complete pipeline
 
 ```bash
-pypopart plot network.gml -o figure.png
+pypopart load data/sequences.fasta -m data/populations.csv
+pypopart network data/sequences.fasta -a mjn -o results/network.graphml
+pypopart analyze results/network.graphml --stats --topology -o results/stats.json
+pypopart visualize results/network.graphml -o results/network.png --show-labels
 ```
-
-**Options:**
-
-- `-i, --input PATH`: Input network file (required)
-- `-o, --output PATH`: Output figure path
-- `-l, --layout LAYOUT`: Layout algorithm (spring, circular, kamada-kawai)
-- `--width INTEGER`: Figure width in pixels
-- `--height INTEGER`: Figure height in pixels
-- `--node-size FLOAT`: Node size multiplier
-- `--edge-width FLOAT`: Edge width
-- `--color-by ATTRIBUTE`: Color nodes by metadata attribute
-- `--interactive`: Create interactive HTML plot
-
-## Global Options
-
-- `--version`: Show version and exit
-- `--help`: Show help message
-- `-v, --verbose`: Enable verbose output
-- `--quiet`: Suppress non-error output
-
-## Input Formats
-
-PyPopART supports multiple sequence formats:
-
-- **FASTA** (`.fasta`, `.fa`, `.fna`)
-- **NEXUS** (`.nex`, `.nexus`)
-- **PHYLIP** (`.phy`, `.phylip`)
-- **GenBank** (`.gb`, `.genbank`)
-
-## Output Formats
-
-Networks can be exported in various formats:
-
-- **NEXUS** - Compatible with PopART and other tools
-- **GML** - Graph Modeling Language
-- **GraphML** - XML-based graph format
-- **JSON** - JavaScript Object Notation
-
-## Working with Metadata
-
-Include metadata in NEXUS format:
-
-```nexus
-#NEXUS
-BEGIN TAXA;
-    DIMENSIONS NTAX=4;
-    TAXLABELS Seq1 Seq2 Seq3 Seq4;
-END;
-
-BEGIN CHARACTERS;
-    DIMENSIONS NCHAR=20;
-    FORMAT DATATYPE=DNA;
-    MATRIX
-        Seq1 ATCGATCGATCGATCGATCG
-        Seq2 ATCGATCGATCGATCGATCG
-        Seq3 ATCGATCGATCGATTGATCG
-        Seq4 ATCGATCGATCGATTGATCG
-    ;
-END;
-
-BEGIN TRAITS;
-    DIMENSIONS NTRAITS=2;
-    FORMAT LABELS=YES SEPARATOR=,;
-    TRAITLABELS Population Location;
-    MATRIX
-        Seq1 PopA Site1
-        Seq2 PopA Site1
-        Seq3 PopB Site2
-        Seq4 PopB Site2
-    ;
-END;
-```
-
-Use metadata for coloring:
-
-```bash
-pypopart plot network.gml --color-by Population -o colored_network.png
-```
-
-## Scripting Examples
-
-### Batch Processing
-
-Process multiple files:
-
-```bash
-for file in *.fasta; do
-    base=$(basename "$file" .fasta)
-    pypopart network "$file" -a MST -o "networks/${base}"
-done
-```
-
-### Pipeline Example
-
-Complete analysis pipeline:
-
-```bash
-# 1. Build network
-pypopart network input.fasta -a MJN -o mjn_network -f gml
-
-# 2. Calculate statistics
-pypopart stats mjn_network.gml --topology --popgen -o statistics.txt
-
-# 3. Create visualizations
-pypopart plot mjn_network.gml -o static_plot.png
-pypopart plot mjn_network.gml --interactive -o interactive_plot.html
-```
-
-### Comparing Algorithms
-
-Compare different algorithms on the same data:
-
-```bash
-algorithms=(MST MSN TCS MJN)
-for alg in "${algorithms[@]}"; do
-    pypopart network sequences.fasta -a "$alg" -o "comparison/${alg}"
-done
-```
-
-## Tips and Best Practices
-
-1. **Choose the right algorithm**: Start with MST for exploration, use TCS for within-species data, MJN for complex scenarios
-
-2. **Distance metrics**: Use Hamming for very similar sequences, K2P or Tamura-Nei for more divergent data
-
-3. **Visualization**: Generate both static (for publications) and interactive (for exploration) plots
-
-4. **Large datasets**: Consider using MST or MSN first before trying computationally intensive algorithms like MJN
-
-5. **Metadata**: Include population/trait information for richer analyses and visualizations
-
-## Troubleshooting
-
-### Common Issues
-
-**"No such file or directory"**
-
-- Check file paths are correct
-- Use absolute paths if needed
-
-**"Invalid sequence format"**
-
-- Verify file format is supported
-- Check for file corruption
-- Ensure sequences are aligned
-
-**"Algorithm failed to converge"**
-
-- Try different algorithm
-- Check data quality
-- Adjust algorithm parameters
-
-## Next Steps
-
-- [Python API Guide](api.md): Use PyPopART programmatically
-- [Tutorials](../tutorials/basic_workflow.md): Detailed walkthroughs
-- [Algorithm Guide](algorithms.md): Choose the right algorithm

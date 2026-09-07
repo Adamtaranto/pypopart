@@ -15,10 +15,22 @@ jobs:
         with:
           python-version: "3.12"
       - uses: pre-commit/action@v3.0.1
-        env:
-          # ~870 pre-existing docstring violations; enforced on changed files
-          # via local pre-commit, to be burned down in the docs cleanup phase.
-          SKIP: numpydoc-validation
+  typecheck:
+    # Advisory for now: the mypy config predates enforcement and the
+    # codebase has a known backlog. Tighten once it goes clean.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run mypy
+        run: |
+          pip install -e ".[gui,viz,speed]" mypy
+          mypy src/pypopart || true
   test:
     runs-on: ubuntu-latest
     strategy:

@@ -4,8 +4,8 @@ NEXUS file format reader and writer for PyPopART.
 Supports PopART-style NEXUS files with traits blocks.
 """
 
-import io
 import gzip
+import io
 from pathlib import Path
 import re
 from typing import Dict, Optional, TextIO, Tuple, Union

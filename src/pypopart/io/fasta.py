@@ -1,7 +1,7 @@
 """FASTA file format reader and writer for PyPopART."""
 
-import io
 import gzip
+import io
 from pathlib import Path
 from typing import Iterator, Optional, TextIO, Union
 import zipfile

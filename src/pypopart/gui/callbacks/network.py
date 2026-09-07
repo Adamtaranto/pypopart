@@ -9,8 +9,6 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from pypopart.core.alignment import Alignment
-
-
 from pypopart.gui.serialization import network_to_store
 
 

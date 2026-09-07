@@ -1,8 +1,8 @@
 """Network and CSV export downloads."""
 
 import logging
-import tempfile
 from pathlib import Path
+import tempfile
 import traceback
 from typing import Dict, Optional, Tuple
 

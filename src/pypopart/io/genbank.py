@@ -6,6 +6,7 @@ from typing import Iterator, TextIO, Union
 
 from Bio import SeqIO
 
+from pypopart.core.alignment import Alignment
 from pypopart.core.sequence import Sequence
 
 
@@ -82,3 +83,22 @@ class GenBankReader:
                     progress_callback(count, None)
 
                 yield seq
+
+    def read_alignment(self, progress_callback=None) -> Alignment:
+        """
+        Read all records into an Alignment.
+
+        Parameters
+        ----------
+        progress_callback : callable, optional
+            Optional callback function(current, total).
+
+        Returns
+        -------
+        Alignment
+            Alignment of all sequences in the file.
+        """
+        alignment = Alignment(list(self.read_sequences(progress_callback)))
+        if self.validate:
+            alignment.validate()
+        return alignment

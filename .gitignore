@@ -8,6 +8,7 @@ popart-current/
 .claudeignore
 .env
 .mcp.json
+CLAUDE.md
 
 # Mac stuff
 .DS_Store

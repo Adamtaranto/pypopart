@@ -88,8 +88,8 @@ def test_mst_total_length_minimal():
     """No other spanning tree has smaller total distance than the MST."""
     import networkx as nx
 
-    from pypopart.core.haplotype import identify_haplotypes_from_alignment
     from pypopart.core.distance import pairwise_distance_matrix
+    from pypopart.core.haplotype import identify_haplotypes_from_alignment
 
     network = build('mst').build_network(ALIGNMENT)
     mst_total = sum(

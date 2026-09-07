@@ -52,6 +52,10 @@ nav:
       - Network Algorithms: guide/algorithms.md
       - Visualization: guide/visualization.md
       - Analysis: guide/analysis.md
+      - Web GUI: gui_usage.md
+      - Layout Algorithms: layout_algorithms.md
+      - Haplotype Labels: h_number_labeling.md
+      - Differences from PopART: popart_differences.md
   - Tutorials:
       - Basic Workflow: tutorials/basic_workflow.md
       - Algorithm Comparison: tutorials/algorithm_comparison.md
@@ -63,6 +67,7 @@ nav:
           - Alignment: api/core/alignment.md
           - Haplotype: api/core/haplotype.md
           - Distance: api/core/distance.md
+          - Site Patterns: api/core/site_patterns.md
           - Network: api/core/network.md
       - Algorithms:
           - Base: api/algorithms/base.md
@@ -70,6 +75,10 @@ nav:
           - MSN: api/algorithms/msn.md
           - TCS: api/algorithms/tcs.md
           - MJN: api/algorithms/mjn.md
+          - TSW: api/algorithms/tsw.md
+          - Parsimony Network: api/algorithms/parsimony_net.md
+          - Parsimony Trees: api/algorithms/ancestral.md
+          - Registry: api/algorithms/registry.md
       - I/O:
           - Readers: api/io/readers.md
           - Writers: api/io/writers.md
@@ -77,11 +86,14 @@ nav:
       - Visualization:
           - Static: api/visualization/static.md
           - Interactive: api/visualization/interactive.md
+          - Cytoscape: api/visualization/cytoscape.md
+          - Shared Styling: api/visualization/style.md
           - Layout: api/visualization/layout.md
       - Statistics:
           - Network Stats: api/stats/statistics.md
           - Population Genetics: api/stats/popgen.md
           - Topology: api/stats/topology.md
+      - CLI: api/cli.md
   - About:
       - Contributing: contributing.md
       - FAQ: faq.md
@@ -102,9 +114,6 @@ plugins:
             members_order: source
             show_signature_annotations: true
             separate_signature: true
-  - mkdocs-jupyter:
-      include_source: true
-      execute: false
 markdown_extensions:
   - admonition
   - codehilite
