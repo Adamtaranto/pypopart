@@ -75,8 +75,8 @@ class TestTCS:
         # seq3 should not be connected to others (4 diff > limit)
         assert not network.is_connected()
 
-    def test_tcs_connection_limit_calculation(self):
-        """Test automatic connection limit calculation."""
+    def test_tcs_no_connection_limit_by_default(self):
+        """PopART parity: no connection limit unless opted in."""
         tcs = TCS()
         alignment = Alignment(
             [
@@ -85,11 +85,17 @@ class TestTCS:
                 Sequence('seq3', 'ATCGAG'),
             ]
         )
-        tcs.construct_network(alignment)
+        network = tcs.construct_network(alignment)
 
-        # Connection limit should have been calculated
-        assert tcs.connection_limit is not None
-        assert tcs.connection_limit > 0
+        # No limit is derived or stored; the network fully connects
+        assert tcs.connection_limit is None
+        assert network.is_connected()
+
+    def test_tcs_auto_connection_limit_opt_in(self):
+        """The 'auto' connection limit derives a cap from confidence."""
+        tcs = TCS(connection_limit='auto', confidence=0.95)
+        limit = tcs._calculate_connection_limit(100, 10)
+        assert limit >= 1
 
     def test_tcs_frequency_based_ordering(self):
         """Test that TCS prioritizes more frequent haplotypes."""

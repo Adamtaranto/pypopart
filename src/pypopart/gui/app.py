@@ -1127,7 +1127,8 @@ class PyPopARTApp:
                 if algorithm in ('mst', 'msn', 'tsw'):
                     algo_kwargs['distance_method'] = param_value or 'hamming'
                 elif algorithm == 'tcs':
-                    algo_kwargs['connection_limit'] = param_value or 10
+                    # None = no limit (PopART parity); int caps connections
+                    algo_kwargs['connection_limit'] = param_value
                 elif algorithm == 'mjn':
                     algo_kwargs['epsilon'] = param_value or 0
                 elif algorithm == 'pn':

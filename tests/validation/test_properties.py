@@ -80,11 +80,6 @@ def test_network_connected(name):
     assert network.is_connected()
 
 
-@pytest.mark.xfail(
-    reason='TCS keeps an invented connection limit until the Phase 4 parity '
-    'rewrite; PopART TCS always fully connects',
-    strict=False,
-)
 def test_tcs_connected():
     """PopART's TCS always produces a fully connected network."""
     network = build('tcs').build_network(ALIGNMENT)

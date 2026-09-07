@@ -214,9 +214,9 @@ def load(
     '-p',
     '--parsimony-limit',
     type=float,
-    default=0.95,
-    show_default=True,
-    help='Parsimony confidence limit for TCS (0-1)',
+    default=None,
+    help='Enable a TCS connection limit at this parsimony confidence '
+    '(0-1). PopART default is no limit (fully connected network).',
 )
 @click.option(
     '--seed',
@@ -298,8 +298,9 @@ def network(
         algo_params = {}
         if algorithm in ('msn', 'mjn'):
             algo_params['epsilon'] = epsilon
-        elif algorithm == 'tcs':
+        elif algorithm == 'tcs' and parsimony_limit is not None:
             algo_params['confidence'] = parsimony_limit
+            algo_params['connection_limit'] = 'auto'
         elif algorithm == 'pn':
             algo_params['random_seed'] = seed
         algo = build(algorithm, distance_method=distance, **algo_params)

@@ -48,7 +48,7 @@ class TCS(NetworkAlgorithm):
         self,
         distance_method: str = 'hamming',
         confidence: float = 0.95,
-        connection_limit: Optional[int] = None,
+        connection_limit=None,
         infer_intermediates: bool = True,
         collapse_vertices: bool = True,
         **kwargs,
@@ -58,17 +58,22 @@ class TCS(NetworkAlgorithm):
 
         Parameters
         ----------
-        distance_method :
+        distance_method : str, default='hamming'
             Method for calculating distances (should be hamming).
-        confidence :
-            Confidence level for parsimony criterion (default 0.95).
-        connection_limit :
-            Maximum connection distance (auto-calculated if None).
-        infer_intermediates :
-            Whether to infer intermediate sequences (default True).
-        collapse_vertices :
-            Whether to collapse degree-2 vertices (default True).
-        **kwargs :
+        confidence : float, default=0.95
+            Confidence level for the 'auto' connection limit. Only used
+            when connection_limit='auto'.
+        connection_limit : int or 'auto', optional
+            PopART's TCS has no connection limit and always produces a
+            fully connected network; None (the default) matches that.
+            Pass an int to cap connections at that distance, or 'auto'
+            to derive a cap from `confidence` (PyPopART-specific extras,
+            both off by default).
+        infer_intermediates : bool, default=True
+            Whether to infer intermediate sequences.
+        collapse_vertices : bool, default=True
+            Whether to collapse degree-2 intermediate vertices.
+        **kwargs : dict
             Additional parameters.
         """
         super().__init__(distance_method, **kwargs)
@@ -121,15 +126,15 @@ class TCS(NetworkAlgorithm):
         haplotype_dist_matrix = self.calculate_haplotype_distances(haplotypes)
         self._distance_matrix = haplotype_dist_matrix
 
-        # Calculate connection limit if not provided
-        if self.connection_limit is None:
-            self.connection_limit = self._calculate_connection_limit(
-                alignment.length, len(haplotypes)
-            )
+        # PopART's TCS has no connection limit; a cap is opt-in
+        if self.connection_limit == 'auto':
+            limit = self._calculate_connection_limit(alignment.length, len(haplotypes))
+        else:
+            limit = self.connection_limit
 
         # Build network using component-based algorithm (matches C++ TCS.cpp)
         network = self._build_network_with_components(
-            haplotypes, haplotype_dist_matrix, alignment.length
+            haplotypes, haplotype_dist_matrix, alignment.length, limit
         )
 
         # Collapse degree-2 vertices (post-processing simplification)
@@ -199,7 +204,11 @@ class TCS(NetworkAlgorithm):
         return prob
 
     def _build_network_with_components(
-        self, haplotypes: List, distance_matrix: DistanceMatrix, sequence_length: int
+        self,
+        haplotypes: List,
+        distance_matrix: DistanceMatrix,
+        sequence_length: int,
+        connection_limit: Optional[int] = None,
     ) -> HaplotypeNetwork:
         """
         Build network using component-based algorithm from C++ TCS.cpp.
@@ -222,6 +231,9 @@ class TCS(NetworkAlgorithm):
             Distance matrix.
         sequence_length :
             Length of sequences for creating intermediates.
+        connection_limit :
+            Optional maximum connection distance (None = no limit,
+            matching PopART).
 
         Returns
         -------
@@ -244,7 +256,7 @@ class TCS(NetworkAlgorithm):
                 h2 = haplotypes[j]
                 dist = int(round(distance_matrix.get_distance(h1.id, h2.id)))
 
-                if dist <= self.connection_limit:
+                if connection_limit is None or dist <= connection_limit:
                     if dist not in pairs_by_distance:
                         pairs_by_distance[dist] = []
                     pairs_by_distance[dist].append((h1.id, h2.id))
@@ -366,11 +378,12 @@ class TCS(NetworkAlgorithm):
         except Exception:
             existing_path_length = float('inf')
 
-        # Only add new path if it's shorter or doesn't exist
-        if (
-            existing_path_length == float('inf')
-            or existing_path_length > min_path_length
-        ):
+        if existing_path_length < min_path_length:
+            # C++ TCS treats this as an internal inconsistency
+            raise RuntimeError('Shorter path already exists between these vertices!')
+
+        # Only add the new path when none of the right length exists
+        if existing_path_length > min_path_length:
             self._create_composite_path(
                 network, int_u, int_v, min_path_length, sequence_length, component_ids
             )
@@ -581,11 +594,11 @@ class TCS(NetworkAlgorithm):
             intermediate_id = f'intermediate_{self._intermediate_counter}'
             self._intermediate_counter += 1
 
-            # Create placeholder sequence
+            # Unlabelled vertex: no sequence, as in C++ newCompositePath
             intermediate_seq = Sequence(
                 id=intermediate_id,
-                data='N' * sequence_length,
-                description='Inferred intermediate sequence',
+                data='',
+                description='Inferred intermediate vertex',
             )
 
             intermediate_hap = Haplotype(
@@ -593,8 +606,9 @@ class TCS(NetworkAlgorithm):
                 sample_ids=[],
             )
 
-            # Add to network
+            # Add to network, marked so collapse and styling can find it
             network.add_haplotype(intermediate_hap)
+            network.graph.nodes[intermediate_id]['is_intermediate'] = True
             network.add_edge(current_id, intermediate_id, distance=1)
 
             # Mark as "no man's land" (component ID = -1)
@@ -654,10 +668,9 @@ class TCS(NetworkAlgorithm):
                 except Exception:
                     continue
 
-                # Only collapse intermediates (not original haplotypes)
-                # In C++ this checks if vertex index >= nseqs (number of original sequences)
-                hap = network.get_haplotype(hap_id)
-                if hap.frequency == 0 or 'intermediate' in hap_id.lower():
+                # Only collapse intermediates (not original haplotypes);
+                # C++ checks vertex index >= nseqs, we use the marker attr
+                if network.graph.nodes[hap_id].get('is_intermediate'):
                     try:
                         combined_weight = w1 + w2
 
