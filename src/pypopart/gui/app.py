@@ -1132,8 +1132,7 @@ class PyPopARTApp:
                 elif algorithm == 'mjn':
                     algo_kwargs['epsilon'] = param_value or 0
                 elif algorithm == 'pn':
-                    algo_kwargs['n_trees'] = param_value or 100
-                    algo_kwargs['min_edge_frequency'] = 0.05
+                    algo_kwargs['n_trees'] = param_value or 20
                 algo = build(algorithm, **algo_kwargs)
 
                 # Build network
