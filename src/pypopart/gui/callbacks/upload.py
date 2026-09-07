@@ -16,6 +16,7 @@ from pypopart.io.metadata import MetadataReader, extract_coordinates
 from pypopart.visualization.cytoscape_plot import (
     create_cytoscape_network,
 )
+from pypopart.visualization.style import generate_population_colors
 
 
 def _detect_reader(text: str, filename: str):
@@ -267,20 +268,8 @@ def register(app, logger) -> None:
 
             # If population labels provided but no colors, generate colors automatically
             if populations and not population_colors:
-                import colorsys
-
                 unique_pops = sorted(set(populations.values()))
-                n = len(unique_pops)
-                for i, pop in enumerate(unique_pops):
-                    # Generate evenly spaced hues for distinct colors
-                    hue = i / n
-                    saturation = 0.7
-                    value = 0.9
-                    r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
-                    hex_color = '#{:02x}{:02x}{:02x}'.format(
-                        int(r * 255), int(g * 255), int(b * 255)
-                    )
-                    population_colors[pop] = hex_color
+                population_colors = generate_population_colors(unique_pops)
                 logger.info(f'Auto-generated colors for {len(unique_pops)} populations')
 
             metadata_data = {

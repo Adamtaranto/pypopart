@@ -16,6 +16,8 @@ from pypopart.stats import (
     identify_central_haplotypes,
 )
 
+from ..metadata_edit import build_metadata_datatable, build_metadata_rows
+
 #: How many haplotypes the Central Haplotypes table lists.
 CENTRAL_HAPLOTYPE_COUNT = 5
 
@@ -613,23 +615,8 @@ def register(app, logger) -> None:
 
             # Get metadata IDs if available
             metadata_ids = set()
-            metadata_records = {}
             if metadata_data:
                 metadata_ids = set(metadata_data.get('sequence_ids', []))
-                # Build metadata records
-                for sid in metadata_data.get('sequence_ids', []):
-                    metadata_records[sid] = {
-                        'population': metadata_data.get('populations', {}).get(sid, ''),
-                        'latitude': metadata_data.get('coordinates', {})
-                        .get(sid, {})
-                        .get('lat', ''),
-                        'longitude': metadata_data.get('coordinates', {})
-                        .get(sid, {})
-                        .get('lon', ''),
-                    }
-
-            # Union of all IDs
-            all_ids = alignment_ids.union(metadata_ids)
 
             # Check for duplicates in alignment
             alignment_id_list = [seq['id'] for seq in alignment_data['sequences']]
@@ -672,73 +659,8 @@ def register(app, logger) -> None:
                 metadata_data.get('population_colors', {}) if metadata_data else {}
             )
 
-            # Build table
-            table_header = [
-                html.Thead(
-                    html.Tr(
-                        [
-                            html.Th('Sequence ID'),
-                            html.Th('In Alignment'),
-                            html.Th('In Metadata'),
-                            html.Th('Population'),
-                            html.Th('Color'),
-                            html.Th('Latitude'),
-                            html.Th('Longitude'),
-                        ]
-                    )
-                )
-            ]
-
-            table_rows = []
-            for sid in sorted(all_ids):
-                in_alignment = '✓' if sid in alignment_ids else '✗'
-                in_metadata = '✓' if sid in metadata_ids else '✗'
-
-                meta = metadata_records.get(sid, {})
-                pop = meta.get('population', '')
-
-                # Get color for this population
-                color_display = ''
-                if pop and population_colors and pop in population_colors:
-                    color_hex = population_colors[pop]
-                    color_display = html.Div(
-                        [
-                            html.Span(
-                                '●',
-                                style={
-                                    'color': color_hex,
-                                    'fontSize': '16px',
-                                    'marginRight': '5px',
-                                },
-                            ),
-                            html.Span(color_hex, style={'fontSize': '12px'}),
-                        ]
-                    )
-
-                table_rows.append(
-                    html.Tr(
-                        [
-                            html.Td(sid),
-                            html.Td(in_alignment, style={'textAlign': 'center'}),
-                            html.Td(in_metadata, style={'textAlign': 'center'}),
-                            html.Td(pop),
-                            html.Td(color_display),
-                            html.Td(meta.get('latitude', '')),
-                            html.Td(meta.get('longitude', '')),
-                        ]
-                    )
-                )
-
-            table_body = [html.Tbody(table_rows)]
-
-            table = dbc.Table(
-                table_header + table_body,
-                bordered=True,
-                hover=True,
-                responsive=True,
-                striped=True,
-                style={'fontSize': '14px'},
-            )
+            rows = build_metadata_rows(alignment_ids, metadata_data)
+            table = build_metadata_datatable(rows, population_colors)
 
             return table, html.Div(warnings)
 

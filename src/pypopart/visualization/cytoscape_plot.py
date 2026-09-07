@@ -13,6 +13,100 @@ import numpy as np
 
 from ..core.graph import HaplotypeNetwork
 
+#: Hard ceiling on tick marks drawn for one edge. Beyond this the comb is
+#: unreadable at any zoom, so the numeral is shown instead.
+MAX_TICK_MARKS = 30
+
+#: Default mutation count above which an edge shows a numeral, not ticks.
+DEFAULT_TICK_THRESHOLD = 10
+
+
+def format_edge_ticks(distance: int, max_ticks: int = MAX_TICK_MARKS) -> str:
+    """
+    Render a mutation count as tick marks for an edge label.
+
+    One '|' glyph per mutation, space separated. Cytoscape.js has no
+    letter-spacing property, so the spacing has to be part of the string.
+    Drawn with 'text-rotation: autorotate' the glyph strokes sit
+    perpendicular to the edge, which is the PopART convention.
+
+    Parameters
+    ----------
+    distance : int
+        Number of mutations separating the two haplotypes.
+    max_ticks : int, default=MAX_TICK_MARKS
+        Counts above this return an empty string, so the caller can fall
+        back to a numeral.
+
+    Returns
+    -------
+    str
+        Space-separated tick marks, or '' when out of range.
+    """
+    if distance <= 0 or distance > max_ticks:
+        return ''
+    return ' '.join('|' * int(distance))
+
+
+def create_edge_tick_stylesheet(
+    threshold: int = DEFAULT_TICK_THRESHOLD, show_ticks: bool = True
+) -> List[Dict]:
+    """
+    Build the edge label rules for tick marks and numerals.
+
+    Every selector is prefixed 'edge[distance' so callers can strip and
+    replace the whole group in one pass.
+
+    These rules must be appended *after* the base 'edge[label]' rule:
+    every edge carries a 'label' key, so that rule matches all edges and
+    would otherwise paint a white background pill behind the ticks
+    (Cytoscape.js resolves conflicts by stylesheet order, later wins).
+
+    Parameters
+    ----------
+    threshold : int, default=DEFAULT_TICK_THRESHOLD
+        Edges up to this many mutations get ticks; longer ones get the
+        numeral.
+    show_ticks : bool, default=True
+        When False, every edge shows the numeral.
+
+    Returns
+    -------
+    List[Dict]
+        Cytoscape stylesheet rules.
+    """
+    numeral_style = {
+        'label': 'data(label)',
+        'text-rotation': 'none',
+        'font-size': '10px',
+        'text-background-color': '#ffffff',
+        'text-background-opacity': 0.7,
+        'text-background-padding': '3px',
+        'color': '#333333',
+    }
+
+    if not show_ticks:
+        return [{'selector': 'edge[distance > 0]', 'style': numeral_style}]
+
+    return [
+        {
+            'selector': f'edge[distance <= {threshold}]',
+            'style': {
+                'label': 'data(ticks)',
+                'text-rotation': 'autorotate',
+                'font-family': 'monospace',
+                'font-size': '14px',
+                'color': '#333333',
+                # no pill behind tick marks (overrides edge[label])
+                'text-background-opacity': 0,
+            },
+        },
+        {
+            'selector': f'edge[distance > {threshold}]',
+            'style': numeral_style,
+        },
+    ]
+
 
 class InteractiveCytoscapePlotter:
     """
@@ -119,6 +213,7 @@ class InteractiveCytoscapePlotter:
         show_edge_labels: bool = True,
         median_vector_color: str = '#D3D3D3',
         node_labels: Optional[Dict[str, str]] = None,
+        max_tick_marks: int = MAX_TICK_MARKS,
     ) -> List[Dict]:
         """
         Create Cytoscape elements from network data.
@@ -141,6 +236,8 @@ class InteractiveCytoscapePlotter:
             Color for median vector nodes.
         node_labels : Dict[str, str], optional
             Custom labels for nodes {node_id: label}.
+        max_tick_marks : int, default=MAX_TICK_MARKS
+            Cap on tick marks emitted per edge.
 
         Returns
         -------
@@ -337,6 +434,9 @@ class InteractiveCytoscapePlotter:
                 'label': str(int(distance))
                 if show_edge_labels and distance > 0
                 else '',
+                'ticks': format_edge_ticks(int(distance), max_tick_marks)
+                if show_edge_labels
+                else '',
             }
 
             elements.append({'data': edge_data})
@@ -384,9 +484,12 @@ class InteractiveCytoscapePlotter:
                     'text-outline-color': '#ffffff',
                 },
             },
-            # Median vector style - also circular but distinguished by color
+            # Median vector style - also circular but distinguished by color.
+            # '[?field]' is the Cytoscape.js truthy test; '[field = true]'
+            # is not valid selector syntax and silently matched every node,
+            # painting the whole network median-grey.
             {
-                'selector': 'node[is_median = true]',
+                'selector': 'node[?is_median]',
                 'style': {
                     'shape': 'ellipse',
                     'background-color': median_vector_color,
@@ -505,6 +608,9 @@ def create_cytoscape_network(
     show_edge_labels: bool = True,
     median_vector_color: str = '#D3D3D3',
     node_labels: Optional[Dict[str, str]] = None,
+    show_edge_ticks: bool = True,
+    edge_tick_threshold: int = DEFAULT_TICK_THRESHOLD,
+    max_tick_marks: int = MAX_TICK_MARKS,
 ) -> Tuple[List[Dict], List[Dict]]:
     """
     Create Cytoscape elements and stylesheet for a haplotype network.
@@ -529,6 +635,12 @@ def create_cytoscape_network(
         Color for median vector nodes.
     node_labels : Dict[str, str], optional
         Custom labels for nodes {node_id: label}.
+    show_edge_ticks : bool, default=True
+        Draw mutation counts as tick marks instead of numerals.
+    edge_tick_threshold : int, default=DEFAULT_TICK_THRESHOLD
+        Edges with more mutations than this fall back to a numeral.
+    max_tick_marks : int, default=MAX_TICK_MARKS
+        Cap on tick marks emitted per edge.
 
     Returns
     -------
@@ -561,6 +673,7 @@ def create_cytoscape_network(
         show_edge_labels=show_edge_labels,
         median_vector_color=median_vector_color,
         node_labels=node_labels,
+        max_tick_marks=max_tick_marks,
     )
 
     stylesheet = plotter.create_stylesheet(
@@ -571,5 +684,11 @@ def create_cytoscape_network(
     # Add pie chart styles if we have population colors
     if population_colors:
         stylesheet.extend(plotter.create_pie_stylesheet(population_colors))
+
+    # Must come last: these override the catch-all edge[label] rule.
+    if show_edge_labels:
+        stylesheet.extend(
+            create_edge_tick_stylesheet(edge_tick_threshold, show_edge_ticks)
+        )
 
     return elements, stylesheet

@@ -274,3 +274,68 @@ class TestCentralHaplotypesTable:
 
         rendered = self.render(HaplotypeNetwork())
         assert 'No haplotypes to rank' in rendered.children
+
+
+def _collect_ids(component, found=None):
+    """Recursively collect every component id under a layout tree."""
+    if found is None:
+        found = []
+    if getattr(component, 'id', None) is not None:
+        found.append(component.id)
+    children = getattr(component, 'children', None)
+    if isinstance(children, (list, tuple)):
+        for child in children:
+            _collect_ids(child, found)
+    elif children is not None:
+        _collect_ids(children, found)
+    return found
+
+
+class TestSidebarCollapse:
+    """The left control panel can be hidden and restored."""
+
+    def test_layout_has_collapse_components(self):
+        """The panels, the toggle and the state store are all present."""
+        from pypopart.gui.app import PyPopARTApp
+
+        app = PyPopARTApp(debug=False)
+        ids = _collect_ids(app.app.layout)
+
+        assert 'sidebar-panel' in ids
+        assert 'main-panel' in ids
+        assert 'sidebar-toggle' in ids
+        assert 'sidebar-collapsed' in ids
+
+    def test_sidebar_keeps_drag_resize(self):
+        """Collapsing must not cost the user the CSS drag handle."""
+        from pypopart.gui.app import PyPopARTApp
+
+        app = PyPopARTApp(debug=False)
+
+        def find(component, target):
+            if getattr(component, 'id', None) == target:
+                return component
+            children = getattr(component, 'children', None)
+            if isinstance(children, (list, tuple)):
+                for child in children:
+                    hit = find(child, target)
+                    if hit is not None:
+                        return hit
+            elif children is not None:
+                return find(children, target)
+            return None
+
+        sidebar = find(app.app.layout, 'sidebar-panel')
+        assert sidebar is not None
+        assert sidebar.style['resize'] == 'horizontal'
+
+
+class TestEdgeTickControls:
+    """The layout card exposes the mutation tick mark settings."""
+
+    def test_layout_card_has_tick_controls(self):
+        """Both the toggle and the numeral threshold slider are present."""
+        ids = _collect_ids(cards.create_layout_card())
+
+        assert 'edge-tick-toggle' in ids
+        assert 'edge-tick-threshold' in ids

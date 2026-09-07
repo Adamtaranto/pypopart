@@ -1,6 +1,6 @@
 """Dash callback registration for the PyPopART GUI, grouped by concern."""
 
-from . import display, export, layout, network, upload
+from . import display, export, layout, metadata, network, ui, upload
 
 
 def register_all(app, logger) -> None:
@@ -18,7 +18,18 @@ def register_all(app, logger) -> None:
     network.register(app, logger)
     layout.register(app, logger)
     display.register(app, logger)
+    metadata.register(app, logger)
     export.register(app, logger)
+    ui.register(app, logger)
 
 
-__all__ = ['register_all', 'upload', 'network', 'layout', 'display', 'export']
+__all__ = [
+    'register_all',
+    'upload',
+    'network',
+    'layout',
+    'display',
+    'metadata',
+    'export',
+    'ui',
+]

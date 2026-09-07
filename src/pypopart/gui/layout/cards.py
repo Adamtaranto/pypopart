@@ -4,6 +4,8 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 
+from ...visualization.cytoscape_plot import DEFAULT_TICK_THRESHOLD, MAX_TICK_MARKS
+
 
 def build_layout(app) -> None:
     """
@@ -38,6 +40,7 @@ def build_layout(app) -> None:
                             html.Br(),
                             create_export_card(),
                         ],
+                        id='sidebar-panel',
                         style={
                             'minWidth': '250px',
                             'width': '300px',
@@ -48,6 +51,24 @@ def build_layout(app) -> None:
                             'backgroundColor': '#f8f9fa',
                             'resize': 'horizontal',
                             'overflow': 'auto',
+                        },
+                    ),
+                    # Slim rail so the sidebar can be hidden entirely.
+                    # Drag-resize (the CSS 'resize' above) still works.
+                    html.Div(
+                        dbc.Button(
+                            '«',
+                            id='sidebar-toggle',
+                            color='light',
+                            size='sm',
+                            title='Hide the control panel',
+                            className='border',
+                        ),
+                        style={
+                            'display': 'flex',
+                            'alignItems': 'flex-start',
+                            'padding': '20px 2px',
+                            'backgroundColor': '#f8f9fa',
                         },
                     ),
                     # Right panel - Visualization
@@ -78,6 +99,7 @@ def build_layout(app) -> None:
                                 ]
                             )
                         ],
+                        id='main-panel',
                         style={
                             'flex': '1',
                             'padding': '20px',
@@ -99,6 +121,12 @@ def build_layout(app) -> None:
             dcc.Store(id='computation-status'),
             dcc.Store(id='geographic-mode', data=False),
             dcc.Store(id='manual-edit-flag', data=False),
+            dcc.Store(id='sidebar-collapsed', data=False),
+            # Uncommitted metadata edits: {'rows': [...], 'edited': [[id, col]]}
+            dcc.Store(id='metadata-draft-store'),
+            # Bumped once metadata-store is written, which is what actually
+            # triggers the network computation. See callbacks/metadata.py.
+            dcc.Store(id='metadata-commit-token'),
             # Store to trigger window resize handling
             dcc.Store(id='window-size-store'),
         ]
@@ -234,6 +262,7 @@ def create_algorithm_card() -> dbc.Card:
                     html.Br(),
                     html.Div(id='algorithm-parameters'),
                     html.Br(),
+                    html.Div(id='metadata-draft-badge-sidebar', className='mb-2'),
                     dbc.Button(
                         '⚡ Compute Network',
                         id='compute-button',
@@ -382,6 +411,32 @@ def create_layout_card() -> dbc.Card:
                         step=0.5,
                         value=3,
                         marks={1: '1', 3: '3', 6: '6', 10: '10'},
+                        tooltip={'placement': 'bottom', 'always_visible': False},
+                    ),
+                    html.Br(),
+                    dbc.Label('Mutation Marks', className='fw-bold'),
+                    html.Small(
+                        'Draw one dash across an edge per mutation',
+                        className='text-muted d-block mb-2',
+                    ),
+                    dbc.Switch(
+                        id='edge-tick-toggle',
+                        label='Show tick marks',
+                        value=True,
+                        className='mb-2',
+                    ),
+                    dbc.Label('Use numerals above', className='fw-bold'),
+                    html.Small(
+                        'Edges with more mutations than this show a number',
+                        className='text-muted d-block mb-2',
+                    ),
+                    dcc.Slider(
+                        id='edge-tick-threshold',
+                        min=1,
+                        max=MAX_TICK_MARKS,
+                        step=1,
+                        value=DEFAULT_TICK_THRESHOLD,
+                        marks={1: '1', 10: '10', 20: '20', MAX_TICK_MARKS: '30'},
                         tooltip={'placement': 'bottom', 'always_visible': False},
                     ),
                     html.Br(),
@@ -668,8 +723,20 @@ def create_metadata_tab() -> html.Div:
     return html.Div(
         [
             html.Div(
+                [
+                    html.Small(
+                        'Population, colour and coordinate cells are editable. '
+                        'Edits stay as a draft until you click Compute Network.',
+                        className='text-muted d-block mb-2',
+                    ),
+                    html.Div(id='metadata-draft-badge'),
+                    html.Div(id='metadata-edit-feedback'),
+                ],
+                style={'padding': '20px 20px 0 20px'},
+            ),
+            html.Div(
                 id='metadata-warnings',
-                style={'padding': '20px 20px 10px 20px'},
+                style={'padding': '10px 20px'},
             ),
             html.Div(
                 id='metadata-display',

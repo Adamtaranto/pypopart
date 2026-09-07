@@ -9,9 +9,59 @@ from dash.exceptions import PreventUpdate
 from pypopart.core.graph import HaplotypeNetwork
 from pypopart.layout.algorithms import LayoutManager
 from pypopart.visualization.cytoscape_plot import (
+    DEFAULT_TICK_THRESHOLD,
     InteractiveCytoscapePlotter,
     create_cytoscape_network,
+    create_edge_tick_stylesheet,
 )
+
+#: Node size the base stylesheet is authored against, used to turn the
+#: slider value into a proportional scale factor.
+BASE_NODE_SIZE = 40.0
+
+
+def _apply_size_overrides(
+    stylesheet: List[Dict], node_size: Optional[float], edge_width: Optional[float]
+) -> List[Dict]:
+    """
+    Re-apply the node size and edge width slider values to a stylesheet.
+
+    The base stylesheet is regenerated whenever the figure is rebuilt, so
+    without this the sliders would silently snap back to their defaults.
+
+    Parameters
+    ----------
+    stylesheet : List[Dict]
+        Cytoscape stylesheet to override.
+    node_size : float, optional
+        Node size from the slider; ``None`` leaves node sizing alone.
+    edge_width : float, optional
+        Edge width from the slider; ``None`` leaves edge width alone.
+
+    Returns
+    -------
+    List[Dict]
+        A new stylesheet with the slider values applied.
+    """
+    new_stylesheet = []
+    for style in stylesheet:
+        new_style = style.copy()
+
+        if style.get('selector') == 'node' and node_size is not None:
+            new_style['style'] = {**new_style.get('style', {})}
+            # Scale proportionally via mapData so relative node sizes hold.
+            scale_factor = node_size / BASE_NODE_SIZE
+            mapping = f'mapData(size, 0, 100, 0, {100 * scale_factor})'
+            new_style['style']['width'] = mapping
+            new_style['style']['height'] = mapping
+
+        elif style.get('selector') == 'edge' and edge_width is not None:
+            new_style['style'] = {**new_style.get('style', {})}
+            new_style['style']['width'] = edge_width
+
+        new_stylesheet.append(new_style)
+
+    return new_stylesheet
 
 
 def register(app, logger) -> None:
@@ -208,7 +258,14 @@ def register(app, logger) -> None:
             Input('network-store', 'data'),
             Input('geographic-mode', 'data'),
         ],
-        [State('metadata-store', 'data'), State('h-number-mapping-store', 'data')],
+        [
+            State('metadata-store', 'data'),
+            State('h-number-mapping-store', 'data'),
+            State('node-size-slider', 'value'),
+            State('edge-width-slider', 'value'),
+            State('edge-tick-toggle', 'value'),
+            State('edge-tick-threshold', 'value'),
+        ],
     )
     def update_network_graph(
         layout_data: Optional[Dict],
@@ -216,6 +273,10 @@ def register(app, logger) -> None:
         geographic_mode: bool,
         metadata_data: Optional[Dict],
         h_number_mapping: Optional[Dict],
+        node_size: Optional[float],
+        edge_width: Optional[float],
+        show_edge_ticks: Optional[bool],
+        edge_tick_threshold: Optional[int],
     ) -> Tuple[List[Dict], List[Dict], html.Div]:
         """
         Update network visualization with Cytoscape.
@@ -232,6 +293,14 @@ def register(app, logger) -> None:
             Serialized metadata from the metadata store.
         h_number_mapping : Dict, optional
             Custom haplotype label mapping, if uploaded.
+        node_size : float, optional
+            Current node size slider value, re-applied to the new stylesheet.
+        edge_width : float, optional
+            Current edge width slider value, re-applied to the new stylesheet.
+        show_edge_ticks : bool, optional
+            Whether mutation counts render as tick marks.
+        edge_tick_threshold : int, optional
+            Mutation count above which an edge shows a numeral.
 
         Returns
         -------
@@ -293,7 +362,12 @@ def register(app, logger) -> None:
                 show_labels=True,
                 show_edge_labels=True,
                 node_labels=node_labels,
+                show_edge_ticks=bool(show_edge_ticks),
+                edge_tick_threshold=edge_tick_threshold or DEFAULT_TICK_THRESHOLD,
             )
+
+            # The base stylesheet is fresh, so the sliders have to be re-applied.
+            stylesheet = _apply_size_overrides(stylesheet, node_size, edge_width)
 
             # Add geographic styling if in geographic mode
             if geographic_mode and metadata_data and metadata_data.get('coordinates'):
@@ -470,35 +544,53 @@ def register(app, logger) -> None:
         if not current_stylesheet:
             raise PreventUpdate
 
-        # Create a copy of the stylesheet
-        new_stylesheet = []
-        for style in current_stylesheet:
-            new_style = style.copy()
+        return _apply_size_overrides(current_stylesheet, node_size, edge_width)
 
-            # Update node size - scale proportionally based on data(size)
-            if style.get('selector') == 'node':
-                if 'style' not in new_style:
-                    new_style['style'] = {}
-                new_style['style'] = {**new_style['style']}
-                # Scale nodes proportionally: multiply data(size) by scale factor
-                # Default node size is 40, so scale factor is node_size/40
-                scale_factor = node_size / 40.0
-                # Use mapData to scale the size attribute proportionally
-                # This preserves the relative size differences between nodes
-                new_style['style']['width'] = (
-                    f'mapData(size, 0, 100, 0, {100 * scale_factor})'
-                )
-                new_style['style']['height'] = (
-                    f'mapData(size, 0, 100, 0, {100 * scale_factor})'
-                )
+    @app.callback(
+        Output('network-graph', 'stylesheet', allow_duplicate=True),
+        [
+            Input('edge-tick-toggle', 'value'),
+            Input('edge-tick-threshold', 'value'),
+        ],
+        State('network-graph', 'stylesheet'),
+        prevent_initial_call=True,
+    )
+    def update_edge_tick_style(
+        show_ticks: bool,
+        threshold: int,
+        current_stylesheet: List[Dict],
+    ) -> List[Dict]:
+        """
+        Swap the edge mutation-count rules between tick marks and numerals.
 
-            # Update edge width
-            elif style.get('selector') == 'edge':
-                if 'style' not in new_style:
-                    new_style['style'] = {}
-                new_style['style'] = {**new_style['style']}
-                new_style['style']['width'] = edge_width
+        Tick strings are always present in the element data, so this is a
+        stylesheet-only update: no re-layout and no flicker.
 
-            new_stylesheet.append(new_style)
+        Parameters
+        ----------
+        show_ticks : bool
+            Whether to draw tick marks.
+        threshold : int
+            Mutation count above which an edge shows a numeral.
+        current_stylesheet : List[Dict]
+            Current Cytoscape stylesheet.
 
-        return new_stylesheet
+        Returns
+        -------
+        List[Dict]
+            The stylesheet with regenerated edge mutation-count rules.
+        """
+        if not current_stylesheet:
+            raise PreventUpdate
+
+        # Every generated rule is prefixed 'edge[distance', so the whole
+        # group can be dropped and rebuilt in one pass. Order matters:
+        # these must stay last to override the catch-all edge[label] rule.
+        kept = [
+            style
+            for style in current_stylesheet
+            if not str(style.get('selector', '')).startswith('edge[distance')
+        ]
+        return kept + create_edge_tick_stylesheet(
+            threshold or DEFAULT_TICK_THRESHOLD, bool(show_ticks)
+        )

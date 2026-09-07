@@ -156,7 +156,10 @@ def register(app, logger) -> None:
             Output('apply-layout-button', 'disabled'),
             Output('export-button', 'disabled'),
         ],
-        Input('compute-button', 'n_clicks'),
+        # Not the button directly: the metadata commit callback owns the
+        # button and bumps this token once metadata-store is written, so
+        # pending table edits are always applied before the recompute.
+        Input('metadata-commit-token', 'data'),
         [
             State('alignment-store', 'data'),
             State('algorithm-select', 'value'),
@@ -165,7 +168,7 @@ def register(app, logger) -> None:
         prevent_initial_call=True,
     )
     def compute_network(
-        n_clicks: int,
+        commit_token: Optional[int],
         alignment_data: Dict,
         algorithm: str,
         param_values: List,
@@ -175,8 +178,9 @@ def register(app, logger) -> None:
 
         Parameters
         ----------
-        n_clicks : int
-            Button click count from Dash.
+        commit_token : int, optional
+            Commit token from the metadata callbacks, bumped once any
+            pending metadata edits have been applied.
         alignment_data : Dict
             Serialized alignment from the alignment store.
         algorithm : str
