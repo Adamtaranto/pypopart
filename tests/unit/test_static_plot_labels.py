@@ -9,7 +9,11 @@ import pytest
 from pypopart.core.graph import HaplotypeNetwork
 from pypopart.core.haplotype import Haplotype
 from pypopart.core.sequence import Sequence
-from pypopart.visualization.static_plot import StaticNetworkPlotter
+from pypopart.visualization.static_plot import (
+    TICK_SPAN_FRACTION,
+    StaticNetworkPlotter,
+    tick_offsets,
+)
 
 
 @pytest.fixture
@@ -98,5 +102,88 @@ class TestEdgeMutationCounts:
         try:
             assert not ax.lines
             assert not _texts(ax) - {'LabelTest'}
+        finally:
+            plt.close('all')
+
+
+class TestTickOffsets:
+    """Ticks sit in the gap between the discs and tighten on short edges."""
+
+    def test_single_tick_centres_on_the_visible_span(self):
+        """A bigger disc at one end pushes the tick towards the other."""
+        assert tick_offsets(10.0, 4.0, 0.0, 1, 0.1) == [2.0]
+        assert tick_offsets(10.0, 1.0, 1.0, 1, 0.1) == [0.0]
+
+    def test_comb_spans_a_fraction_of_the_visible_edge(self):
+        """Ticks spread over the configured share of the gap, symmetric."""
+        offsets = tick_offsets(20.0, 2.0, 2.0, 5, 0.1)
+
+        assert offsets is not None
+        assert offsets[-1] - offsets[0] == pytest.approx(16.0 * TICK_SPAN_FRACTION)
+        assert offsets[0] == pytest.approx(-offsets[-1])
+
+    def test_spacing_shrinks_with_the_edge(self):
+        """Closer nodes, tighter comb."""
+        wide = tick_offsets(20.0, 2.0, 2.0, 4, 0.1)
+        narrow = tick_offsets(10.0, 2.0, 2.0, 4, 0.1)
+
+        assert wide[1] - wide[0] > narrow[1] - narrow[0]
+
+    @pytest.mark.parametrize(
+        ('length', 'ra', 'rb', 'count', 'min_spacing'),
+        [
+            (10.0, 2.0, 2.0, 4, 2.0),  # 6 visible, 3 gaps of 1.2 < 2
+            (4.0, 2.0, 2.0, 1, 0.1),  # discs touch
+            (3.0, 2.0, 2.0, 1, 0.1),  # discs overlap
+            (10.0, 1.0, 1.0, 0, 0.1),  # nothing to draw
+        ],
+    )
+    def test_unfit_returns_none(self, length, ra, rb, count, min_spacing):
+        """None tells the caller to draw a numeral."""
+        assert tick_offsets(length, ra, rb, count, min_spacing) is None
+
+
+class TestTicksClearTheNodes:
+    """On the page, no tick may be hidden under a node disc."""
+
+    def test_ticks_lie_outside_both_discs(self, network):
+        """Every stroke endpoint is further than the radius from each centre."""
+        layout = {'Alpha_01': (0.0, 0.0), 'Beta_01': (1.0, 0.0)}
+        plotter = StaticNetworkPlotter(network)
+        _, ax = plotter.plot(
+            layout=layout, show_labels=False, node_size_scale=2000.0, figsize=(4, 4)
+        )
+        try:
+            assert len(ax.lines) == 4
+            radii = {
+                node: plotter._points_to_data_units((size**0.5) / 2)
+                for node, size in plotter._node_sizes.items()
+            }
+            for line in ax.lines:
+                for x, y in zip(*line.get_data()):
+                    for node, (cx, cy) in layout.items():
+                        assert ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5 > radii[node]
+        finally:
+            plt.close('all')
+
+    def test_too_short_an_edge_falls_back_to_a_numeral(self, network):
+        """Ten ticks cannot fit between two discs that nearly touch."""
+        # A far-off third node sets the scale, so the close pair really
+        # is close on the page rather than autoscaled to fill it.
+        network.add_haplotype(Haplotype(Sequence('Gamma_01', 'GGGG'), sample_ids=['c']))
+        network.add_edge('Beta_01', 'Gamma_01', distance=2)
+        network.graph['Alpha_01']['Beta_01']['distance'] = 10
+        layout = {
+            'Alpha_01': (0.0, 0.0),
+            'Beta_01': (0.05, 0.0),
+            'Gamma_01': (10.0, 0.0),
+        }
+        _, ax = StaticNetworkPlotter(network).plot(
+            layout=layout, show_labels=False, node_size_scale=3000.0, figsize=(4, 4)
+        )
+        try:
+            # Only the long Beta-Gamma edge draws its two ticks.
+            assert len(ax.lines) == 2
+            assert '10' in _texts(ax)
         finally:
             plt.close('all')

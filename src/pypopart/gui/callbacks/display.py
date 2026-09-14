@@ -752,13 +752,28 @@ def register(app, logger) -> None:
                         tooltip.style.display = 'none';
                     }
 
+                    // Once a node is pressed or clicked the box would sit
+                    // over the node being dragged, so hide it and keep it
+                    // hidden until the pointer leaves a node and returns.
+                    let suppressed = false;
+                    function suppress() {
+                        suppressed = true;
+                        hide();
+                    }
+                    cy.on('grab', 'node', suppress);
+                    cy.on('tap', 'node', suppress);
+                    cy.on('mouseout', 'node', function() {
+                        suppressed = false;
+                        hide();
+                    });
+
                     cy.on('mouseover', 'edge', hide);
-                    cy.on('mouseout', 'node', hide);
                     cy.on('mouseover', function(evt) {
                         if (evt.target === cy) { hide(); }
                     });
 
                     cy.on('mouseover', 'node', function(evt) {
+                        if (suppressed) { return; }
                         const node = evt.target;
                         render(node.data('tooltip'));
                         tooltip.style.display = 'block';

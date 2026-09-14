@@ -9,7 +9,7 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from pypopart.core.alignment import Alignment
-from pypopart.gui.callbacks.feedback import no_toast, toast
+from pypopart.gui.callbacks.feedback import no_toast, task_running, toast
 from pypopart.gui.serialization import network_to_store
 
 
@@ -172,6 +172,18 @@ def register(app, logger) -> None:
             State({'type': 'algorithm-param', 'name': dash.ALL}, 'value'),
         ],
         prevent_initial_call=True,
+        # Runs in a worker process so it can be killed: a change of
+        # algorithm or parameters, or a fresh compute, cancels a job that
+        # is still running rather than letting it finish and overwrite.
+        background=True,
+        interval=250,
+        cancel=[
+            Input('metadata-commit-token', 'data'),
+            Input('algorithm-select', 'value'),
+        ],
+        running=task_running(
+            'Computing network', (Output('compute-button', 'disabled'), True, False)
+        ),
     )
     def compute_network(
         commit_token: Optional[int],

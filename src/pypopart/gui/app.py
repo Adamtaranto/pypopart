@@ -8,6 +8,7 @@ configure network algorithms, visualize results, and export outputs.
 """
 
 import logging
+import tempfile
 
 import click
 import dash
@@ -15,6 +16,27 @@ import dash_bootstrap_components as dbc
 
 from .callbacks import register_all
 from .layout import build_layout
+
+
+def _background_manager(cache_dir: str):
+    """
+    Build the manager that runs background callbacks.
+
+    Parameters
+    ----------
+    cache_dir : str
+        Directory for the diskcache store that carries job state and
+        results between the server and the worker processes.
+
+    Returns
+    -------
+    dash.DiskcacheManager
+        Manager for the app's ``background=True`` callbacks.
+    """
+    from dash import DiskcacheManager
+    import diskcache
+
+    return DiskcacheManager(diskcache.Cache(cache_dir))
 
 
 class PyPopARTApp:
@@ -53,10 +75,15 @@ class PyPopARTApp:
         )
         self.logger = logging.getLogger(__name__)
 
+        # Network construction and layout run as background callbacks so
+        # a stale job can be cancelled when the user changes settings and
+        # starts a fresh one. Diskcache hands results between processes.
+        self.cache_dir = tempfile.mkdtemp(prefix='pypopart-jobs-')
         self.app = dash.Dash(
             __name__,
             external_stylesheets=[dbc.themes.BOOTSTRAP],
             suppress_callback_exceptions=True,
+            background_callback_manager=_background_manager(self.cache_dir),
         )
         self.app.title = 'PyPopART - Haplotype Network Analysis'
 

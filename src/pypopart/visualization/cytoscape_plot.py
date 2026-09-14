@@ -35,6 +35,21 @@ MAX_TICK_MARKS = 30
 #: Default mutation count above which an edge shows a numeral, not ticks.
 DEFAULT_TICK_THRESHOLD = 10
 
+#: Font size, in px, of the tick label on an edge long enough to take it.
+TICK_FONT_SIZE = 14.0
+
+#: Smallest tick font, in px, before the strokes merge into a smear. An
+#: edge that cannot fit its comb even at this size shows the numeral.
+MIN_TICK_FONT_SIZE = 7.0
+
+#: Advance width of one glyph of the tick font as a fraction of the font
+#: size. JetBrains Mono, like most monospace faces, is 0.6 em wide.
+TICK_GLYPH_ADVANCE = 0.6
+
+#: Share of the visible edge (between the two node discs) the comb may
+#: occupy, leaving clear line on either side so it reads as a marker.
+TICK_FIT_FRACTION = 0.7
+
 
 def format_edge_ticks(distance: int, max_ticks: int = MAX_TICK_MARKS) -> str:
     """
@@ -63,6 +78,48 @@ def format_edge_ticks(distance: int, max_ticks: int = MAX_TICK_MARKS) -> str:
     return ' '.join('|' * int(distance))
 
 
+def fit_tick_font_size(
+    edge_length: float, radius_a: float, radius_b: float, count: int
+) -> float:
+    """
+    Choose a tick font size so the comb fits between two node discs.
+
+    The ticks are a text label, so the only way to pack them closer on
+    a short edge is to shrink the font. The comb is ``count`` pipes with
+    a space between each, ``2 * count - 1`` glyphs wide, and may take up
+    :data:`TICK_FIT_FRACTION` of the edge that is actually visible
+    between the nodes.
+
+    Parameters
+    ----------
+    edge_length : float
+        Centre-to-centre length of the edge, in px.
+    radius_a : float
+        Radius of the disc at one end, in px.
+    radius_b : float
+        Radius of the disc at the other end, in px.
+    count : int
+        Number of tick marks.
+
+    Returns
+    -------
+    float
+        Font size in px, between :data:`MIN_TICK_FONT_SIZE` and
+        :data:`TICK_FONT_SIZE`, or ``0.0`` when even the smallest comb
+        would not fit, which tells the stylesheet to show the numeral.
+    """
+    if count <= 0:
+        return 0.0
+    visible = edge_length - radius_a - radius_b
+    if visible <= 0:
+        return 0.0
+    glyphs = 2 * count - 1
+    fitted = visible * TICK_FIT_FRACTION / (glyphs * TICK_GLYPH_ADVANCE)
+    if fitted < MIN_TICK_FONT_SIZE:
+        return 0.0
+    return round(min(fitted, TICK_FONT_SIZE), 2)
+
+
 def create_edge_tick_stylesheet(
     threshold: int = DEFAULT_TICK_THRESHOLD, show_ticks: bool = True
 ) -> List[Dict]:
@@ -71,6 +128,10 @@ def create_edge_tick_stylesheet(
 
     Every selector is prefixed 'edge[distance' so callers can strip and
     replace the whole group in one pass.
+
+    The tick font size comes from each edge's ``tick_font`` datum (see
+    :func:`fit_tick_font_size`); an edge whose comb will not fit between
+    its nodes carries ``0`` and shows the numeral instead.
 
     These rules must be appended *after* the base 'edge[label]' rule:
     every edge carries a 'label' key, so that rule matches all edges and
@@ -106,16 +167,20 @@ def create_edge_tick_stylesheet(
 
     return [
         {
-            'selector': f'edge[distance <= {threshold}]',
+            'selector': f'edge[distance <= {threshold}][tick_font > 0]',
             'style': {
                 'label': 'data(ticks)',
                 'text-rotation': 'autorotate',
                 'font-family': TICK_FONT,
-                'font-size': '14px',
+                'font-size': 'data(tick_font)',
                 'color': POP_INK,
                 # no pill behind tick marks (overrides edge[label])
                 'text-background-opacity': 0,
             },
+        },
+        {
+            'selector': f'edge[distance <= {threshold}][tick_font = 0]',
+            'style': numeral_style,
         },
         {
             'selector': f'edge[distance > {threshold}]',
@@ -479,12 +544,33 @@ class InteractiveCytoscapePlotter:
 
             elements.append(element)
 
+        # Node centres and radii in canvas px, for fitting the tick comb.
+        centres = {
+            el['data']['id']: (el['position']['x'], el['position']['y'])
+            for el in elements
+        }
+        radii = {el['data']['id']: el['data']['size'] / 2 for el in elements}
+
         # Create edges
         for u, v in graph.edges():
             # Get mutation count from distance attribute
             distance = graph[u][v].get('distance', 1)
             # Get weight for layout purposes (should be uniform)
             weight = graph[u][v].get('weight', 1.0)
+
+            ticks = (
+                format_edge_ticks(int(distance), max_tick_marks)
+                if show_edge_labels
+                else ''
+            )
+            # Initial fit from the server's idea of node size; the browser
+            # refits from rendered widths (see callbacks/ui.py).
+            tick_font = 0.0
+            if ticks:
+                (ux, uy), (vx, vy) = centres[u], centres[v]
+                tick_font = fit_tick_font_size(
+                    math.hypot(vx - ux, vy - uy), radii[u], radii[v], int(distance)
+                )
 
             edge_data = {
                 'id': f'{u}-{v}',
@@ -495,9 +581,8 @@ class InteractiveCytoscapePlotter:
                 'label': str(int(distance))
                 if show_edge_labels and distance > 0
                 else '',
-                'ticks': format_edge_ticks(int(distance), max_tick_marks)
-                if show_edge_labels
-                else '',
+                'ticks': ticks,
+                'tick_font': tick_font,
             }
 
             elements.append({'data': edge_data})

@@ -8,10 +8,13 @@ import gzip
 import io
 from pathlib import Path
 import re
-from typing import Dict, Optional, TextIO, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, TextIO, Tuple, Union
 
 from pypopart.core.alignment import Alignment
 from pypopart.core.sequence import Sequence
+
+if TYPE_CHECKING:
+    from pypopart.core.graph import HaplotypeNetwork
 
 
 class NexusReader:
@@ -413,3 +416,87 @@ class NexusWriter:
 
                     handle.write('  ;\n')
                     handle.write('END;\n')
+
+    def write_network(
+        self,
+        network: 'HaplotypeNetwork',
+        layout: Optional[Dict[str, Tuple[float, float]]] = None,
+    ) -> None:
+        """
+        Write a haplotype network as a PopART-style NEXUS file.
+
+        Produces a DATA block holding the sampled haplotype sequences and
+        a NETWORK block in the layout PopART itself saves: a TRANSLATE
+        table of vertex labels, VERTICES with coordinates, VLABELS with
+        label offsets and EDGES with mutation counts. Median vectors have
+        no sequence and appear only as vertices.
+
+        Parameters
+        ----------
+        network : HaplotypeNetwork
+            Network to write.
+        layout : Dict[str, Tuple[float, float]], optional
+            Node positions. Computed with a seeded spring layout when
+            omitted, so the same network always writes the same file.
+        """
+        import networkx as nx
+
+        graph = network.graph
+        nodes = list(graph.nodes())
+        index = {node: i for i, node in enumerate(nodes)}
+        if layout is None:
+            layout = nx.spring_layout(graph, seed=42, scale=200.0)
+
+        sampled = [n for n in nodes if not network.is_median_vector(n)]
+        sequences = {
+            n: str(graph.nodes[n].get('sequence') or '')
+            for n in sampled
+            if graph.nodes[n].get('sequence')
+        }
+
+        with self._open_file() as handle:
+            handle.write('#NEXUS\n\n')
+
+            if sequences:
+                length = max(len(seq) for seq in sequences.values())
+                handle.write('BEGIN DATA;\n')
+                handle.write(f'  DIMENSIONS NTAX={len(sequences)} NCHAR={length};\n')
+                handle.write('  FORMAT DATATYPE=DNA MISSING=? GAP=-;\n')
+                handle.write('  MATRIX\n')
+                for node, seq in sequences.items():
+                    handle.write(f'    {node.ljust(20)} {seq}\n')
+                handle.write('  ;\nEND;\n\n')
+
+            handle.write('BEGIN NETWORK;\n')
+            handle.write(
+                f'  DIMENSIONS ntax={len(sampled)} nvertices={len(nodes)} '
+                f'nedges={graph.number_of_edges()};\n'
+            )
+            handle.write('  FORMAT VSize=10 EView=Numbers;\n')
+
+            handle.write('  TRANSLATE\n')
+            for i, node in enumerate(sampled, start=1):
+                handle.write(f'    {i} {node},\n')
+            handle.write('  ;\n')
+
+            handle.write('  VERTICES\n')
+            for i, node in enumerate(nodes, start=1):
+                x, y = layout.get(node, (0.0, 0.0))
+                handle.write(f'    {i} {float(x):.4f} {float(y):.4f},\n')
+            handle.write('  ;\n')
+
+            handle.write('  VLABELS\n')
+            for i, node in enumerate(nodes, start=1):
+                x, y = layout.get(node, (0.0, 0.0))
+                handle.write(f'    {i} {float(x) + 5.0:.4f} {float(y) - 5.0:.4f},\n')
+            handle.write('  ;\n')
+
+            # PopART lists vertices 1-based but refers to them 0-based in
+            # the edge table; match that so PopART can read the file.
+            handle.write('  EDGES\n')
+            for i, (u, v) in enumerate(graph.edges(), start=1):
+                weight = graph[u][v].get('distance', graph[u][v].get('weight', 1))
+                handle.write(f'    {i} {index[u]} {index[v]} {int(weight)},\n')
+            handle.write('  ;\n')
+
+            handle.write('END;\n')

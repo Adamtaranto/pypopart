@@ -11,7 +11,7 @@ from dash import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from pypopart.core.graph import HaplotypeNetwork
-from pypopart.gui.callbacks.feedback import toast
+from pypopart.gui.callbacks.feedback import task_running, toast
 from pypopart.gui.serialization import merge_node_positions
 from pypopart.io.network_export import GMLExporter, GraphMLExporter, JSONExporter
 from pypopart.visualization.cytoscape_plot import (
@@ -260,6 +260,7 @@ def register(app, logger) -> None:
             State('export-legend', 'value'),
         ],
         prevent_initial_call=True,
+        running=task_running('Exporting'),
     )
     def export_network(
         n_clicks: int,

@@ -30,6 +30,21 @@ def build_layout(app) -> None:
                         ],
                         className='pp-title',
                     ),
+                    # Shown by the long callbacks' `running=` spec while
+                    # they work, so the user can see what the app is doing.
+                    html.Div(
+                        [
+                            dbc.Spinner(
+                                size='sm',
+                                color='dark',
+                                spinner_class_name='pp-task-spinner',
+                            ),
+                            html.Span(id='task-label', className='pp-task-label'),
+                        ],
+                        id='task-indicator',
+                        className='pp-task',
+                        style={'display': 'none'},
+                    ),
                     html.Span(
                         'Haplotype Network Analysis',
                         className='pp-subtitle',
@@ -187,12 +202,22 @@ def create_upload_card() -> dbc.Card:
                     ),
                     dcc.Upload(
                         id='upload-data',
-                        children=dbc.Button(
-                            'Select Sequence File',
-                            color='primary',
-                            className='w-100',
+                        children=html.Div(
+                            [
+                                dbc.Button(
+                                    'Select Sequence File',
+                                    color='primary',
+                                    className='w-100',
+                                ),
+                                html.Small(
+                                    'or drop a file here',
+                                    className='pp-dropzone-hint',
+                                ),
+                            ]
                         ),
                         multiple=False,
+                        className='pp-dropzone',
+                        className_active='pp-dropzone--active',
                     ),
                     html.Div(id='upload-status', className='mt-2'),
                     html.Hr(),
@@ -203,13 +228,23 @@ def create_upload_card() -> dbc.Card:
                     ),
                     dcc.Upload(
                         id='upload-metadata',
-                        children=dbc.Button(
-                            'Select Metadata File',
-                            color='secondary',
-                            outline=True,
-                            className='w-100',
+                        children=html.Div(
+                            [
+                                dbc.Button(
+                                    'Select Metadata File',
+                                    color='secondary',
+                                    outline=True,
+                                    className='w-100',
+                                ),
+                                html.Small(
+                                    'or drop a CSV here',
+                                    className='pp-dropzone-hint',
+                                ),
+                            ]
                         ),
                         multiple=False,
+                        className='pp-dropzone',
+                        className_active='pp-dropzone--active',
                     ),
                     html.Div(id='metadata-status', className='mt-2'),
                     html.Div(
@@ -414,6 +449,30 @@ def create_layout_card() -> dbc.Card:
                         marks={0.5: '0.5x', 1.0: '1.0x', 2.0: '2.0x', 3.0: '3.0x'},
                         tooltip={'placement': 'bottom', 'always_visible': False},
                     ),
+                    html.Div(
+                        id='repel-options',
+                        children=[
+                            html.Br(),
+                            dbc.Label('Repel Force', className='fw-bold'),
+                            html.Small(
+                                'How strongly nodes push apart in the spring layouts',
+                                className='text-muted d-block mb-2',
+                            ),
+                            dcc.Slider(
+                                id='repel-slider',
+                                min=0.5,
+                                max=4.0,
+                                step=0.1,
+                                value=1.0,
+                                marks={0.5: '0.5x', 1.0: '1x', 2.0: '2x', 4.0: '4x'},
+                                tooltip={
+                                    'placement': 'bottom',
+                                    'always_visible': False,
+                                },
+                            ),
+                        ],
+                        style={'display': 'none'},
+                    ),
                     html.Br(),
                     dbc.Label('Node Size', className='fw-bold'),
                     html.Small(
@@ -469,6 +528,22 @@ def create_layout_card() -> dbc.Card:
                         value=DEFAULT_TICK_THRESHOLD,
                         marks={1: '1', 10: '10', 20: '20', MAX_TICK_MARKS: '30'},
                         tooltip={'placement': 'bottom', 'always_visible': False},
+                    ),
+                    html.Br(),
+                    dbc.Label('Selection', className='fw-bold'),
+                    html.Small(
+                        'Click a node to select it, Cmd/Ctrl+click to add more, '
+                        'click the background to clear. Dragging any selected '
+                        'node moves the whole selection. Shift+drag draws a '
+                        'selection box; switch on box select to draw one with '
+                        'a plain drag instead of panning.',
+                        className='text-muted d-block mb-2',
+                    ),
+                    dbc.Switch(
+                        id='box-select-toggle',
+                        label='Box select (drag to select, not pan)',
+                        value=False,
+                        className='mb-2',
                     ),
                     html.Br(),
                     dbc.Label('Snap to Grid', className='fw-bold'),
@@ -624,6 +699,10 @@ def create_network_tab() -> html.Div:
                         wheelSensitivity=0.2,
                         zoom=1,
                         autoungrabify=False,
+                        # Shift+drag draws a selection box; the box-select
+                        # switch turns panning off so a plain drag does too.
+                        boxSelectionEnabled=True,
+                        userPanningEnabled=True,
                     )
                 ],
             ),

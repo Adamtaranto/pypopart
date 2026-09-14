@@ -161,3 +161,40 @@ class TestNexusFromString:
         alignment = NexusReader.from_string(content).read_alignment()
         assert len(alignment) == 2
         assert alignment[0].id == 's1'
+
+
+class TestWriteNetwork:
+    """A network round-trips into PopART's NEXUS network block."""
+
+    def test_writes_data_and_network_blocks(self, tiny_network, tmp_path):
+        """Sampled haplotypes land in DATA; every node is a vertex."""
+        from pypopart.io.nexus import NexusWriter
+
+        out = tmp_path / 'net.nex'
+        NexusWriter(out).write_network(tiny_network)
+        text = out.read_text()
+
+        assert text.startswith('#NEXUS')
+        assert 'BEGIN DATA;' in text
+        assert 'BEGIN NETWORK;' in text
+        n_nodes = tiny_network.graph.number_of_nodes()
+        n_edges = tiny_network.graph.number_of_edges()
+        n_sampled = n_nodes - len(tiny_network.median_vector_ids)
+        assert f'ntax={n_sampled} nvertices={n_nodes} nedges={n_edges}' in text
+        # One VERTICES row per node, one EDGES row per edge.
+        vertices = text.split('VERTICES')[1].split(';')[0]
+        assert vertices.count(',') == n_nodes
+        edges = text.split('EDGES')[1].split(';')[0]
+        assert edges.count(',') == n_edges
+
+    def test_uses_supplied_layout(self, tiny_network, tmp_path):
+        """Given positions are written verbatim."""
+        from pypopart.io.nexus import NexusWriter
+
+        node = next(iter(tiny_network.graph.nodes()))
+        layout = dict.fromkeys(tiny_network.graph.nodes(), (0.0, 0.0))
+        layout[node] = (12.5, -3.25)
+        out = tmp_path / 'net.nex'
+        NexusWriter(out).write_network(tiny_network, layout=layout)
+
+        assert '12.5000 -3.2500,' in out.read_text()

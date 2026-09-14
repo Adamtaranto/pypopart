@@ -7,9 +7,11 @@ from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 
 from pypopart.core.graph import HaplotypeNetwork
+from pypopart.gui.callbacks.feedback import task_running
 from pypopart.gui.serialization import merge_node_positions
 from pypopart.layout.algorithms import (
     LayoutManager,
+    resolve_edge_overlaps,
     resolve_grid_collisions,
     snap_to_grid,
 )
@@ -123,6 +125,28 @@ def _grid_step(snap_enabled: Optional[bool], grid_size: Optional[float]) -> floa
     return float(grid_size) / CYTOSCAPE_POSITION_SCALE
 
 
+def _spring_k(n_nodes: int, repel: Optional[float]) -> Optional[float]:
+    """
+    Turn the repel slider into NetworkX's ``k`` for the spring layout.
+
+    Parameters
+    ----------
+    n_nodes : int
+        Number of nodes being laid out.
+    repel : float, optional
+        Slider value; a multiplier on the default ``1/sqrt(n)`` spacing.
+        ``None`` or ``1.0`` leaves NetworkX to pick.
+
+    Returns
+    -------
+    float or None
+        Optimal inter-node distance for ``nx.spring_layout``.
+    """
+    if not repel or repel == 1.0 or n_nodes <= 0:
+        return None
+    return float(repel) / (n_nodes**0.5)
+
+
 def _apply_size_overrides(
     stylesheet: List[Dict], node_size: Optional[float], edge_width: Optional[float]
 ) -> List[Dict]:
@@ -206,6 +230,25 @@ def register(app, logger) -> None:
         else:
             return {'display': 'none'}, False
 
+    @app.callback(Output('repel-options', 'style'), Input('layout-select', 'value'))
+    def toggle_repel_options(layout: str) -> Dict:
+        """
+        Show the repel force slider only for the spring layouts.
+
+        Parameters
+        ----------
+        layout : str
+            Selected layout name.
+
+        Returns
+        -------
+        Dict
+            Style for the repel options panel.
+        """
+        if layout in ('spring', 'spring_proportional'):
+            return {'display': 'block'}
+        return {'display': 'none'}
+
     @app.callback(
         [
             Output('layout-store', 'data'),
@@ -225,8 +268,26 @@ def register(app, logger) -> None:
             State('map-projection', 'value'),
             State('snap-to-grid-toggle', 'value'),
             State('grid-size', 'value'),
+            State('repel-slider', 'value'),
         ],
         prevent_initial_call='initial_duplicate',
+        # Runs in a worker process so it can be killed: changing the
+        # layout settings, computing a new network or clicking again
+        # cancels a layout still in progress instead of queueing behind it.
+        background=True,
+        interval=250,
+        cancel=[
+            Input('apply-layout-button', 'n_clicks'),
+            Input('network-store', 'data'),
+            Input('layout-select', 'value'),
+            Input('spacing-slider', 'value'),
+            Input('repel-slider', 'value'),
+            Input('snap-to-grid-toggle', 'value'),
+            Input('grid-size', 'value'),
+        ],
+        running=task_running(
+            'Applying layout', (Output('apply-layout-button', 'disabled'), True, False)
+        ),
     )
     def apply_layout(
         n_clicks: Optional[int],
@@ -237,6 +298,7 @@ def register(app, logger) -> None:
         projection: str,
         snap_enabled: Optional[bool],
         grid_size: Optional[float],
+        repel: Optional[float],
     ) -> Tuple[Optional[Dict], None, bool]:
         """
         Apply layout algorithm to network.
@@ -259,6 +321,9 @@ def register(app, logger) -> None:
             Whether computed positions are quantised to the grid.
         grid_size : float, optional
             Grid spacing in Cytoscape pixels.
+        repel : float, optional
+            Repulsion multiplier for the spring layouts; 1.0 is the
+            NetworkX default spacing, larger pushes nodes further apart.
 
         Returns
         -------
@@ -325,7 +390,7 @@ def register(app, logger) -> None:
                     positions = nx.spring_layout(
                         G,
                         weight='spring_weight',
-                        k=None,  # Let NetworkX calculate optimal k
+                        k=_spring_k(G.number_of_nodes(), repel),
                         iterations=100,
                         scale=spacing_factor
                         * 1.0,  # Scale is applied to normalized coords
@@ -344,9 +409,11 @@ def register(app, logger) -> None:
                 # Geographic layouts were removed with the geo feature;
                 # fall back to spring for any stale 'geographic' value.
                 layout_manager = LayoutManager(network)
-                positions = layout_manager.compute_layout(
-                    'spring' if layout_method == 'geographic' else layout_method
-                )
+                method = 'spring' if layout_method == 'geographic' else layout_method
+                options = {}
+                if method == 'spring':
+                    options['k'] = _spring_k(network.graph.number_of_nodes(), repel)
+                positions = layout_manager.compute_layout(method, **options)
 
                 # Apply spacing factor to expand/contract the layout
                 if spacing_factor and spacing_factor != 1.0:
@@ -362,6 +429,11 @@ def register(app, logger) -> None:
             # Quantising pulls near-coincident nodes onto the same
             # intersection, where one would hide the other.
             positions = resolve_grid_collisions(
+                positions, step, _adjacency(network.graph)
+            )
+            # Two edges leaving a node along the same lattice vector hide
+            # each other; swing the outer node round to a free direction.
+            positions = resolve_edge_overlaps(
                 positions, step, _adjacency(network.graph)
             )
 

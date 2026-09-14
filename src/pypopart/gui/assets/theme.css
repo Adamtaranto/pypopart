@@ -536,3 +536,76 @@ input.pp-color-swatch[type="color"] {
 .pp-chip-inferred {
   background-color: transparent;
 }
+
+/* --------------------------------------------------------- task indicator */
+
+.pp-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 2px solid var(--pp-ink);
+  background-color: var(--pp-amber);
+  font-family: var(--pp-sans);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--pp-ink);
+  align-self: center;
+}
+
+.pp-task-spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
+/* -------------------------------------------------------------- drop zones */
+
+.pp-dropzone {
+  border: 2px dashed var(--pp-ink);
+  padding: 8px;
+  background-color: var(--pp-parchment);
+  cursor: pointer;
+}
+
+.pp-dropzone--active {
+  border-style: solid;
+  background-color: var(--pp-amber);
+}
+
+.pp-dropzone-hint {
+  display: block;
+  text-align: center;
+  margin-top: 6px;
+  color: #6a6a66;
+}
+
+/* --------------------------------------------------------- file chips */
+
+.pp-filechip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-left: 4px solid var(--pp-teal);
+  background-color: var(--pp-paper);
+  font-size: 12px;
+}
+
+.pp-filechip-name {
+  font-family: var(--pp-mono);
+  font-weight: 600;
+  color: var(--pp-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.pp-filechip-summary {
+  color: #6a6a66;
+  margin-left: auto;
+  white-space: nowrap;
+}

@@ -79,6 +79,20 @@ def register(app, logger) -> None:
         prevent_initial_call=True,
     )
 
+    # Box select: with panning off, a plain drag on the canvas draws a
+    # selection box instead of moving the view. Cytoscape handles the
+    # rest natively (Cmd/Ctrl+click adds, background click clears, and
+    # dragging one selected node drags them all).
+    app.clientside_callback(
+        """
+        function(boxSelect) {
+            return !boxSelect;
+        }
+        """,
+        Output('network-graph', 'userPanningEnabled'),
+        Input('box-select-toggle', 'value'),
+    )
+
     # Publishes the grid settings onto `window` so the Cytoscape event
     # handlers below can read them without a round trip on every drag.
     app.clientside_callback(
@@ -146,6 +160,9 @@ def register(app, logger) -> None:
                     // tie-break, so what the user sees on drop matches
                     // what the server stores. Run here as well because
                     // a drag no longer round-trips through a redraw.
+                    // resolve_edge_overlaps is deliberately not
+                    // mirrored: a node dropped onto a line was put
+                    // there on purpose, so a drop only de-collides.
                     const OCCUPIED_PENALTY = 3;
                     const MAX_SEARCH = 12;
                     const STEPS = [[1,0], [-1,0], [0,1], [0,-1]];
@@ -247,6 +264,87 @@ def register(app, logger) -> None:
         }
         """,
         Output('snap-to-grid-toggle', 'className'),
+        Input('network-graph', 'elements'),
+        prevent_initial_call=True,
+    )
+
+    # Refit the mutation tick marks to the edge that is actually visible
+    # between two node discs. The server seeds each edge's tick_font from
+    # its own idea of node size (fit_tick_font_size in
+    # visualization/cytoscape_plot.py); this recomputes it from rendered
+    # widths, so the node-size slider and every drag are honoured without
+    # a round trip. Same constants and formula as the Python.
+    app.clientside_callback(
+        """
+        function() {
+            if (window.pypopartTickSetup) {
+                return window.dash_clientside.no_update;
+            }
+            window.pypopartTickSetup = true;
+
+            setTimeout(function() {
+                try {
+                    const cy = document.getElementById('network-graph')._cyreg.cy;
+                    if (!cy) { return; }
+
+                    const TICK_FONT_SIZE = 14;
+                    const MIN_TICK_FONT_SIZE = 7;
+                    const TICK_GLYPH_ADVANCE = 0.6;
+                    const TICK_FIT_FRACTION = 0.7;
+
+                    function fit(length, radiusA, radiusB, count) {
+                        if (count <= 0) { return 0; }
+                        const visible = length - radiusA - radiusB;
+                        if (visible <= 0) { return 0; }
+                        const glyphs = 2 * count - 1;
+                        const fitted = visible * TICK_FIT_FRACTION /
+                            (glyphs * TICK_GLYPH_ADVANCE);
+                        if (fitted < MIN_TICK_FONT_SIZE) { return 0; }
+                        return Math.round(Math.min(fitted, TICK_FONT_SIZE) * 100) / 100;
+                    }
+
+                    window.pypopartFitTicks = function() {
+                        cy.batch(function() {
+                            cy.edges().forEach(function(edge) {
+                                if (!edge.data('ticks')) { return; }
+                                const a = edge.source();
+                                const b = edge.target();
+                                const pa = a.position();
+                                const pb = b.position();
+                                const length = Math.hypot(pb.x - pa.x, pb.y - pa.y);
+                                const size = fit(
+                                    length, a.width() / 2, b.width() / 2,
+                                    Number(edge.data('distance')) || 0
+                                );
+                                if (edge.data('tick_font') !== size) {
+                                    edge.data('tick_font', size);
+                                }
+                            });
+                        });
+                    };
+
+                    let pending = null;
+                    function refit() {
+                        if (pending) { clearTimeout(pending); }
+                        pending = setTimeout(function() {
+                            pending = null;
+                            window.pypopartFitTicks();
+                        }, 50);
+                    }
+
+                    cy.on('dragfree', 'node', refit);
+                    cy.on('add', refit);
+                    cy.on('style', 'node', refit);
+                    refit();
+                } catch (e) {
+                    console.log('Error setting up tick fitting:', e);
+                }
+            }, 500);
+
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output('edge-tick-toggle', 'className'),
         Input('network-graph', 'elements'),
         prevent_initial_call=True,
     )

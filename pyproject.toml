@@ -20,7 +20,7 @@ classifiers = [
 dependencies = ["biopython", "click", "networkx", "numpy", "scipy"]
 
 [project.optional-dependencies]
-gui = ["dash", "dash-bootstrap-components", "dash-cytoscape"]
+gui = ["dash[diskcache]", "dash-bootstrap-components", "dash-cytoscape"]
 viz = ["matplotlib", "plotly"]
 speed = ["numba"]
 all = ["pypopart[gui,viz,speed]"]

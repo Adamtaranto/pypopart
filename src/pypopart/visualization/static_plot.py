@@ -21,6 +21,71 @@ from .style import (
     apply_pop_art_rcparams,
 )
 
+#: Half the length of one mutation tick, in points. Fixed on the page so
+#: every tick in a figure is the same size whatever the edge length.
+TICK_HALF_LENGTH_PT = 3.5
+
+#: Closest two ticks may sit, in points, before they merge into a smear.
+#: An edge too short to space its ticks this far apart shows a numeral.
+MIN_TICK_SPACING_PT = 2.5
+
+#: Share of the visible edge (between the two node discs) the comb may
+#: occupy, leaving clear line on either side so it reads as a marker.
+TICK_SPAN_FRACTION = 0.6
+
+
+def tick_offsets(
+    length: float,
+    radius_a: float,
+    radius_b: float,
+    count: int,
+    min_spacing: float,
+) -> Optional[List[float]]:
+    """
+    Place mutation ticks along the part of an edge not hidden by nodes.
+
+    Ticks are centred on the visible span between the two discs and
+    spread over :data:`TICK_SPAN_FRACTION` of it, so the comb tightens
+    as nodes get closer. Below ``min_spacing`` the strokes would merge,
+    so the caller draws a numeral instead.
+
+    Parameters
+    ----------
+    length : float
+        Centre-to-centre length of the edge, in data units.
+    radius_a : float
+        Radius of the disc at the start of the edge, in data units.
+    radius_b : float
+        Radius of the disc at the end of the edge, in data units.
+    count : int
+        Number of ticks.
+    min_spacing : float
+        Smallest allowed gap between ticks, in data units.
+
+    Returns
+    -------
+    List[float] or None
+        Signed offsets along the edge, measured from its centre-to-centre
+        midpoint towards the end, or ``None`` when the comb will not
+        fit.
+    """
+    if count <= 0:
+        return None
+    visible = length - radius_a - radius_b
+    if visible <= 0:
+        return None
+
+    # Unequal discs shift the visible span off the geometric midpoint.
+    centre = (radius_a - radius_b) / 2
+    if count == 1:
+        return [centre]
+
+    spacing = visible * TICK_SPAN_FRACTION / (count - 1)
+    if spacing < min_spacing:
+        return None
+    span = spacing * (count - 1)
+    return [centre - span / 2 + spacing * i for i in range(count)]
+
 
 class StaticNetworkPlotter:
     """
@@ -47,6 +112,7 @@ class StaticNetworkPlotter:
         self.network = network
         self.figure = None
         self.ax = None
+        self._node_sizes: Optional[Dict[str, float]] = None
 
     def plot(
         self,
@@ -202,10 +268,6 @@ class StaticNetworkPlotter:
                 ax=self.ax,
             )
 
-        # Draw mutation counts on edges if requested
-        if show_mutations:
-            self._draw_edge_labels(graph, layout, show_edge_ticks, edge_tick_threshold)
-
         # Add title
         if title:
             self.ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
@@ -222,7 +284,37 @@ class StaticNetworkPlotter:
         # Tight layout
         plt.tight_layout()
 
+        # Mutation marks last: fitting them between the node discs needs
+        # the final data-to-page scale, which the margins and the layout
+        # pass above have only just settled.
+        if show_mutations:
+            self._node_sizes = node_sizes
+            self._draw_edge_labels(graph, layout, show_edge_ticks, edge_tick_threshold)
+
         return self.figure, self.ax
+
+    def _points_to_data_units(self, points: float) -> float:
+        """
+        Convert a length on the page to a length in data coordinates.
+
+        Parameters
+        ----------
+        points : float
+            Length in typographic points.
+
+        Returns
+        -------
+        float
+            The same length in data units, averaged over the two axes so
+            a stroke drawn at any angle comes out about the right size.
+        """
+        self.ax.autoscale_view()
+        pixels = points * self.figure.dpi / 72.0
+        inverse = self.ax.transData.inverted()
+        origin = inverse.transform((0.0, 0.0))
+        along_x = inverse.transform((pixels, 0.0))
+        along_y = inverse.transform((0.0, pixels))
+        return (abs(along_x[0] - origin[0]) + abs(along_y[1] - origin[1])) / 2
 
     def add_legend(
         self,
@@ -521,12 +613,16 @@ class StaticNetworkPlotter:
         source: Tuple[float, float],
         target: Tuple[float, float],
         count: int,
-    ) -> None:
+        radius_source: float,
+        radius_target: float,
+    ) -> bool:
         """
         Draw one short stroke across an edge per mutation.
 
         The PopART convention, and what the interactive view shows, so a
-        figure exported from the app matches what was on screen.
+        figure exported from the app matches what was on screen. The
+        strokes sit in the gap between the two node discs and pack
+        closer on a short edge, down to :data:`MIN_TICK_SPACING_PT`.
 
         Parameters
         ----------
@@ -536,27 +632,38 @@ class StaticNetworkPlotter:
             Position of the other end.
         count : int
             Number of strokes to draw.
-        """
-        import numpy as _np
+        radius_source : float
+            Radius of the disc at ``source``, in data units.
+        radius_target : float
+            Radius of the disc at ``target``, in data units.
 
+        Returns
+        -------
+        bool
+            True when the strokes were drawn; False when the edge is too
+            short for them and the caller should label it with a numeral.
+        """
         x1, y1 = float(source[0]), float(source[1])
         x2, y2 = float(target[0]), float(target[1])
         dx, dy = x2 - x1, y2 - y1
-        length = _np.hypot(dx, dy)
+        length = float(np.hypot(dx, dy))
         if length == 0:
-            return
+            return False
+
+        offsets = tick_offsets(
+            length,
+            radius_source,
+            radius_target,
+            count,
+            self._points_to_data_units(MIN_TICK_SPACING_PT),
+        )
+        if offsets is None:
+            return False
 
         # Unit vector along the edge, and its perpendicular.
         ux, uy = dx / length, dy / length
         px, py = -uy, ux
-
-        # Ticks occupy the middle of the edge, evenly spaced, and are
-        # scaled to the edge so they stay legible at any layout size.
-        half = min(length * 0.04, length / (2 * (count + 1)))
-        span = length * 0.4
-        offsets = (
-            _np.linspace(-span / 2, span / 2, count) if count > 1 else _np.array([0.0])
-        )
+        half = self._points_to_data_units(TICK_HALF_LENGTH_PT)
         mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
 
         for offset in offsets:
@@ -569,6 +676,7 @@ class StaticNetworkPlotter:
                 solid_capstyle='butt',
                 zorder=1,
             )
+        return True
 
     def _compute_node_colors(
         self,
@@ -655,6 +763,14 @@ class StaticNetworkPlotter:
         tick_threshold : int, default=10
             Above this many mutations a numeral is drawn instead.
         """
+        # Node markers are scatter areas in points squared; the tick comb
+        # has to clear the disc, so convert each radius to data units.
+        sizes = getattr(self, '_node_sizes', None) or self._compute_node_sizes(300.0)
+        radii = {
+            node: self._points_to_data_units(float(np.sqrt(size)) / 2)
+            for node, size in sizes.items()
+        }
+
         edge_labels = {}
         for u, v in graph.edges():
             # 'weight' defaults to 1.0 for every edge; the mutation count
@@ -664,9 +780,14 @@ class StaticNetworkPlotter:
             distance = int(distance)
             if distance <= 0:
                 continue
-            if show_ticks and distance <= tick_threshold:
-                self._draw_edge_ticks(layout[u], layout[v], distance)
-            else:
+            drawn = (
+                show_ticks
+                and distance <= tick_threshold
+                and self._draw_edge_ticks(
+                    layout[u], layout[v], distance, radii.get(u, 0.0), radii.get(v, 0.0)
+                )
+            )
+            if not drawn:
                 edge_labels[(u, v)] = distance
 
         if edge_labels:
