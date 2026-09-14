@@ -872,3 +872,163 @@ class TestResolveGridCollisions:
         resolve_grid_collisions(positions, 1.0)
 
         assert positions == {'a': (0.0, 0.0), 'b': (0.0, 0.0)}
+
+
+class TestResolveEdgeOverlaps:
+    """Two edges on one lattice vector hide each other; rotate one off."""
+
+    @staticmethod
+    def _overlapped(positions, adjacency):
+        """Return the edges that are still overlapped after resolution."""
+        from pypopart.layout.algorithms import _edge_is_overlapped
+
+        cells = {n: (round(x), round(y)) for n, (x, y) in positions.items()}
+        edges = {tuple(sorted((u, v))) for u in adjacency for v in adjacency[u]}
+        return sorted(e for e in edges if _edge_is_overlapped(*e, cells, adjacency))
+
+    def test_far_child_swings_off_the_shared_vector(self):
+        """Parent at 0, children at 1 and 2: the outer child rotates."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        adjacency = {'p': ['a', 'b'], 'a': ['p'], 'b': ['p']}
+        out = resolve_edge_overlaps(
+            {'p': (0.0, 0.0), 'a': (1.0, 0.0), 'b': (2.0, 0.0)}, 1.0, adjacency
+        )
+
+        assert out['p'] == (0.0, 0.0)
+        assert out['a'] == (1.0, 0.0)
+        assert out['b'][1] != 0.0
+        assert len(set(out.values())) == 3
+        assert self._overlapped(out, adjacency) == []
+
+    def test_result_stays_on_the_grid(self):
+        """A rotated node lands on an intersection."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        adjacency = {'p': ['a', 'b'], 'a': ['p'], 'b': ['p']}
+        out = resolve_edge_overlaps(
+            {'p': (0.0, 0.0), 'a': (0.5, 0.0), 'b': (1.0, 0.0)}, 0.5, adjacency
+        )
+
+        for x, y in out.values():
+            assert abs(x / 0.5 - round(x / 0.5)) < 1e-9
+            assert abs(y / 0.5 - round(y / 0.5)) < 1e-9
+
+    def test_edge_through_an_unrelated_node_is_cleared(self):
+        """An edge must not pass under a node it does not connect."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        adjacency = {'p': ['q'], 'q': ['p'], 'x': []}
+        out = resolve_edge_overlaps(
+            {'p': (0.0, 0.0), 'q': (2.0, 0.0), 'x': (1.0, 0.0)}, 1.0, adjacency
+        )
+
+        assert out['x'] == (1.0, 0.0)
+        assert self._overlapped(out, adjacency) == []
+
+    def test_collinear_fan_gets_distinct_directions(self):
+        """Five children in a row from one parent end up on five vectors."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        positions = {'p': (0.0, 0.0)}
+        positions.update({f'c{i}': (float(i), 0.0) for i in range(1, 6)})
+        adjacency = {'p': [f'c{i}' for i in range(1, 6)]}
+        adjacency.update({f'c{i}': ['p'] for i in range(1, 6)})
+
+        out = resolve_edge_overlaps(positions, 1.0, adjacency)
+
+        assert len(set(out.values())) == 6
+        assert self._overlapped(out, adjacency) == []
+
+    def test_no_overlaps_is_a_no_op(self):
+        """A clean layout comes back untouched."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        positions = {'p': (0.0, 0.0), 'a': (1.0, 0.0), 'b': (0.0, 1.0)}
+        adjacency = {'p': ['a', 'b'], 'a': ['p'], 'b': ['p']}
+
+        assert resolve_edge_overlaps(positions, 1.0, adjacency) == positions
+
+    @pytest.mark.parametrize('grid', [0, -1])
+    def test_disabled_grid_passes_through(self, grid):
+        """With snapping off there is no lattice and nothing to do."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        positions = {'p': (0.0, 0.0), 'a': (1.0, 0.0), 'b': (2.0, 0.0)}
+        adjacency = {'p': ['a', 'b'], 'a': ['p'], 'b': ['p']}
+
+        assert resolve_edge_overlaps(positions, grid, adjacency) == positions
+
+    def test_without_adjacency_passes_through(self):
+        """No edges, no overlaps."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        positions = {'p': (0.0, 0.0), 'a': (1.0, 0.0), 'b': (2.0, 0.0)}
+
+        assert resolve_edge_overlaps(positions, 1.0, None) == positions
+
+    def test_pinned_nodes_do_not_move(self):
+        """Only movable nodes rotate; a fully pinned overlap is left alone."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        positions = {'p': (0.0, 0.0), 'a': (1.0, 0.0), 'b': (2.0, 0.0)}
+        adjacency = {'p': ['a', 'b'], 'a': ['p'], 'b': ['p']}
+
+        out = resolve_edge_overlaps(positions, 1.0, adjacency, movable=['b'])
+        assert out['p'] == (0.0, 0.0) and out['a'] == (1.0, 0.0)
+        assert out['b'] != (2.0, 0.0)
+
+        assert resolve_edge_overlaps(positions, 1.0, adjacency, movable=[]) == (
+            positions
+        )
+
+    def test_is_deterministic(self):
+        """The same input must always give the same layout."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        positions = {'p': (0.0, 0.0)}
+        positions.update({f'c{i}': (float(i), 0.0) for i in range(1, 8)})
+        adjacency = {'p': [f'c{i}' for i in range(1, 8)]}
+        adjacency.update({f'c{i}': ['p'] for i in range(1, 8)})
+
+        assert resolve_edge_overlaps(positions, 1.0, adjacency) == (
+            resolve_edge_overlaps(positions, 1.0, adjacency)
+        )
+
+    def test_large_star_terminates_clean(self):
+        """Thirty leaves packed in a block all get their own direction."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        positions = {'hub': (0.0, 0.0)}
+        positions.update(
+            {f'l{i:02d}': (float(i % 6 + 1), float(i // 6)) for i in range(30)}
+        )
+        adjacency = {'hub': [n for n in positions if n != 'hub']}
+        adjacency.update({n: ['hub'] for n in positions if n != 'hub'})
+
+        out = resolve_edge_overlaps(positions, 1.0, adjacency)
+
+        assert len(set(out.values())) == 31
+        assert self._overlapped(out, adjacency) == []
+
+    def test_does_not_mutate_input(self):
+        """Callers keep their own copy."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        positions = {'p': (0.0, 0.0), 'a': (1.0, 0.0), 'b': (2.0, 0.0)}
+        adjacency = {'p': ['a', 'b'], 'a': ['p'], 'b': ['p']}
+        resolve_edge_overlaps(positions, 1.0, adjacency)
+
+        assert positions == {'p': (0.0, 0.0), 'a': (1.0, 0.0), 'b': (2.0, 0.0)}
+
+    def test_shared_cell_after_failed_collision_search_does_not_crash(self):
+        """A node moving off a cell it does not own must not raise."""
+        from pypopart.layout.algorithms import resolve_edge_overlaps
+
+        # 'b' and 'c' share (2, 0): only one of them holds the cell.
+        positions = {'p': (0.0, 0.0), 'a': (1.0, 0.0), 'b': (2.0, 0.0), 'c': (2.0, 0.0)}
+        adjacency = {'p': ['a', 'b', 'c'], 'a': ['p'], 'b': ['p'], 'c': ['p']}
+
+        out = resolve_edge_overlaps(positions, 1.0, adjacency)
+
+        assert self._overlapped(out, adjacency) == []

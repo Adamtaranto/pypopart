@@ -11,10 +11,13 @@ from pypopart.visualization.cytoscape_plot import (
     DEFAULT_TICK_THRESHOLD,
     MAX_TICK_MARKS,
     MAX_TOOLTIP_SAMPLES,
+    MIN_TICK_FONT_SIZE,
+    TICK_FONT_SIZE,
     InteractiveCytoscapePlotter,
     build_node_tooltip,
     create_cytoscape_network,
     create_edge_tick_stylesheet,
+    fit_tick_font_size,
     format_edge_ticks,
     resolve_population_counts,
 )
@@ -365,6 +368,22 @@ class TestEdgeTickMarks:
         assert edges['H1-H2']['label'] == '1'
         assert edges['H2-H3']['label'] == '2'
 
+    def test_create_elements_fit_tick_font(self, simple_network):
+        """Every edge carries a tick font sized to its visible length."""
+        plotter = InteractiveCytoscapePlotter(simple_network)
+        wide = {'H1': (0.0, 0.0), 'H2': (5.0, 0.0), 'H3': (10.0, 0.0)}
+        elements = plotter.create_elements(layout=wide)
+        edges = [el['data'] for el in elements if 'source' in el.get('data', {})]
+
+        assert all(e['tick_font'] == TICK_FONT_SIZE for e in edges)
+
+        # Nodes at the same spot leave no visible edge: numeral fallback.
+        stacked = dict.fromkeys(wide, (0.0, 0.0))
+        elements = plotter.create_elements(layout=stacked)
+        edges = [el['data'] for el in elements if 'source' in el.get('data', {})]
+
+        assert all(e['tick_font'] == 0 for e in edges)
+
     def test_create_elements_no_ticks_when_labels_hidden(self, simple_network):
         """Hiding edge labels hides the ticks too."""
         plotter = InteractiveCytoscapePlotter(simple_network)
@@ -379,12 +398,20 @@ class TestEdgeTickMarks:
         rules = create_edge_tick_stylesheet(threshold=7)
         selectors = [rule['selector'] for rule in rules]
 
-        assert selectors == ['edge[distance <= 7]', 'edge[distance > 7]']
+        assert selectors == [
+            'edge[distance <= 7][tick_font > 0]',
+            'edge[distance <= 7][tick_font = 0]',
+            'edge[distance > 7]',
+        ]
         assert rules[0]['style']['label'] == 'data(ticks)'
         assert rules[0]['style']['text-rotation'] == 'autorotate'
+        # The font shrinks per edge so the comb fits between the nodes.
+        assert rules[0]['style']['font-size'] == 'data(tick_font)'
         # No white pill behind the ticks (overrides the edge[label] rule).
         assert rules[0]['style']['text-background-opacity'] == 0
+        # An edge too short for even the smallest comb shows the numeral.
         assert rules[1]['style']['label'] == 'data(label)'
+        assert rules[2]['style']['label'] == 'data(label)'
 
     def test_tick_stylesheet_disabled(self):
         """With ticks off every edge falls back to a single numeral rule."""
@@ -416,8 +443,8 @@ class TestEdgeTickMarks:
         _, stylesheet = create_cytoscape_network(simple_network, edge_tick_threshold=3)
         selectors = [str(rule.get('selector', '')) for rule in stylesheet]
 
-        assert 'edge[distance <= 3]' in selectors
-        assert f'edge[distance <= {DEFAULT_TICK_THRESHOLD}]' not in selectors
+        assert 'edge[distance <= 3][tick_font > 0]' in selectors
+        assert not any(f'distance <= {DEFAULT_TICK_THRESHOLD}]' in s for s in selectors)
 
     def test_no_tick_rules_when_edge_labels_hidden(self, simple_network):
         """Hiding edge labels drops the mutation-count rules entirely."""
@@ -425,6 +452,48 @@ class TestEdgeTickMarks:
         selectors = [str(rule.get('selector', '')) for rule in stylesheet]
 
         assert not any(sel.startswith('edge[distance') for sel in selectors)
+
+
+class TestFitTickFontSize:
+    """The tick comb shrinks with the visible edge and has a floor."""
+
+    def test_long_edge_uses_the_full_size(self):
+        """Plenty of room: no shrinking."""
+        assert fit_tick_font_size(400.0, 10.0, 10.0, 5) == TICK_FONT_SIZE
+
+    def test_shrinks_as_the_edge_shortens(self):
+        """Closer nodes, smaller font, never below the floor."""
+        sizes = [fit_tick_font_size(length, 10.0, 10.0, 5) for length in (120, 100, 80)]
+
+        assert sizes[0] > sizes[1] > sizes[2] >= MIN_TICK_FONT_SIZE
+        assert sizes[0] < TICK_FONT_SIZE
+
+    def test_more_ticks_need_more_room(self):
+        """A longer comb on the same edge gets a smaller font."""
+        assert fit_tick_font_size(120.0, 10.0, 10.0, 8) < fit_tick_font_size(
+            120.0, 10.0, 10.0, 2
+        )
+
+    @pytest.mark.parametrize(
+        ('length', 'ra', 'rb', 'count'),
+        [
+            (30.0, 10.0, 10.0, 5),  # visible 10px: too short for five ticks
+            (20.0, 10.0, 10.0, 1),  # discs touch
+            (10.0, 10.0, 10.0, 1),  # discs overlap
+            (100.0, 5.0, 5.0, 0),  # nothing to draw
+        ],
+    )
+    def test_unfit_returns_zero(self, length, ra, rb, count):
+        """Zero means 'show the numeral'."""
+        assert fit_tick_font_size(length, ra, rb, count) == 0.0
+
+    def test_floor_is_honoured_exactly(self):
+        """Just enough room for the minimum font: keep the ticks."""
+        # glyphs = 3, so visible * 0.7 / (3 * 0.6) == MIN when visible == MIN * 1.8 / 0.7
+        visible = MIN_TICK_FONT_SIZE * 1.8 / 0.7
+        assert fit_tick_font_size(visible + 20.0, 10.0, 10.0, 2) == pytest.approx(
+            MIN_TICK_FONT_SIZE, abs=0.01
+        )
 
 
 class TestMedianVectorSelector:

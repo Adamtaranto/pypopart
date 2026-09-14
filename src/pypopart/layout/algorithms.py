@@ -971,3 +971,436 @@ def _nearest_free_cell(
             heapq.heappush(queue, (cost + step_cost, -alignment, nxt, nxt))
 
     return start
+
+
+#: How many rounds of overlap fixing to run. Moving one node can expose a
+#: new overlap elsewhere, so the pass repeats, but only this many times so
+#: a pathological layout cannot loop.
+MAX_OVERLAP_PASSES = 3
+
+#: Furthest ring, in grid cells, searched around the anchor when rotating a
+#: node off an overlapped edge. Bounds the candidate set on a big grid.
+MAX_OVERLAP_RADIUS = 6
+
+#: Smallest angle, in degrees, wanted between two edges at one node once
+#: a node has been rotated. Two edges a few degrees apart hide each
+#: other's tick marks nearly as well as exactly collinear ones, so a
+#: placement that keeps this much clearance is tried first.
+MIN_EDGE_SEPARATION_DEG = 15.0
+
+
+def resolve_edge_overlaps(
+    positions: Dict[str, Tuple[float, float]],
+    grid_size: float,
+    neighbours: Optional[Dict[str, List[str]]],
+    movable: Optional[Iterable[str]] = None,
+) -> Dict[str, Tuple[float, float]]:
+    """
+    Rotate nodes so that no two edges share a lattice vector.
+
+    On a grid two edges leaving one node along the same direction lie on
+    top of each other: a parent at the origin with children one and two
+    cells to the right draws the second edge straight through the first
+    child. The same happens when an unrelated node happens to sit on the
+    segment between two connected nodes. Either way one edge is hidden.
+
+    For each overlapped edge the lower-degree endpoint is swung around
+    the other one to the nearest free cell whose direction differs from
+    every other edge at that anchor, preferring the smallest change of
+    angle and radius so the layout keeps its shape.
+
+    Meant to run after :func:`resolve_grid_collisions` on a computed
+    layout. Manual drags are left alone: a user who drops a node on a
+    line did so on purpose.
+
+    Parameters
+    ----------
+    positions : Dict[str, Tuple[float, float]]
+        Node positions, already snapped and de-collided.
+    grid_size : float
+        Grid spacing, in the same units as ``positions``. Zero or less
+        returns the positions unchanged.
+    neighbours : Dict[str, List[str]], optional
+        Adjacency. Without it there are no edges to overlap.
+    movable : iterable of str, optional
+        Nodes allowed to move. Defaults to every node.
+
+    Returns
+    -------
+    Dict[str, Tuple[float, float]]
+        New positions with overlapped edges rotated apart where a free
+        direction could be found.
+    """
+    if grid_size <= 0 or not positions or not neighbours:
+        return dict(positions)
+
+    cells = {
+        node: (round(pos[0] / grid_size), round(pos[1] / grid_size))
+        for node, pos in positions.items()
+    }
+    movable_set = (
+        set(cells) if movable is None else {node for node in movable if node in cells}
+    )
+    adjacency = {
+        node: sorted(n for n in neighbours.get(node, []) if n in cells and n != node)
+        for node in cells
+    }
+    edges = sorted({tuple(sorted((u, v))) for u in adjacency for v in adjacency[u]})
+    if not edges:
+        return dict(positions)
+
+    taken = {}
+    for node in sorted(cells):
+        taken.setdefault(cells[node], node)
+
+    for _ in range(MAX_OVERLAP_PASSES):
+        changed = False
+        # Longest edge first: of two collinear edges from one node, the
+        # outer child is the one to swing, and once it has moved the
+        # inner edge is clear and is skipped when its turn comes.
+        for u, v in sorted(edges, key=lambda e: (-_lattice_length(cells, e), e)):
+            if not _edge_is_overlapped(u, v, cells, adjacency):
+                continue
+
+            mover, anchor = _pick_mover(u, v, adjacency, movable_set)
+            if mover is None:
+                continue
+
+            origin = cells[mover]
+            offset = (origin[0] - cells[anchor][0], origin[1] - cells[anchor][1])
+            candidates = _overlap_candidates(cells[anchor], offset, taken)
+            # Well-separated placements first; if none exists settle for
+            # any cell that at least ends the exact overlap.
+            for separation in (MIN_EDGE_SEPARATION_DEG, 0.0):
+                target = next(
+                    (
+                        cell
+                        for cell in candidates
+                        if _placement_is_clear(
+                            mover, {**cells, mover: cell}, adjacency, edges, separation
+                        )
+                    ),
+                    None,
+                )
+                if target is not None:
+                    break
+            if target is None:
+                continue
+
+            # A cell can be shared when collision resolution gave up on a
+            # dense pile-up, so only release it if this node holds it.
+            if taken.get(origin) == mover:
+                del taken[origin]
+            taken[target] = mover
+            cells = {**cells, mover: target}
+            changed = True
+
+        if not changed:
+            break
+
+    return {
+        node: (grid_cell[0] * grid_size, grid_cell[1] * grid_size)
+        for node, grid_cell in cells.items()
+    }
+
+
+def _lattice_length(cells: Dict[str, Tuple[int, int]], edge: Tuple[str, str]) -> float:
+    """
+    Length of an edge in grid cells.
+
+    Parameters
+    ----------
+    cells : Dict[str, Tuple[int, int]]
+        Grid cell of every node.
+    edge : Tuple[str, str]
+        The edge's endpoints.
+
+    Returns
+    -------
+    float
+        Euclidean distance between the two cells.
+    """
+    (ax, ay), (bx, by) = cells[edge[0]], cells[edge[1]]
+    return math.hypot(bx - ax, by - ay)
+
+
+def _reduced_direction(start: Tuple[int, int], end: Tuple[int, int]) -> Tuple[int, int]:
+    """
+    Reduce a lattice vector to its primitive direction.
+
+    Parameters
+    ----------
+    start : Tuple[int, int]
+        Cell the vector leaves from.
+    end : Tuple[int, int]
+        Cell the vector points at.
+
+    Returns
+    -------
+    Tuple[int, int]
+        The vector divided by the gcd of its components, so any two
+        collinear same-sense vectors compare equal. ``(0, 0)`` when the
+        cells coincide.
+    """
+    dx, dy = end[0] - start[0], end[1] - start[1]
+    divisor = math.gcd(abs(dx), abs(dy))
+    if divisor == 0:
+        return (0, 0)
+    return (dx // divisor, dy // divisor)
+
+
+def _cell_on_segment(
+    cell: Tuple[int, int], start: Tuple[int, int], end: Tuple[int, int]
+) -> bool:
+    """
+    Test whether a cell lies strictly inside a lattice segment.
+
+    Parameters
+    ----------
+    cell : Tuple[int, int]
+        Cell to test.
+    start : Tuple[int, int]
+        One end of the segment.
+    end : Tuple[int, int]
+        The other end.
+
+    Returns
+    -------
+    bool
+        True when the cell is on the segment and is neither endpoint.
+    """
+    if cell == start or cell == end:
+        return False
+    sx, sy = end[0] - start[0], end[1] - start[1]
+    cx, cy = cell[0] - start[0], cell[1] - start[1]
+    if sx * cy - sy * cx != 0:
+        return False
+    dot = sx * cx + sy * cy
+    return 0 < dot < sx * sx + sy * sy
+
+
+def _edge_is_overlapped(
+    u: str,
+    v: str,
+    cells: Dict[str, Tuple[int, int]],
+    adjacency: Dict[str, List[str]],
+) -> bool:
+    """
+    Decide whether an edge is hidden under another edge or a node.
+
+    Parameters
+    ----------
+    u : str
+        One endpoint.
+    v : str
+        The other endpoint.
+    cells : Dict[str, Tuple[int, int]]
+        Grid cell of every node.
+    adjacency : Dict[str, List[str]]
+        Adjacency restricted to placed nodes.
+
+    Returns
+    -------
+    bool
+        True when another edge leaves either endpoint along the same
+        direction, or when a third node sits on the segment.
+    """
+    for here, there in ((u, v), (v, u)):
+        direction = _reduced_direction(cells[here], cells[there])
+        for other in adjacency[here]:
+            if other != there and (
+                _reduced_direction(cells[here], cells[other]) == direction
+            ):
+                return True
+
+    start, end = cells[u], cells[v]
+    return any(
+        _cell_on_segment(cell, start, end)
+        for node, cell in cells.items()
+        if node != u and node != v
+    )
+
+
+def _pick_mover(
+    u: str,
+    v: str,
+    adjacency: Dict[str, List[str]],
+    movable: set,
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Choose which endpoint of an overlapped edge to swing.
+
+    Parameters
+    ----------
+    u : str
+        One endpoint.
+    v : str
+        The other endpoint.
+    adjacency : Dict[str, List[str]]
+        Adjacency restricted to placed nodes.
+    movable : set
+        Nodes allowed to move.
+
+    Returns
+    -------
+    Tuple[Optional[str], Optional[str]]
+        ``(mover, anchor)``: the lower-degree movable endpoint and the
+        one it rotates around, or ``(None, None)`` when neither may
+        move.
+    """
+    candidates = sorted(
+        (node for node in (u, v) if node in movable),
+        key=lambda node: (len(adjacency[node]), node),
+    )
+    if not candidates:
+        return None, None
+    mover = candidates[0]
+    return mover, v if mover == u else u
+
+
+def _overlap_candidates(
+    anchor: Tuple[int, int],
+    offset: Tuple[int, int],
+    taken: Dict[Tuple[int, int], str],
+) -> List[Tuple[int, int]]:
+    """
+    List free cells around an anchor, closest in angle first.
+
+    Parameters
+    ----------
+    anchor : Tuple[int, int]
+        Cell the node rotates around.
+    offset : Tuple[int, int]
+        The node's current offset from the anchor.
+    taken : Dict[Tuple[int, int], str]
+        Cells already claimed.
+
+    Returns
+    -------
+    List[Tuple[int, int]]
+        Unoccupied cells within :data:`MAX_OVERLAP_RADIUS`, smallest
+        move first. A move is scored as the turn from ``offset`` in
+        eighth-turns plus the relative change in radius, so a small
+        swing at the same distance beats a long slide outwards; ties go
+        to the cell itself so the order is deterministic.
+    """
+    radius = math.hypot(*offset)
+    reach = min(int(math.ceil(radius)) + 1, MAX_OVERLAP_RADIUS)
+
+    def rank(cell: Tuple[int, int]) -> Tuple[float, Tuple[int, int]]:
+        """
+        Score one candidate cell; lower is a smaller move.
+
+        Parameters
+        ----------
+        cell : Tuple[int, int]
+            Candidate cell.
+
+        Returns
+        -------
+        Tuple[float, Tuple[int, int]]
+            The move score and the cell itself as a tie-break.
+        """
+        dx, dy = cell[0] - anchor[0], cell[1] - anchor[1]
+        length = math.hypot(dx, dy)
+        if radius == 0 or length == 0:
+            angle = 0.0
+        else:
+            cosine = (dx * offset[0] + dy * offset[1]) / (length * radius)
+            angle = math.acos(max(-1.0, min(1.0, cosine)))
+        score = angle / (math.pi / 4) + abs(length - radius) / max(radius, 1.0)
+        return (round(score, 9), cell)
+
+    ring = [
+        (anchor[0] + dx, anchor[1] + dy)
+        for dx in range(-reach, reach + 1)
+        for dy in range(-reach, reach + 1)
+        if (dx, dy) != (0, 0)
+    ]
+    return sorted((cell for cell in ring if cell not in taken), key=rank)
+
+
+def _placement_is_clear(
+    node: str,
+    cells: Dict[str, Tuple[int, int]],
+    adjacency: Dict[str, List[str]],
+    edges: List[Tuple[str, str]],
+    min_separation_deg: float = 0.0,
+) -> bool:
+    """
+    Check that a trial position for a node creates no overlap.
+
+    Parameters
+    ----------
+    node : str
+        Node that was moved.
+    cells : Dict[str, Tuple[int, int]]
+        Grid cells with the trial position applied.
+    adjacency : Dict[str, List[str]]
+        Adjacency restricted to placed nodes.
+    edges : List[Tuple[str, str]]
+        Every edge, so edges not touching ``node`` can be checked for
+        now passing under it.
+    min_separation_deg : float, default=0.0
+        Additionally require this much angle between each of the node's
+        edges and every other edge sharing an endpoint with it.
+
+    Returns
+    -------
+    bool
+        True when none of the node's edges overlap, no other edge runs
+        through its new cell, and the angular clearance is met.
+    """
+    if any(
+        _edge_is_overlapped(node, other, cells, adjacency) for other in adjacency[node]
+    ):
+        return False
+    here = cells[node]
+    if any(
+        _cell_on_segment(here, cells[a], cells[b])
+        for a, b in edges
+        if node != a and node != b
+    ):
+        return False
+    if min_separation_deg <= 0:
+        return True
+
+    threshold = math.radians(min_separation_deg)
+    for neighbour in adjacency[node]:
+        # Clearance at the node's own end and at the neighbour's end.
+        for pivot, far in ((node, neighbour), (neighbour, node)):
+            for other in adjacency[pivot]:
+                if other != far and (
+                    _angle_between(cells[pivot], cells[far], cells[other]) < threshold
+                ):
+                    return False
+    return True
+
+
+def _angle_between(
+    pivot: Tuple[int, int], a: Tuple[int, int], b: Tuple[int, int]
+) -> float:
+    """
+    Angle at a pivot cell between the rays to two other cells.
+
+    Parameters
+    ----------
+    pivot : Tuple[int, int]
+        Cell the two rays leave from.
+    a : Tuple[int, int]
+        End of the first ray.
+    b : Tuple[int, int]
+        End of the second ray.
+
+    Returns
+    -------
+    float
+        Angle in radians, in ``[0, pi]``; zero when either ray has no
+        length.
+    """
+    ax, ay = a[0] - pivot[0], a[1] - pivot[1]
+    bx, by = b[0] - pivot[0], b[1] - pivot[1]
+    norm = math.hypot(ax, ay) * math.hypot(bx, by)
+    if norm == 0:
+        return 0.0
+    return math.acos(max(-1.0, min(1.0, (ax * bx + ay * by) / norm)))

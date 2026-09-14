@@ -6,6 +6,7 @@ site_url = "https://pypopart.readthedocs.io"
 repo_url = "https://github.com/Adamtaranto/pypopart"
 repo_name = "Adamtaranto/pypopart"
 edit_uri = "edit/main/docs/"
+extra_css = ["stylesheets/extra.css"]
 
 nav = [
   { "Home" = "index.md" },
@@ -81,6 +82,8 @@ nav = [
 ]
 
 [project.theme]
+logo = "icons/popart.svg"
+favicon = "icons/popart.ico"
 features = [
   "content.code.annotate",
   "content.code.copy",
@@ -98,21 +101,17 @@ features = [
 [project.theme.icon]
 repo = "fontawesome/brands/github"
 
-[[project.theme.palette]]
-media = "(prefers-color-scheme: light)"
-scheme = "default"
-primary = "indigo"
-accent = "indigo"
-toggle.icon = "material/brightness-7"
-toggle.name = "Switch to dark mode"
+[project.theme.font]
+text = "Space Grotesk"
+code = "JetBrains Mono"
 
+# The app's Bauhaus pop-art palette, light only: amber header, red
+# links, parchment ground. "custom" is passed straight through to the
+# data-md-color-* attributes and defined in docs/stylesheets/extra.css.
 [[project.theme.palette]]
-media = "(prefers-color-scheme: dark)"
-scheme = "slate"
-primary = "indigo"
-accent = "indigo"
-toggle.icon = "material/brightness-4"
-toggle.name = "Switch to light mode"
+scheme = "default"
+primary = "custom"
+accent = "custom"
 
 [[project.extra.social]]
 icon = "fontawesome/brands/github"

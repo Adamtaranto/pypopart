@@ -725,8 +725,9 @@ class TCS(NetworkAlgorithm):
                 sample_ids=[],
             )
 
-            # Add to network, marked so collapse and styling can find it
-            network.add_haplotype(intermediate_hap)
+            # Add to network as a median vector, so the GUI draws it as an
+            # unlabelled vertex like PopART does, and marked for collapse.
+            network.add_haplotype(intermediate_hap, median_vector=True)
             network.graph.nodes[intermediate_id]['is_intermediate'] = True
             network.add_edge(current_id, intermediate_id, distance=1)
 

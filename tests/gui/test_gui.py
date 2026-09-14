@@ -1,5 +1,7 @@
 """Unit tests for PyPopART GUI application."""
 
+import pytest
+
 from pypopart.gui.layout import cards
 
 
@@ -371,3 +373,128 @@ class TestEdgeTickControls:
         ids = _collect_ids(cards.create_metadata_tab())
 
         assert 'population-colors' in ids
+
+
+class TestTaskAndUploadControls:
+    """Controls added with the repel slider and the task indicator."""
+
+    def test_layout_card_has_repel_controls(self):
+        """The spring layouts expose their repulsion strength."""
+        ids = _collect_ids(cards.create_layout_card())
+
+        assert 'repel-slider' in ids
+        assert 'repel-options' in ids
+
+    def test_title_bar_has_task_indicator(self):
+        """Long callbacks report what they are doing in the header."""
+        from pypopart.gui.app import PyPopARTApp
+
+        ids = _collect_ids(PyPopARTApp().app.layout)
+
+        assert 'task-indicator' in ids
+        assert 'task-label' in ids
+
+    def test_layout_card_has_box_select_switch(self):
+        """Multi-select needs a way to box-drag without panning."""
+        ids = _collect_ids(cards.create_layout_card())
+
+        assert 'box-select-toggle' in ids
+
+    def test_graph_allows_box_selection(self):
+        """The Cytoscape canvas accepts a selection box."""
+        import dash_cytoscape as cyto
+
+        graph = next(
+            c
+            for c in _walk(cards.create_network_tab())
+            if isinstance(c, cyto.Cytoscape)
+        )
+
+        assert graph.boxSelectionEnabled is True
+        assert graph.userPanningEnabled is True
+
+    def test_upload_card_is_a_drop_zone(self):
+        """Both uploads carry the drop-zone class so drag and drop is visible."""
+        from dash import dcc
+
+        uploads = [
+            c for c in _walk(cards.create_upload_card()) if isinstance(c, dcc.Upload)
+        ]
+
+        assert {u.id for u in uploads} >= {'upload-data', 'upload-metadata'}
+        for upload in uploads:
+            if upload.id in ('upload-data', 'upload-metadata'):
+                assert upload.className == 'pp-dropzone'
+                assert upload.className_active == 'pp-dropzone--active'
+
+
+def _walk(component):
+    """Yield a component and every descendant."""
+    yield component
+    children = getattr(component, 'children', None)
+    if children is None:
+        return
+    if not isinstance(children, (list, tuple)):
+        children = [children]
+    for child in children:
+        if hasattr(child, 'children') or hasattr(child, 'id'):
+            yield from _walk(child)
+
+
+class TestBackgroundJobs:
+    """Long computations run out of process so they can be cancelled."""
+
+    @pytest.fixture(scope='class')
+    def callback_map(self):
+        """Register the app once and expose its callback map."""
+        from pypopart.gui.app import PyPopARTApp
+
+        return PyPopARTApp().app.callback_map
+
+    @staticmethod
+    def _entry(callback_map, output_fragment):
+        return next(v for k, v in callback_map.items() if output_fragment in k)
+
+    def test_compute_network_is_a_background_callback(self, callback_map):
+        """Changing algorithm or recomputing cancels the running job."""
+        entry = self._entry(callback_map, 'network-store.data')
+
+        assert entry['background']
+        cancel_ids = {c['id'] for c in entry['background']['cancel']}
+        assert {'metadata-commit-token', 'algorithm-select'} <= cancel_ids
+
+    def test_apply_layout_is_a_background_callback(self, callback_map):
+        """Any change to the layout settings cancels the running layout."""
+        entry = self._entry(callback_map, 'layout-store.data')
+
+        assert entry['background']
+        cancel_ids = {c['id'] for c in entry['background']['cancel']}
+        assert {
+            'apply-layout-button',
+            'layout-select',
+            'spacing-slider',
+            'repel-slider',
+            'snap-to-grid-toggle',
+            'grid-size',
+        } <= cancel_ids
+
+
+class TestFileChip:
+    """The upload boxes show which file is loaded."""
+
+    def test_chip_names_the_file(self):
+        """Filename and a summary, with the full name as a tooltip."""
+        from pypopart.gui.callbacks.upload import file_chip
+
+        chip = file_chip('samples.fasta', '12 sequences')
+        texts = [c.children for c in chip.children]
+
+        assert chip.className == 'pp-filechip'
+        assert chip.title == 'samples.fasta'
+        assert texts == ['samples.fasta', '12 sequences']
+
+    def test_chip_survives_a_missing_name(self):
+        """Dash can hand over no filename; the chip still renders."""
+        from pypopart.gui.callbacks.upload import file_chip
+
+        assert file_chip(None, '1 row').children[0].children == 'file'

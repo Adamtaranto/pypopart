@@ -11,7 +11,7 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from pypopart.core.graph import HaplotypeNetwork
-from pypopart.gui.callbacks.feedback import no_toast, toast
+from pypopart.gui.callbacks.feedback import no_toast, task_running, toast
 from pypopart.gui.serialization import merge_node_positions
 from pypopart.io import FastaReader, NexusReader, PhylipReader
 from pypopart.io.metadata import MetadataReader, extract_coordinates
@@ -57,6 +57,32 @@ def _detect_reader(text: str, filename: str):
     return None
 
 
+def file_chip(filename: Optional[str], summary: str) -> html.Div:
+    """
+    Show which file is loaded, under its upload box.
+
+    Parameters
+    ----------
+    filename : str, optional
+        Name of the uploaded file.
+    summary : str
+        Short description of what was read from it.
+
+    Returns
+    -------
+    html.Div
+        The chip, with the filename in monospace and the summary muted.
+    """
+    return html.Div(
+        [
+            html.Span(filename or 'file', className='pp-filechip-name'),
+            html.Span(summary, className='pp-filechip-summary'),
+        ],
+        className='pp-filechip',
+        title=filename or '',
+    )
+
+
 def register(app, logger) -> None:
     """
     Register upload callbacks on the Dash app.
@@ -82,6 +108,7 @@ def register(app, logger) -> None:
         Input('upload-data', 'contents'),
         State('upload-data', 'filename'),
         prevent_initial_call='initial_duplicate',
+        running=task_running('Reading sequences'),
     )
     def handle_file_upload(contents: Optional[str], filename: Optional[str]) -> Tuple:
         """
@@ -166,7 +193,7 @@ def register(app, logger) -> None:
 
             # Enable both compute button and template download button
             return (
-                html.Div(),
+                file_chip(filename, f'{len(alignment)} sequences'),
                 alignment_data,
                 False,
                 False,
@@ -207,6 +234,7 @@ def register(app, logger) -> None:
         Input('upload-metadata', 'contents'),
         State('upload-metadata', 'filename'),
         prevent_initial_call='initial_duplicate',
+        running=task_running('Reading metadata'),
     )
     def handle_metadata_upload(
         contents: Optional[str], filename: Optional[str]
@@ -246,6 +274,7 @@ def register(app, logger) -> None:
                         color='danger',
                     ),
                     None,
+                    *no_toast(),
                 )
 
             reader = MetadataReader.from_string(
@@ -312,7 +341,7 @@ def register(app, logger) -> None:
                 )
 
             return (
-                html.Div(),
+                file_chip(filename, f'{len(metadata_dict)} rows'),
                 metadata_data,
                 *toast(status_parts, header='Metadata loaded'),
             )
